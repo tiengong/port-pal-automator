@@ -129,6 +129,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
   const [editingSubcaseIndex, setEditingSubcaseIndex] = useState<number | null>(null);
+  const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
   const [waitingForUser, setWaitingForUser] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
@@ -1168,14 +1169,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           size="sm" 
                           className="h-7 w-7 p-0"
                           onClick={() => {
-                            // 打开设置对话框，针对单个命令
+                            // 打开单个命令设置
                             if (command.type === 'subcase') {
                               // 如果是子用例，打开子用例编辑器
                               const commandIndex = currentTestCase.commands.findIndex(cmd => cmd.id === command.id);
                               setEditingSubcaseIndex(commandIndex);
                             } else {
-                              // 打开整个测试用例编辑器并定位到该命令
-                              setEditingCase(currentTestCase);
+                              // 设置当前编辑的命令索引
+                              const commandIndex = currentTestCase.commands.findIndex(cmd => cmd.id === command.id);
+                              setEditingCommandIndex(commandIndex);
                             }
                           }}
                         >
@@ -2149,6 +2151,113 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
               />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 单个命令编辑弹窗 */}
+      <Dialog open={editingCommandIndex !== null} onOpenChange={(open) => !open && setEditingCommandIndex(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>编辑命令设置</DialogTitle>
+          </DialogHeader>
+          {editingCommandIndex !== null && editingCase && (
+            <div className="space-y-4">
+              {(() => {
+                const command = editingCase.commands[editingCommandIndex];
+                return (
+                  <>
+                    <div>
+                      <Label className="text-sm">命令内容</Label>
+                      <Input
+                        value={command.command}
+                        onChange={(e) => updateCommand(editingCommandIndex, { command: e.target.value })}
+                        placeholder={
+                          command.type === 'execution' ? "输入AT命令" : 
+                          command.type === 'urc' ? "输入URC模式" : "命令内容"
+                        }
+                      />
+                    </div>
+
+                    {/* URC特有配置 */}
+                    {command.type === 'urc' && (
+                      <div>
+                        <Label className="text-sm">URC匹配模式</Label>
+                        <Input
+                          value={command.urcPattern || ''}
+                          onChange={(e) => updateCommand(editingCommandIndex, { urcPattern: e.target.value })}
+                          placeholder="例如: +CREG: 或 %CGREG:"
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm">验证方式</Label>
+                        <Select
+                          value={command.validationMethod}
+                          onValueChange={(value: any) => updateCommand(editingCommandIndex, { validationMethod: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">无验证</SelectItem>
+                            <SelectItem value="contains">包含</SelectItem>
+                            <SelectItem value="equals">完全匹配</SelectItem>
+                            <SelectItem value="regex">正则表达式</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-sm">等待时间(ms)</Label>
+                        <Input
+                          type="number"
+                          value={command.waitTime}
+                          onChange={(e) => updateCommand(editingCommandIndex, { waitTime: Number(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm">换行符</Label>
+                        <Select
+                          value={command.lineEnding}
+                          onValueChange={(value: any) => updateCommand(editingCommandIndex, { lineEnding: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">无</SelectItem>
+                            <SelectItem value="lf">LF (\n)</SelectItem>
+                            <SelectItem value="cr">CR (\r)</SelectItem>
+                            <SelectItem value="crlf">CRLF (\r\n)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center gap-2 pt-6">
+                        <Switch
+                          checked={command.stopOnFailure}
+                          onCheckedChange={(checked) => updateCommand(editingCommandIndex, { stopOnFailure: checked })}
+                        />
+                        <Label className="text-sm">失败时停止执行</Label>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button variant="outline" onClick={() => setEditingCommandIndex(null)}>
+                        取消
+                      </Button>
+                      <Button onClick={() => setEditingCommandIndex(null)}>
+                        保存
+                      </Button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

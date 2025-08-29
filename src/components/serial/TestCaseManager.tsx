@@ -1413,66 +1413,68 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   };
 
   return (
-    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>编辑测试用例</DialogTitle>
-        <DialogDescription>修改测试用例的基本信息和命令步骤</DialogDescription>
-      </DialogHeader>
-      <div className="space-y-4">
-        <div>
-          <Label>用例名称</Label>
-          <Input
-            value={localTestCase.name}
-            onChange={(e) => updateField('name', e.target.value)}
-          />
-        </div>
-        <div>
-          <Label>描述</Label>
-          <Textarea
-            value={localTestCase.description}
-            onChange={(e) => updateField('description', e.target.value)}
-          />
-        </div>
-        <div>
-          <Label>命令步骤</Label>
-          <div className="space-y-2 max-h-96 overflow-y-auto border rounded p-2">
-            {localTestCase.commands.map((cmd, idx) => (
-              <div key={cmd.id} className="flex items-center gap-2">
-                <Input
-                  value={cmd.command}
-                  onChange={(e) => updateCommand(idx, { command: e.target.value })}
-                  placeholder="AT命令或URC模式"
-                  className="flex-1 font-mono"
-                />
-                <Select
-                  value={cmd.validationMethod}
-                  onValueChange={(value: any) => updateCommand(idx, { validationMethod: value })}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">无验证</SelectItem>
-                    <SelectItem value="contains">包含</SelectItem>
-                    <SelectItem value="equals">等于</SelectItem>
-                    <SelectItem value="regex">正则</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="ghost" size="sm" onClick={() => removeCommand(idx)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={addCommand} className="w-full">
-              添加命令
-            </Button>
+    <Dialog open={true} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>编辑测试用例</DialogTitle>
+          <DialogDescription>修改测试用例的基本信息和命令步骤</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>用例名称</Label>
+            <Input
+              value={localTestCase.name}
+              onChange={(e) => updateField('name', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>描述</Label>
+            <Textarea
+              value={localTestCase.description}
+              onChange={(e) => updateField('description', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label>命令步骤</Label>
+            <div className="space-y-2 max-h-96 overflow-y-auto border rounded p-2">
+              {localTestCase.commands.map((cmd, idx) => (
+                <div key={cmd.id} className="flex items-center gap-2">
+                  <Input
+                    value={cmd.command}
+                    onChange={(e) => updateCommand(idx, { command: e.target.value })}
+                    placeholder="AT命令或URC模式"
+                    className="flex-1 font-mono"
+                  />
+                  <Select
+                    value={cmd.validationMethod}
+                    onValueChange={(value: any) => updateCommand(idx, { validationMethod: value })}
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border shadow-md z-50">
+                      <SelectItem value="none">无验证</SelectItem>
+                      <SelectItem value="contains">包含</SelectItem>
+                      <SelectItem value="equals">等于</SelectItem>
+                      <SelectItem value="regex">正则</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="ghost" size="sm" onClick={() => removeCommand(idx)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" onClick={addCommand} className="w-full">
+                添加命令
+              </Button>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={onCancel}>取消</Button>
+            <Button onClick={() => onSave(localTestCase)}>保存</Button>
           </div>
         </div>
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={onCancel}>取消</Button>
-          <Button onClick={() => onSave(localTestCase)}>保存</Button>
-        </div>
-      </div>
-    </DialogContent>
+      </DialogContent>
+    </Dialog>
   );
 };

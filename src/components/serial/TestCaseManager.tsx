@@ -980,6 +980,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   setTestCases(updatedTestCases);
                 }}
                 onClose={() => setEditingSubcaseIndex(null)}
+                allTestCases={testCases.map(tc => ({
+                  id: tc.id,  
+                  uniqueId: tc.uniqueId,
+                  name: tc.name
+                }))}
               />
             )}
           </div>

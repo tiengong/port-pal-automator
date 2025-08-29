@@ -14,15 +14,22 @@ interface SubcaseEditorProps {
   subCommands: TestCommand[];
   onSubCommandsChange: (subCommands: TestCommand[]) => void;
   onClose: () => void;
+  allTestCases?: { id: string; uniqueId: string; name: string }[]; // 所有测试用例列表，用于自动完成
 }
 
 export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
   parentCaseName,
   subCommands,
   onSubCommandsChange,
-  onClose
+  onClose,
+  allTestCases = []
 }) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [autocompleteStates, setAutocompleteStates] = useState<{[key: number]: { 
+    isOpen: boolean; 
+    filteredCases: typeof allTestCases;
+    inputValue: string;
+  }}>({});
 
   const addSubCommand = () => {
     const newCommand: TestCommand = {
@@ -55,6 +62,47 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
     onSubCommandsChange(updated);
+  };
+
+  // 处理自动完成输入
+  const handleAutocompleteInput = (index: number, value: string) => {
+    const filtered = allTestCases.filter(testCase => 
+      testCase.name.toLowerCase().includes(value.toLowerCase()) ||
+      testCase.uniqueId.toLowerCase().includes(value.toLowerCase())
+    );
+    
+    setAutocompleteStates(prev => ({
+      ...prev,
+      [index]: {
+        isOpen: value.length > 0 && filtered.length > 0,
+        filteredCases: filtered,
+        inputValue: value
+      }
+    }));
+
+    updateSubCommand(index, { command: value });
+  };
+
+  // 选择自动完成选项
+  const handleAutocompleteSelect = (index: number, testCase: typeof allTestCases[0]) => {
+    updateSubCommand(index, { 
+      command: testCase.name,
+      referencedCaseId: testCase.id
+    });
+    
+    setAutocompleteStates(prev => ({
+      ...prev,
+      [index]: {
+        isOpen: false,
+        filteredCases: [],
+        inputValue: testCase.name
+      }
+    }));
+  };
+
+  // 获取自动完成状态
+  const getAutocompleteState = (index: number) => {
+    return autocompleteStates[index] || { isOpen: false, filteredCases: [], inputValue: '' };
   };
 
   return (
@@ -90,7 +138,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                   </Badge>
                   <Select
                     value={command.type}
-                    onValueChange={(value: 'execution' | 'urc') => 
+                    onValueChange={(value: 'execution' | 'urc' | 'subcase') => 
                       updateSubCommand(index, { type: value })
                     }
                   >
@@ -100,6 +148,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                     <SelectContent className="bg-background border shadow-md z-50">
                       <SelectItem value="execution">命令</SelectItem>
                       <SelectItem value="urc">URC</SelectItem>
+                      <SelectItem value="subcase">子用例</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -143,14 +192,58 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                 </div>
               </div>
 
-              <Input
-                value={command.command}
-                onChange={(e) => updateSubCommand(index, { command: e.target.value })}
-                placeholder={
-                  command.type === 'execution' ? "输入AT命令" : "输入URC模式"
-                }
-                className="h-8 text-sm font-mono bg-background"
-              />
+              {command.type === 'subcase' ? (
+                <div className="relative">
+                  <Input
+                    value={command.command}
+                    onChange={(e) => handleAutocompleteInput(index, e.target.value)}
+                    placeholder="输入用例名称或编号"
+                    className="h-8 text-sm bg-background"
+                    onFocus={() => {
+                      if (command.command) {
+                        handleAutocompleteInput(index, command.command);
+                      }
+                    }}
+                    onBlur={() => {
+                      // 延迟关闭，允许点击选项
+                      setTimeout(() => {
+                        setAutocompleteStates(prev => ({
+                          ...prev,
+                          [index]: { ...getAutocompleteState(index), isOpen: false }
+                        }));
+                      }, 150);
+                    }}
+                  />
+                  
+                  {/* 自动完成下拉列表 */}
+                  {getAutocompleteState(index).isOpen && (
+                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-32 overflow-y-auto">
+                      {getAutocompleteState(index).filteredCases.map((testCase) => (
+                        <div
+                          key={testCase.id}
+                          className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // 防止失焦
+                            handleAutocompleteSelect(index, testCase);
+                          }}
+                        >
+                          <Badge variant="outline" className="text-xs">#{testCase.uniqueId}</Badge>
+                          <span>{testCase.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Input
+                  value={command.command}
+                  onChange={(e) => updateSubCommand(index, { command: e.target.value })}
+                  placeholder={
+                    command.type === 'execution' ? "输入AT命令" : "输入URC模式"
+                  }
+                  className="h-8 text-sm font-mono bg-background"
+                />
+              )}
 
               {/* 详细配置 */}
               {editingIndex === index && (

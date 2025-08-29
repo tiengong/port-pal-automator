@@ -34,14 +34,17 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
   const addSubCommand = () => {
     const newCommand: TestCommand = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      type: 'execution',
+      type: 'subcase',
       command: '',
       validationMethod: 'none',
-      waitTime: 2000,
-      stopOnFailure: true,
-      lineEnding: 'crlf',
+      waitTime: 0,
+      stopOnFailure: false,
+      lineEnding: 'none',
       selected: false,
-      status: 'pending'
+      status: 'pending',
+      referencedCaseId: '',
+      isExpanded: false,
+      subCommands: []
     };
     onSubCommandsChange([...subCommands, newCommand]);
   };

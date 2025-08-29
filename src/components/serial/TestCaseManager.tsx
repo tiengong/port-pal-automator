@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, 
@@ -1169,14 +1169,18 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           size="sm" 
                           className="h-7 w-7 p-0"
                           onClick={() => {
+                            console.log('Settings button clicked', command.type, command.id);
                             // 打开单个命令设置
                             if (command.type === 'subcase') {
                               // 如果是子用例，打开子用例编辑器
                               const commandIndex = currentTestCase.commands.findIndex(cmd => cmd.id === command.id);
+                              console.log('Opening subcase editor for index:', commandIndex);
                               setEditingSubcaseIndex(commandIndex);
                             } else {
-                              // 设置当前编辑的命令索引
+                              // 设置当前编辑的命令索引，并确保设置正确的测试用例
                               const commandIndex = currentTestCase.commands.findIndex(cmd => cmd.id === command.id);
+                              console.log('Opening command editor for index:', commandIndex);
+                              setEditingCase(currentTestCase); // 确保设置当前测试用例
                               setEditingCommandIndex(commandIndex);
                             }
                           }}
@@ -2159,6 +2163,9 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>编辑命令设置</DialogTitle>
+            <DialogDescription>
+              配置单个命令的参数和验证设置
+            </DialogDescription>
           </DialogHeader>
           {editingCommandIndex !== null && editingCase && (
             <div className="space-y-4">

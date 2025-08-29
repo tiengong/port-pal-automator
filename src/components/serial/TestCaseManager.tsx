@@ -1020,8 +1020,63 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   const command = editingCase.commands[editingCommandIndex];
                   return (
                     <>
+                       {/* 命令类型选择 */}
                        <div>
-                         <Label className="text-sm font-medium">命令内容</Label>
+                         <Label className="text-sm font-medium">命令类型</Label>
+                         <Select
+                           value={command.type}
+                           onValueChange={(value: 'execution' | 'urc') => {
+                             const updatedCommands = [...editingCase.commands];
+                             updatedCommands[editingCommandIndex] = {
+                               ...updatedCommands[editingCommandIndex],
+                               type: value,
+                               // 根据类型设置默认值
+                               ...(value === 'urc' && {
+                                 urcPattern: updatedCommands[editingCommandIndex].urcPattern || '+CREG:',
+                                 command: updatedCommands[editingCommandIndex].command || '+CREG:'
+                               }),
+                               ...(value === 'execution' && {
+                                 command: updatedCommands[editingCommandIndex].command || 'AT'
+                               })
+                             };
+                             setEditingCase({ ...editingCase, commands: updatedCommands });
+                             
+                             const updatedTestCases = testCases.map(tc => 
+                               tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
+                             );
+                             setTestCases(updatedTestCases);
+                           }}
+                         >
+                           <SelectTrigger className="bg-background">
+                             <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="bg-background border shadow-md z-50">
+                             <SelectItem value="execution">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-2 h-2 bg-primary rounded-full"></div>
+                                 <span>AT命令执行</span>
+                               </div>
+                             </SelectItem>
+                             <SelectItem value="urc">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                                 <span>URC消息监听</span>
+                               </div>
+                             </SelectItem>
+                           </SelectContent>
+                         </Select>
+                         <p className="text-xs text-muted-foreground mt-1">
+                           {command.type === 'execution' 
+                             ? '执行AT命令并等待响应' 
+                             : '监听并解析URC（主动上报）消息'
+                           }
+                         </p>
+                       </div>
+
+                       <div>
+                         <Label className="text-sm font-medium">
+                           {command.type === 'execution' ? '命令内容' : 'URC模式'}
+                         </Label>
                          <Input
                            value={command.command}
                            onChange={(e) => {
@@ -1039,35 +1094,122 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                              setTestCases(updatedTestCases);
                            }}
                            placeholder={
-                             command.type === 'execution' ? "AT+CREG?" : 
-                             command.type === 'urc' ? "输入URC模式" : "命令内容"
+                             command.type === 'execution' 
+                               ? "例如: AT+CREG? 或 AT+CSQ" 
+                               : "例如: +CREG: 或 +CSQ:"
                            }
                            className="font-mono bg-muted/30"
                          />
+                         <p className="text-xs text-muted-foreground mt-1">
+                           {command.type === 'execution' 
+                             ? '要发送的AT命令，不需要包含换行符' 
+                             : '要匹配的URC消息模式，支持部分匹配'
+                           }
+                         </p>
                        </div>
 
                        {/* URC特有配置 */}
                        {command.type === 'urc' && (
-                         <div>
-                           <Label className="text-sm font-medium">URC匹配模式</Label>
-                           <Input
-                             value={command.urcPattern || ''}
-                             onChange={(e) => {
-                               const updatedCommands = [...editingCase.commands];
-                               updatedCommands[editingCommandIndex] = {
-                                 ...updatedCommands[editingCommandIndex],
-                                 urcPattern: e.target.value
-                               };
-                               setEditingCase({ ...editingCase, commands: updatedCommands });
-                               
-                               const updatedTestCases = testCases.map(tc => 
-                                 tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
-                               );
-                               setTestCases(updatedTestCases);
-                             }}
-                             placeholder="例如: +CREG: 或 %CGREG:"
-                             className="font-mono bg-muted/30"
-                           />
+                         <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                           <div className="flex items-center gap-2">
+                             <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                             <Label className="text-sm font-medium text-orange-700 dark:text-orange-300">URC监听配置</Label>
+                           </div>
+                           
+                           <div>
+                             <Label className="text-sm font-medium">精确匹配模式</Label>
+                             <Input
+                               value={command.urcPattern || ''}
+                               onChange={(e) => {
+                                 const updatedCommands = [...editingCase.commands];
+                                 updatedCommands[editingCommandIndex] = {
+                                   ...updatedCommands[editingCommandIndex],
+                                   urcPattern: e.target.value
+                                 };
+                                 setEditingCase({ ...editingCase, commands: updatedCommands });
+                                 
+                                 const updatedTestCases = testCases.map(tc => 
+                                   tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
+                                 );
+                                 setTestCases(updatedTestCases);
+                               }}
+                               placeholder="例如: +CREG: 2,1 或完整的URC消息"
+                               className="font-mono bg-background"
+                             />
+                             <p className="text-xs text-muted-foreground mt-1">
+                               留空则使用上方的URC模式进行匹配，填写则进行精确匹配
+                             </p>
+                           </div>
+
+                           <div>
+                             <Label className="text-sm font-medium">数据解析类型</Label>
+                             <Select
+                               value={command.dataParseConfig?.parseType || 'contains'}
+                               onValueChange={(value: 'contains' | 'exact' | 'regex' | 'split' | 'json') => {
+                                 const updatedCommands = [...editingCase.commands];
+                                 updatedCommands[editingCommandIndex] = {
+                                   ...updatedCommands[editingCommandIndex],
+                                   dataParseConfig: {
+                                     parseType: value,
+                                     parsePattern: command.dataParseConfig?.parsePattern || '',
+                                     parameterMap: command.dataParseConfig?.parameterMap || {}
+                                   }
+                                 };
+                                 setEditingCase({ ...editingCase, commands: updatedCommands });
+                                 
+                                 const updatedTestCases = testCases.map(tc => 
+                                   tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
+                                 );
+                                 setTestCases(updatedTestCases);
+                               }}
+                             >
+                               <SelectTrigger className="bg-background">
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent className="bg-background border shadow-md z-50">
+                                 <SelectItem value="contains">包含匹配</SelectItem>
+                                 <SelectItem value="exact">精确匹配</SelectItem>
+                                 <SelectItem value="regex">正则表达式</SelectItem>
+                                 <SelectItem value="split">分割解析</SelectItem>
+                                 <SelectItem value="json">JSON解析</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </div>
+
+                           <div>
+                             <Label className="text-sm font-medium">解析模式</Label>
+                             <Input
+                               value={command.dataParseConfig?.parsePattern || ''}
+                               onChange={(e) => {
+                                 const updatedCommands = [...editingCase.commands];
+                                 updatedCommands[editingCommandIndex] = {
+                                   ...updatedCommands[editingCommandIndex],
+                                   dataParseConfig: {
+                                     parseType: command.dataParseConfig?.parseType || 'contains',
+                                     parsePattern: e.target.value,
+                                     parameterMap: command.dataParseConfig?.parameterMap || {}
+                                   }
+                                 };
+                                 setEditingCase({ ...editingCase, commands: updatedCommands });
+                                 
+                                 const updatedTestCases = testCases.map(tc => 
+                                   tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
+                                 );
+                                 setTestCases(updatedTestCases);
+                               }}
+                               placeholder={
+                                 command.dataParseConfig?.parseType === 'regex' 
+                                   ? '例如: \\+CREG: (\\d+),(\\d+) 捕获状态和信号'
+                                   : command.dataParseConfig?.parseType === 'split'
+                                   ? '例如: , 按逗号分割'
+                                   : '留空则匹配整行内容'
+                               }
+                               className="font-mono bg-background"
+                             />
+                             <p className="text-xs text-muted-foreground mt-1">
+                               定义如何从URC消息中提取数据参数
+                             </p>
+                           </div>
                          </div>
                        )}
 

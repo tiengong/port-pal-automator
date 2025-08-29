@@ -725,17 +725,25 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                             return commandsToShow.map((subCommand, subIndex) => (
                               <div key={`${command.id}-sub-${subIndex}`}
                                    className="flex items-center gap-2 p-2 rounded text-xs bg-muted/20 border-border/20 border hover:bg-muted/30 transition-colors">
+                                
+                                {/* 步骤编号 */}
                                 <Badge variant="outline" className="text-xs px-1 flex-shrink-0">
                                   {index + 1}.{subIndex + 1}
                                 </Badge>
+                                
+                                {/* 命令类型 */}
                                 <Badge variant={subCommand.type === 'execution' ? 'default' : 'destructive'} 
                                        className="text-xs px-1 flex-shrink-0">
                                   {subCommand.type === 'execution' ? '命令' : 'URC'}
                                 </Badge>
+                                
+                                {/* 命令内容 */}
                                 <div className="flex-1 min-w-0 font-mono text-xs truncate">
                                   {subCommand.type === 'execution' && `执行: ${subCommand.command}`}
                                   {subCommand.type === 'urc' && `监听: ${subCommand.urcPattern || subCommand.command}`}
                                 </div>
+                                
+                                {/* 操作按钮区域 */}
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                   {/* 状态指示器 */}
                                   {subCommand.status === 'success' && (
@@ -748,50 +756,74 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                     <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                   )}
                                   
-                                  {/* 操作按钮 */}
-                                  {isEditable && (
-                                    <>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-5 w-5 p-0"
-                                        onClick={() => {
-                                          // 运行单个子命令
-                                          toast({
-                                            title: "开始执行",
-                                            description: `正在执行子步骤 ${index + 1}.${subIndex + 1}: ${subCommand.command}`,
-                                          });
-                                        }}
-                                        disabled={connectedPorts.length === 0}
-                                      >
-                                        <Play className="w-2 h-2" />
-                                      </Button>
-                                      
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-5 w-5 p-0"
-                                        onClick={() => {
-                                          // 编辑子命令 - 打开子用例编辑器并定位到特定命令
-                                          const commandWithSubCommands = {
-                                            ...command,
-                                            subCommands: command.subCommands || []
-                                          };
-                                          const updatedCommands = [...currentTestCase.commands];
-                                          updatedCommands[index] = commandWithSubCommands;
-                                          
-                                          setEditingCase({ ...currentTestCase, commands: updatedCommands });
-                                          setEditingSubcaseIndex(index);
-                                        }}
-                                      >
-                                        <Settings className="w-2 h-2" />
-                                      </Button>
-                                    </>
+                                  {/* 运行按钮 - 所有命令都有 */}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 hover:bg-green-100 hover:text-green-700 dark:hover:bg-green-900/30"
+                                    onClick={() => {
+                                      // 运行单个子命令
+                                      toast({
+                                        title: "开始执行",
+                                        description: `正在执行子步骤 ${index + 1}.${subIndex + 1}: ${subCommand.command}`,
+                                      });
+                                    }}
+                                    disabled={connectedPorts.length === 0}
+                                    title={`运行步骤 ${index + 1}.${subIndex + 1}`}
+                                  >
+                                    <Play className="w-2 h-2" />
+                                  </Button>
+                                  
+                                  {/* 编辑按钮 */}
+                                  {isEditable ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-5 w-5 p-0 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900/30"
+                                      onClick={() => {
+                                        // 编辑单个子命令 - 创建临时的编辑状态
+                                        const tempCase: TestCase = {
+                                          ...currentTestCase,
+                                          commands: [{
+                                            ...subCommand,
+                                            id: `temp_${subCommand.id}` // 避免ID冲突
+                                          }]
+                                        };
+                                        setEditingCase(tempCase);
+                                        setEditingCommandIndex(0); // 编辑临时用例的第一个命令
+                                      }}
+                                      title={`编辑步骤 ${index + 1}.${subIndex + 1}`}
+                                    >
+                                      <Settings className="w-2 h-2" />
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-5 w-5 p-0 hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-900/30"
+                                      onClick={() => {
+                                        // 跳转到引用的测试用例进行编辑
+                                        if (command.referencedCaseId) {
+                                          const referencedCase = findTestCaseById(command.referencedCaseId);
+                                          if (referencedCase) {
+                                            setSelectedTestCaseId(referencedCase.id);
+                                            toast({
+                                              title: "切换到原始测试用例",
+                                              description: `已切换到 ${referencedCase.name} 用例进行编辑`,
+                                            });
+                                          }
+                                        }
+                                      }}
+                                      title="跳转到原始测试用例编辑"
+                                    >
+                                      <Settings className="w-2 h-2" />
+                                    </Button>
                                   )}
                                   
+                                  {/* 只读标识 */}
                                   {!isEditable && (
-                                    <div className="text-xs text-muted-foreground px-1">
-                                      只读
+                                    <div className="text-xs text-muted-foreground px-1 bg-muted rounded">
+                                      引用
                                     </div>
                                   )}
                                 </div>
@@ -801,13 +833,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           
                           {/* 添加新子命令按钮（仅当可编辑时显示） */}
                           {(() => {
-                            const isEditable = command.subCommands && command.subCommands.length >= 0;
+                            const isEditable = command.subCommands !== undefined;
                             return isEditable && (
                               <div className="pt-2">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 text-xs px-2 text-primary hover:bg-primary/10"
+                                  className="h-6 text-xs px-2 text-primary hover:bg-primary/10 w-full justify-start"
                                   onClick={() => {
                                     // 打开子用例编辑器
                                     const commandWithSubCommands = {
@@ -822,7 +854,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                   }}
                                 >
                                   <Plus className="w-3 h-3 mr-1" />
-                                  添加子命令
+                                  添加子命令到此用例
                                 </Button>
                               </div>
                             );

@@ -428,16 +428,14 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <Label htmlFor="displayFormat" className="text-sm">Format:</Label>
-              <Select value={displayFormat} onValueChange={setDisplayFormat as any}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ascii">ASCII</SelectItem>
-                  <SelectItem value="hex">HEX</SelectItem>
-                </SelectContent>
-              </Select>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setDisplayFormat(displayFormat === 'ascii' ? 'hex' : 'ascii')}
+                className="w-16 font-mono"
+              >
+                {displayFormat.toUpperCase()}
+              </Button>
             </div>
           </div>
 

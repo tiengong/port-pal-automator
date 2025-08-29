@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Plus, 
   Play, 
@@ -860,81 +861,150 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         </div>
 
         {/* 当前测试用例操作 */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1">
             {filteredTestCases.length > 0 && (
-              <>
-                <Button 
-                  onClick={() => setEditingCase(filteredTestCases[0])} 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 px-3 text-xs"
-                >
-                  <Settings className="w-3 h-3 mr-1" />
-                  设置
-                </Button>
-                <Button 
-                  onClick={() => {
-                    const currentCase = filteredTestCases[0];
-                    const hasSelectedCommands = currentCase.commands.some(cmd => cmd.selected);
-                    const newSelectedState = !hasSelectedCommands;
-                    
-                    const updatedCommands = currentCase.commands.map(cmd => ({
-                      ...cmd,
-                      selected: newSelectedState
-                    }));
-                    
-                    const updatedCase = { ...currentCase, commands: updatedCommands };
-                    const updatedTestCases = testCases.map(tc => 
-                      tc.id === currentCase.id ? updatedCase : tc
-                    );
-                    setTestCases(updatedTestCases);
-                  }} 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 px-3 text-xs"
-                >
-                  <CheckSquare className="w-3 h-3 mr-1" />
-                  {filteredTestCases[0].commands.some(cmd => cmd.selected) ? '取消全选' : '全选'}
-                </Button>
-                <Button 
-                  onClick={() => runTestCase(filteredTestCases[0].id)} 
-                  variant="default" 
-                  size="sm" 
-                  className="h-8 px-3 text-xs" 
-                  disabled={connectedPorts.length === 0}
-                >
-                  <Play className="w-3 h-3 mr-1" />
-                  运行
-                </Button>
-              </>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => setEditingCase(filteredTestCases[0])} 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>设置测试用例</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => {
+                        const currentCase = filteredTestCases[0];
+                        const hasSelectedCommands = currentCase.commands.some(cmd => cmd.selected);
+                        const newSelectedState = !hasSelectedCommands;
+                        
+                        const updatedCommands = currentCase.commands.map(cmd => ({
+                          ...cmd,
+                          selected: newSelectedState
+                        }));
+                        
+                        const updatedCase = { ...currentCase, commands: updatedCommands };
+                        const updatedTestCases = testCases.map(tc => 
+                          tc.id === currentCase.id ? updatedCase : tc
+                        );
+                        setTestCases(updatedTestCases);
+                      }} 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                    >
+                      {filteredTestCases[0].commands.some(cmd => cmd.selected) ? 
+                        <Square className="w-4 h-4" /> : 
+                        <CheckSquare className="w-4 h-4" />
+                      }
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{filteredTestCases[0].commands.some(cmd => cmd.selected) ? '取消全选' : '全选步骤'}</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => runTestCase(filteredTestCases[0].id)} 
+                      variant="default" 
+                      size="sm" 
+                      className="h-8 w-8 p-0" 
+                      disabled={connectedPorts.length === 0}
+                    >
+                      <Play className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>运行测试用例</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
-            <Button onClick={() => addTestCase()} size="sm" className="h-8 px-3 text-xs">
-              <Plus className="w-3 h-3 mr-1" />
-              新建用例
-            </Button>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={() => addTestCase()} 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>新建测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {filteredTestCases.length > 0 && (
-              <Button 
-                onClick={() => deleteTestCase(filteredTestCases[0].id)} 
-                variant="outline" 
-                size="sm" 
-                className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
-            )}
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <Upload className="w-3 h-3" />
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <Download className="w-3 h-3" />
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 px-2">
-              <RotateCcw className="w-3 h-3" />
-            </Button>
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              {filteredTestCases.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => deleteTestCase(filteredTestCases[0].id)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>删除测试用例</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Upload className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>导入测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>导出测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>刷新</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>

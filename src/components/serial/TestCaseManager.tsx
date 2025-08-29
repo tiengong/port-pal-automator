@@ -1102,119 +1102,173 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
-            {/* 直接显示当前测试用例的命令步骤 */}
-            {currentTestCase.commands.map((command, index) => (
-              <div 
-                key={command.id}
-                className={`
-                  flex items-center gap-3 p-2 rounded border hover:bg-muted/50
-                  ${index === currentTestCase.currentCommand ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : 'bg-card border-border/50'}
-                  ${command.status === 'success' ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : ''}
-                  ${command.status === 'failed' ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800' : ''}
-                  ${command.status === 'running' ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : ''}
-                `}
-              >
-                <input
-                  type="checkbox"
-                  checked={command.selected}
-                  onChange={(e) => toggleSelection(command.id, 'command')}
-                  className="rounded"
-                />
-                
-                <div className="flex-1 min-w-0 font-mono text-sm">
-                  {command.type === 'execution' && command.command}
-                  {command.type === 'urc' && (command.urcPattern || command.command)}
-                  {command.type === 'subcase' && command.command}
+            {/* 测试用例展开列表 */}
+            {filteredTestCases.map((testCase) => (
+              <div key={testCase.id} className="border border-border rounded-lg bg-card">
+                {/* 测试用例头部 */}
+                <div 
+                  className={`
+                    flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50
+                    ${testCase.isExpanded ? 'border-b border-border' : ''}
+                  `}
+                  onClick={() => {
+                    const updatedTestCases = testCases.map(tc => 
+                      tc.id === testCase.id ? { ...tc, isExpanded: !tc.isExpanded } : tc
+                    );
+                    setTestCases(updatedTestCases);
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    {testCase.isExpanded ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      #{testCase.uniqueId}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">{testCase.name}</span>
+                      <Badge 
+                        variant={
+                          testCase.status === 'success' ? 'default' : 
+                          testCase.status === 'failed' ? 'destructive' : 
+                          testCase.status === 'running' ? 'secondary' : 'outline'
+                        }
+                        className="text-xs"
+                      >
+                        {testCase.status === 'pending' ? '待执行' : 
+                         testCase.status === 'running' ? '执行中' : 
+                         testCase.status === 'success' ? '成功' : 
+                         testCase.status === 'failed' ? '失败' : '部分完成'}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {testCase.commands.length} 个命令
+                      {testCase.description && ` • ${testCase.description}`}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        runTestCase(testCase.id);
+                      }}
+                      disabled={connectedPorts.length === 0}
+                    >
+                      <Play className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  {/* 状态指示器 */}
-                  {command.status === 'success' && (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  )}
-                  {command.status === 'failed' && (
-                    <XCircle className="w-4 h-4 text-red-500" />
-                  )}
-                  {command.status === 'running' && (
-                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  )}
+                {/* 展开的命令列表 */}
+                {testCase.isExpanded && (
+                  <div className="p-3 pt-0 space-y-2">
+                    {testCase.commands.length === 0 ? (
+                      <div className="text-center py-4 text-muted-foreground text-sm">
+                        暂无命令
+                      </div>
+                    ) : (
+                      testCase.commands.map((command, index) => (
+                        <div 
+                          key={command.id}
+                          className={`
+                            flex items-center gap-3 p-2 rounded border text-sm
+                            ${index === testCase.currentCommand ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : 'bg-muted/20 border-border/30'}
+                            ${command.status === 'success' ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : ''}
+                            ${command.status === 'failed' ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800' : ''}
+                            ${command.status === 'running' ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : ''}
+                          `}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={command.selected}
+                            onChange={(e) => toggleSelection(command.id, 'command')}
+                            className="rounded"
+                          />
+                          
+                          <Badge variant="outline" className="text-xs px-1">
+                            步骤 {index + 1}
+                          </Badge>
 
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-7 w-7 p-0"
-                          onClick={() => {
-                            // 单独运行这个命令
-                            const updatedCommands = currentTestCase.commands.map((cmd, i) => ({
-                              ...cmd,
-                              selected: i === index
-                            }));
-                            const updatedCase = { ...currentTestCase, commands: updatedCommands };
-                            const updatedTestCases = testCases.map(tc => 
-                              tc.id === currentTestCase.id ? updatedCase : tc
-                            );
-                            setTestCases(updatedTestCases);
+                          <Badge 
+                            variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'destructive' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {command.type === 'execution' ? '命令' : 
+                             command.type === 'urc' ? 'URC' : '子用例'}
+                          </Badge>
+                          
+                          <div className="flex-1 min-w-0 font-mono text-xs">
+                            {command.type === 'execution' && command.command}
+                            {command.type === 'urc' && (command.urcPattern || command.command)}
+                            {command.type === 'subcase' && command.command}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {/* 状态指示器 */}
+                            {command.status === 'success' && (
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                            )}
+                            {command.status === 'failed' && (
+                              <XCircle className="w-4 h-4 text-red-500" />
+                            )}
+                            {command.status === 'running' && (
+                              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                            )}
+
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                // 单独运行这个命令
+                                const updatedCommands = testCase.commands.map((cmd, i) => ({
+                                  ...cmd,
+                                  selected: i === index
+                                }));
+                                const updatedCase = { ...testCase, commands: updatedCommands };
+                                const updatedTestCases = testCases.map(tc => 
+                                  tc.id === testCase.id ? updatedCase : tc
+                                );
+                                setTestCases(updatedTestCases);
+                                
+                                toast({
+                                  title: "开始执行",
+                                  description: `正在执行步骤 ${index + 1}: ${command.command}`,
+                                });
+                              }}
+                              disabled={connectedPorts.length === 0}
+                            >
+                              <Play className="w-3 h-3" />
+                            </Button>
                             
-                            // 执行运行逻辑
-                            toast({
-                              title: "开始执行",
-                              description: `正在执行步骤 ${index + 1}: ${command.command}`,
-                            });
-                          }}
-                          disabled={connectedPorts.length === 0}
-                        >
-                          <Play className="w-3 h-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>运行此步骤</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-7 w-7 p-0"
-                          onClick={() => {
-                            console.log('Settings button clicked', command.type, command.id);
-                            // 打开单个命令设置
-                            if (command.type === 'subcase') {
-                              // 如果是子用例，打开子用例编辑器
-                              const commandIndex = index; // 使用循环中的index而不是findIndex
-                              console.log('Opening subcase editor for index:', commandIndex);
-                              setEditingSubcaseIndex(commandIndex);
-                            } else {
-                              // 设置当前编辑的命令索引，并确保设置正确的测试用例
-                              console.log('Opening command editor for index:', index);
-                              setEditingCase(currentTestCase); // 确保设置当前测试用例
-                              setEditingCommandIndex(index); // 使用循环中的index
-                            }
-                          }}
-                        >
-                          <Settings className="w-3 h-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>设置此步骤</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                setEditingCase(testCase);
+                                setEditingCommandIndex(index);
+                              }}
+                            >
+                              <Settings className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             ))}
-            
-            {currentTestCase.commands.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <PlayCircle className="w-8 h-8 mb-3 opacity-30" />
-                <p className="text-sm">此测试用例暂无步骤</p>
-                <p className="text-xs mt-1">点击上方"设置"按钮添加测试步骤</p>
-              </div>
-            )}
           </div>
         )}
       </div>

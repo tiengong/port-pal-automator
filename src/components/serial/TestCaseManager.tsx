@@ -985,71 +985,66 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
 
       <Separator />
 
-      {/* 子用例管理 */}
+      {/* 测试步骤管理 */}
       <div className="space-y-4">
-        <Label className="text-base font-medium">子用例引用</Label>
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Input
-              value={subCaseInput}
-              onChange={(e) => handleSubCaseInputChange(e.target.value)}
-              placeholder="输入用例编号或名称进行联想"
-            />
-            {subCaseSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
-                {subCaseSuggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.id}
-                    className="p-2 hover:bg-muted cursor-pointer"
-                    onClick={() => {
-                      setSubCaseInput(`#${suggestion.uniqueId} ${suggestion.name}`);
-                      setSubCaseSuggestions([]);
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
-                      <span className="text-sm">{suggestion.name}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <Button onClick={addSubCaseReference} disabled={!subCaseInput.trim()}>
-            <Plus className="w-4 h-4" />
-          </Button>
-          <Button onClick={() => onAddSubCase(editingCase.id)} variant="outline">
-            新建子用例
-          </Button>
+        <div className="flex items-center justify-between">
+          <Label className="text-base font-medium">测试步骤</Label>
+          <Badge variant="outline" className="text-xs">
+            共 {editingCase.commands.length} 个步骤
+          </Badge>
         </div>
-      </div>
 
-      <Separator />
+        {/* 参数显示 */}
+        {Object.keys(storedParameters).length > 0 && (
+          <div className="space-y-2 p-3 bg-primary/5 rounded-lg border">
+            <Label className="text-xs font-medium text-primary">可用参数</Label>
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(storedParameters).map(([key, value]) => (
+                <Badge key={key} variant="outline" className="text-xs cursor-pointer hover:bg-primary/10"
+                  onClick={() => setCommandInput(prev => prev + `{${key}}`)}
+                  title={`点击插入参数 {${key}}, 当前值: ${value}`}
+                >
+                  {key}: {String(value).length > 10 ? String(value).substring(0, 10) + '...' : String(value)}
+                </Badge>
+              ))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              使用格式: 在命令中输入 {"{参数名}"} 来引用参数
+            </div>
+          </div>
+        )}
 
-      {/* 命令管理 */}
-      <div className="space-y-4">
-        <Label className="text-base font-medium">测试命令</Label>
+        {/* 步骤列表 */}
         <div className="space-y-3">
           {editingCase.commands.map((command, index) => (
             <div key={command.id} className="border rounded-lg p-4 space-y-3 max-h-[400px] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'destructive' : 'secondary'}>
-                    命令 {index + 1}
+                  <Badge variant={
+                    command.type === 'execution' ? 'default' : 
+                    command.type === 'urc' ? 'destructive' : 
+                    'secondary'
+                  }>
+                    步骤 {index + 1}
                   </Badge>
                   <Select
                     value={command.type}
                     onValueChange={(value: 'execution' | 'urc' | 'subcase') => updateCommand(index, { type: value })}
                   >
-                    <SelectTrigger className="w-24 h-6">
+                    <SelectTrigger className="w-20 h-6">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="execution">执行</SelectItem>
+                      <SelectItem value="execution">命令</SelectItem>
                       <SelectItem value="urc">URC</SelectItem>
                       <SelectItem value="subcase">子用例</SelectItem>
                     </SelectContent>
                   </Select>
+                  <div className="text-sm text-muted-foreground font-mono">
+                    {command.type === 'execution' && `执行: ${command.command}`}
+                    {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
+                    {command.type === 'subcase' && `调用: ${command.subcaseId || command.command}`}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
@@ -1069,12 +1064,59 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                 </div>
               </div>
               
-              <Input
-                value={command.command}
-                onChange={(e) => updateCommand(index, { command: e.target.value })}
-                placeholder="输入命令，如 AT+C 会自动提示"
-              />
+              {/* 步骤内容输入 */}
+              {command.type === 'subcase' ? (
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <Input
+                      value={command.subcaseId || ''}
+                      onChange={(e) => updateCommand(index, { subcaseId: e.target.value, command: e.target.value })}
+                      placeholder="输入子用例编号或名称"
+                    />
+                    {subCaseSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
+                        {subCaseSuggestions.map((suggestion) => (
+                          <div
+                            key={suggestion.id}
+                            className="p-2 hover:bg-muted cursor-pointer"
+                            onClick={() => {
+                              updateCommand(index, { 
+                                subcaseId: suggestion.id, 
+                                command: `#${suggestion.uniqueId} ${suggestion.name}` 
+                              });
+                              setSubCaseSuggestions([]);
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
+                              <span className="text-sm">{suggestion.name}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onAddSubCase(editingCase.id)}
+                  >
+                    新建
+                  </Button>
+                </div>
+              ) : (
+                <Input
+                  value={command.command}
+                  onChange={(e) => updateCommand(index, { command: e.target.value })}
+                  placeholder={
+                    command.type === 'execution' ? "输入AT命令，如: AT+CSQ" :
+                    command.type === 'urc' ? "输入URC模式，如: +CREG:" :
+                    "输入命令内容"
+                  }
+                />
+              )}
 
+              {/* 详细配置 */}
               {editingCommandIndex === index && (
                 <div className="space-y-3 bg-muted/30 p-3 rounded">
                   {/* URC特有配置 */}
@@ -1220,7 +1262,7 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="command">指定命令</SelectItem>
+                                <SelectItem value="command">指定步骤</SelectItem>
                                 <SelectItem value="case">指定用例</SelectItem>
                               </SelectContent>
                             </Select>
@@ -1246,26 +1288,10 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                                 } 
                               } 
                             })}
-                            placeholder="目标用例ID或命令索引(从1开始)"
+                            placeholder="目标用例ID或步骤索引(从1开始)"
                           />
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {/* 子用例配置 */}
-                  {command.type === 'subcase' && (
-                    <div className="space-y-3 border-l-2 border-blue-500 pl-3">
-                      <Label className="text-xs font-medium text-blue-600">子用例配置</Label>
-                      <div>
-                        <Label className="text-xs">子用例ID</Label>
-                        <Input
-                          className="h-8"
-                          value={command.subcaseId || ''}
-                          onChange={(e) => updateCommand(index, { subcaseId: e.target.value })}
-                          placeholder="输入子用例的ID"
-                        />
-                      </div>
                     </div>
                   )}
 
@@ -1364,59 +1390,74 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
           ))}
         </div>
 
-        {/* 参数显示 */}
-        {Object.keys(storedParameters).length > 0 && (
-          <div className="space-y-2 mb-4">
-            <Label className="text-xs font-medium text-primary">可用参数</Label>
-            <div className="flex flex-wrap gap-1">
-              {Object.entries(storedParameters).map(([key, value]) => (
-                <Badge key={key} variant="outline" className="text-xs cursor-pointer"
-                  onClick={() => setCommandInput(prev => prev + `{${key}}`)}
-                  title={`点击插入参数 {${key}}, 当前值: ${value}`}
-                >
-                  {key}: {String(value).length > 10 ? String(value).substring(0, 10) + '...' : String(value)}
-                </Badge>
-              ))}
+        {/* 添加新步骤 */}
+        <div className="p-4 border-2 border-dashed border-muted-foreground/25 rounded-lg">
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">添加新步骤</Label>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  value={commandInput}
+                  onChange={(e) => {
+                    handleCommandInputChange(e.target.value);
+                    if (e.target.value) {
+                      setSubCaseSuggestions(getTestCaseSuggestions(e.target.value));
+                    } else {
+                      setSubCaseSuggestions([]);
+                    }
+                  }}
+                  placeholder="输入AT命令、URC模式或子用例名称..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && commandInput.trim()) {
+                      addCommand();
+                    }
+                  }}
+                />
+                {(commandSuggestions.length > 0 || subCaseSuggestions.length > 0) && (
+                  <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
+                    {commandSuggestions.map((suggestion, index) => (
+                      <div
+                        key={`cmd-${index}`}
+                        className="p-2 hover:bg-muted cursor-pointer"
+                        onClick={() => {
+                          setCommandInput(suggestion);
+                          setCommandSuggestions([]);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">命令</Badge>
+                          <span className="text-sm font-mono">{suggestion}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {subCaseSuggestions.map((suggestion, index) => (
+                      <div
+                        key={`sub-${index}`}
+                        className="p-2 hover:bg-muted cursor-pointer"
+                        onClick={() => {
+                          setCommandInput(`#${suggestion.uniqueId} ${suggestion.name}`);
+                          setSubCaseSuggestions([]);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">子用例</Badge>
+                          <Badge variant="secondary" className="text-xs">#{suggestion.uniqueId}</Badge>
+                          <span className="text-sm">{suggestion.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button onClick={addCommand} disabled={!commandInput.trim()}>
+                <Plus className="w-4 h-4 mr-1" />
+                添加步骤
+              </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              使用格式: 在命令中输入 {"{参数名}"} 来引用参数
+              支持添加：AT命令执行、URC监听、子用例调用。可使用参数格式 {"{参数名}"}
             </div>
           </div>
-        )}
-
-        {/* 添加新命令 */}
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Input
-              value={commandInput}
-              onChange={(e) => handleCommandInputChange(e.target.value)}
-              placeholder="输入新的测试命令，支持参数如: AT+CGDCONT=1,IP,{apn}"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && commandInput.trim()) {
-                  addCommand();
-                }
-              }}
-            />
-            {commandSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10">
-                {commandSuggestions.map((suggestion, index) => (
-                  <div
-                    key={index}
-                    className="p-2 hover:bg-muted cursor-pointer"
-                    onClick={() => {
-                      setCommandInput(suggestion);
-                      setCommandSuggestions([]);
-                    }}
-                  >
-                    {suggestion}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <Button onClick={addCommand} disabled={!commandInput.trim()}>
-            <Plus className="w-4 h-4" />
-          </Button>
         </div>
       </div>
 

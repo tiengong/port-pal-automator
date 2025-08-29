@@ -1277,40 +1277,38 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   };
 
   return (
-    <div className="flex h-full">
-      <div className={`transition-all duration-300 ${editingSubcaseIndex !== null ? 'flex-1' : 'w-full'}`}>
-        <div className="space-y-6 h-full overflow-y-auto p-1">
-          {/* 基本信息 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>用例编号</Label>
-              <Input
-                value={editingCase.uniqueId}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>用例名称 *</Label>
-              <Input
-                value={editingCase.name}
-                onChange={(e) => setEditingCase(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="输入测试用例名称"
-              />
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* 基本信息 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>用例编号</Label>
+          <Input
+            value={editingCase.uniqueId}
+            disabled
+            className="bg-muted"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>用例名称 *</Label>
+          <Input
+            value={editingCase.name}
+            onChange={(e) => setEditingCase(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="输入测试用例名称"
+          />
+        </div>
+      </div>
 
-          <div className="space-y-2">
-            <Label>描述</Label>
-            <Textarea
-              value={editingCase.description}
-              onChange={(e) => setEditingCase(prev => ({ ...prev, description: e.target.value }))}
-              rows={2}
-              placeholder="描述测试用例的功能和目的"
-            />
-          </div>
+      <div className="space-y-2">
+        <Label>描述</Label>
+        <Textarea
+          value={editingCase.description}
+          onChange={(e) => setEditingCase(prev => ({ ...prev, description: e.target.value }))}
+          rows={2}
+          placeholder="描述测试用例的功能和目的"
+        />
+      </div>
 
-          <Separator />
+      <Separator />
 
       {/* 测试步骤管理 */}
       <div className="space-y-4">
@@ -1736,20 +1734,27 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
           保存
         </Button>
       </div>
-        </div>
-      </div>
 
-      {/* 子用例编辑面板 */}
-      {editingSubcaseIndex !== null && (
-        <SubcaseEditor
-          parentCaseName={editingCase.name}
-          subCommands={editingCase.commands[editingSubcaseIndex]?.subCommands || []}
-          onSubCommandsChange={(subCommands) => {
-            updateCommand(editingSubcaseIndex, { subCommands });
-          }}
-          onClose={() => setEditingSubcaseIndex(null)}
-        />
-      )}
+      {/* 子用例编辑弹窗 */}
+      <Dialog open={editingSubcaseIndex !== null} onOpenChange={(open) => !open && setEditingSubcaseIndex(null)}>
+        <DialogContent className="max-w-2xl max-h-[70vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>编辑子用例 - {editingCase.name}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1">
+            {editingSubcaseIndex !== null && (
+              <SubcaseEditor
+                parentCaseName={editingCase.name}
+                subCommands={editingCase.commands[editingSubcaseIndex]?.subCommands || []}
+                onSubCommandsChange={(subCommands) => {
+                  updateCommand(editingSubcaseIndex, { subCommands });
+                }}
+                onClose={() => setEditingSubcaseIndex(null)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -390,40 +390,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     <div className="flex flex-col h-full">
       {/* 工具栏 */}
       <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <h3 className="text-lg font-medium">数据终端</h3>
-            {connectedPorts.length > 1 && (
-              <Badge variant="outline">
-                双端口对比模式
-              </Badge>
-            )}
-          </div>
-
-          {/* 统计信息 */}
-          <div className="flex items-center gap-4 text-sm">
-            {connectedPorts.map((_, index) => {
-              const portStats = stats[index] || { sentBytes: 0, receivedBytes: 0, totalLogs: 0 };
-              return (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="text-xs font-medium">端口{index + 1}:</span>
-                  <Badge variant="secondary">
-                    <ArrowUp className="w-3 h-3 mr-1" />
-                    {portStats.sentBytes}B
-                  </Badge>
-                  <Badge variant="secondary">
-                    <ArrowDown className="w-3 h-3 mr-1" />
-                    {portStats.receivedBytes}B
-                  </Badge>
-                  <Badge variant="secondary">
-                    {portStats.totalLogs}条
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
         {/* 控制选项 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">

@@ -1173,15 +1173,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                             // 打开单个命令设置
                             if (command.type === 'subcase') {
                               // 如果是子用例，打开子用例编辑器
-                              const commandIndex = currentTestCase.commands.findIndex(cmd => cmd.id === command.id);
+                              const commandIndex = index; // 使用循环中的index而不是findIndex
                               console.log('Opening subcase editor for index:', commandIndex);
                               setEditingSubcaseIndex(commandIndex);
                             } else {
                               // 设置当前编辑的命令索引，并确保设置正确的测试用例
-                              const commandIndex = currentTestCase.commands.findIndex(cmd => cmd.id === command.id);
-                              console.log('Opening command editor for index:', commandIndex);
+                              console.log('Opening command editor for index:', index);
                               setEditingCase(currentTestCase); // 确保设置当前测试用例
-                              setEditingCommandIndex(commandIndex);
+                              setEditingCommandIndex(index); // 使用循环中的index
                             }
                           }}
                         >

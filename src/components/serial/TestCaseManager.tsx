@@ -1565,14 +1565,7 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
               <div className="flex-1 relative">
                 <Input
                   value={commandInput}
-                  onChange={(e) => {
-                    handleCommandInputChange(e.target.value);
-                    if (e.target.value) {
-                      setSubCaseSuggestions(getTestCaseSuggestions(e.target.value));
-                    } else {
-                      setSubCaseSuggestions([]);
-                    }
-                  }}
+                  onChange={(e) => handleCommandInputChange(e.target.value)}
                   placeholder="输入AT命令或URC模式..."
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && commandInput.trim()) {
@@ -1610,75 +1603,6 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
             </div>
             <div className="text-xs text-muted-foreground">
               提示：以#开头输入编号可快速添加子用例，如: #1001
-            </div>
-
-            {/* 添加子用例引用区域 */}
-            <Separator />
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">添加子用例引用</Label>
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <Input
-                    value={subCaseInput}
-                    onChange={(e) => handleSubCaseInputChange(e.target.value)}
-                    placeholder="搜索要引用的测试用例..."
-                  />
-                  {subCaseSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
-                      {subCaseSuggestions.map((suggestion) => (
-                        <div
-                          key={suggestion.id}
-                          className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                          onClick={() => {
-                            addSubcaseReference(suggestion);
-                            setSubCaseInput('');
-                            setSubCaseSuggestions([]);
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
-                              <span className="text-sm">{suggestion.name}</span>
-                              <Badge variant="secondary" className="text-xs">{suggestion.commands.length} 步骤</Badge>
-                            </div>
-                            <Button size="sm" variant="outline" className="h-6 text-xs">
-                              引用
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                添加对其他测试用例的引用，运行时会执行被引用用例的所有步骤
-              </div>
-            </div>
-
-            {/* 复制用例步骤区域 */}
-            <Separator />
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">复制其他用例的步骤</Label>
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <Input
-                    value=""
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const suggestions = getTestCaseSuggestions(e.target.value);
-                        if (suggestions.length > 0) {
-                          copyTestCaseCommands(suggestions[0]);
-                        }
-                      }
-                    }}
-                    placeholder="搜索要复制步骤的用例..."
-                  />
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                将其他用例的所有步骤复制到当前用例中（独立的命令副本）
-              </div>
             </div>
           </div>
         </div>

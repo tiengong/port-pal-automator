@@ -848,62 +848,31 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30">
       {/* 头部工具栏 */}
       <div className="p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
-        {/* 当前测试用例选择 */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3 flex-1">
-            <TestTube2 className="w-5 h-5 text-primary" />
-            <div className="flex-1">
-              {testCases.length > 0 ? (
-                <div className="space-y-2">
-                  <Select 
-                    value={selectedTestCaseId} 
-                    onValueChange={setSelectedTestCaseId}
-                  >
-                    <SelectTrigger className="w-full h-10">
-                      <SelectValue placeholder="选择测试用例">
-                        {currentTestCase && (
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">#{currentTestCase.uniqueId}</Badge>
-                            <span className="font-semibold">{currentTestCase.name}</span>
-                          </div>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {testCases.map((testCase) => (
-                        <SelectItem key={testCase.id} value={testCase.id}>
-                          <div className="flex items-center gap-2 py-1">
-                            <Badge variant="outline" className="text-xs">#{testCase.uniqueId}</Badge>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{testCase.name}</span>
-                              {testCase.description && (
-                                <span className="text-xs text-muted-foreground">{testCase.description}</span>
-                              )}
-                            </div>
-                            <Badge variant="secondary" className="text-xs ml-auto">
-                              {testCase.commands.length} 步骤
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {currentTestCase && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{currentTestCase.commands.length} 个步骤</span>
-                      {currentTestCase.description && (
-                        <span>• {currentTestCase.description}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <h3 className="text-lg font-semibold text-muted-foreground">无测试用例</h3>
-              )}
-            </div>
-          </div>
-        </div>
+         {/* 当前测试用例显示 */}
+         <div className="flex items-center justify-between mb-4">
+           <div className="flex items-center gap-3 flex-1">
+             <TestTube2 className="w-5 h-5 text-primary" />
+             <div className="flex-1">
+               {currentTestCase ? (
+                 <div className="space-y-2">
+                   <div className="flex items-center gap-2">
+                     <Badge variant="outline" className="text-xs">#{currentTestCase.uniqueId}</Badge>
+                     <span className="font-semibold text-lg">{currentTestCase.name}</span>
+                   </div>
+                   
+                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                     <span>{currentTestCase.commands.length} 个步骤</span>
+                     {currentTestCase.description && (
+                       <span>• {currentTestCase.description}</span>
+                     )}
+                   </div>
+                 </div>
+               ) : (
+                 <h3 className="text-lg font-semibold text-muted-foreground">无测试用例</h3>
+               )}
+             </div>
+           </div>
+         </div>
 
         {/* 搜索切换测试用例 */}
         <div className="relative mb-3">
@@ -1019,63 +988,28 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             )}
           </div>
           
-          {/* 文件操作和其他 */}
-          <div className="flex items-center gap-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>导入测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>导出测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              <div className="w-px h-4 bg-border mx-1" />
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>刷新列表</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              {currentTestCase && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => deleteTestCase(currentTestCase.id)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>删除测试用例</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </TooltipProvider>
-          </div>
+           {/* 文件操作和其他 */}
+           <div className="flex items-center gap-1">
+             <TooltipProvider>
+               {currentTestCase && (
+                 <Tooltip>
+                   <TooltipTrigger asChild>
+                     <Button 
+                       onClick={() => deleteTestCase(currentTestCase.id)} 
+                       variant="outline" 
+                       size="sm" 
+                       className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                     >
+                       <Trash2 className="w-4 h-4" />
+                     </Button>
+                   </TooltipTrigger>
+                   <TooltipContent>
+                     <p>删除测试用例</p>
+                   </TooltipContent>
+                 </Tooltip>
+               )}
+             </TooltipProvider>
+           </div>
         </div>
       </div>
 

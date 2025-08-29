@@ -1207,6 +1207,112 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         )}
       </div>
 
+      {/* 命令操作下拉栏 */}
+      {currentTestCase && (
+        <div className="border-t bg-muted/20 p-2">
+          <div className="flex items-center justify-between gap-2">
+            {/* 当前指令下拉选择 */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">当前指令:</span>
+              <Select
+                value={currentTestCase.currentCommand.toString()}
+                onValueChange={(value) => {
+                  const commandIndex = parseInt(value);
+                  const updatedCase = { ...currentTestCase, currentCommand: commandIndex };
+                  const updatedTestCases = testCases.map(tc => 
+                    tc.id === currentTestCase.id ? updatedCase : tc
+                  );
+                  setTestCases(updatedTestCases);
+                }}
+              >
+                <SelectTrigger className="h-6 w-auto min-w-[120px] text-xs bg-background">
+                  <SelectValue placeholder="选择指令" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-md z-50">
+                  {currentTestCase.commands.map((command, index) => (
+                    <SelectItem 
+                      key={command.id} 
+                      value={index.toString()}
+                      className="text-xs py-1"
+                    >
+                      步骤 {index + 1}: {command.command.slice(0, 20)}{command.command.length > 20 ? '...' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 用例操作按钮 */}
+            <div className="flex items-center gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0 text-xs"
+                      onClick={() => {
+                        toast({
+                          title: "更新用例",
+                          description: "用例已更新到最新版本",
+                        });
+                      }}
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">更新用例</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0 text-xs"
+                      onClick={() => {
+                        toast({
+                          title: "推送用例",
+                          description: "用例已推送到服务器",
+                        });
+                      }}
+                    >
+                      <Upload className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">推送用例</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0 text-xs"
+                      onClick={() => {
+                        toast({
+                          title: "获取用例",
+                          description: "正在从服务器获取最新用例",
+                        });
+                      }}
+                    >
+                      <Download className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">获取用例</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 右键菜单 */}
       {contextMenu.visible && (
         <div

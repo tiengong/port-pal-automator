@@ -865,7 +865,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
-            {renderTestCaseTree(filteredTestCases)}
+            {renderTestCaseTree(filteredTestCases.slice(0, 1))}
           </div>
         )}
       </div>

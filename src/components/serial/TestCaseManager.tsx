@@ -939,7 +939,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         </div>
       </div>
 
-      {/* 测试用例列表 */}
+      {/* 测试用例步骤展开 */}
       <div className="flex-1 overflow-y-auto p-3">
         {filteredTestCases.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -950,7 +950,63 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
-            {renderTestCaseTree(filteredTestCases.slice(0, 1))}
+            {/* 直接显示当前测试用例的命令步骤 */}
+            {filteredTestCases[0].commands.map((command, index) => (
+              <div 
+                key={command.id}
+                className={`
+                  flex items-center gap-2 p-3 rounded border
+                  ${index === filteredTestCases[0].currentCommand ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : 'bg-card border-border/50'}
+                  ${command.status === 'success' ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : ''}
+                  ${command.status === 'failed' ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800' : ''}
+                  ${command.status === 'running' ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : ''}
+                `}
+              >
+                <input
+                  type="checkbox"
+                  checked={command.selected}
+                  onChange={(e) => toggleSelection(command.id, 'command')}
+                  className="rounded"
+                />
+                <Badge variant="outline" className="text-xs px-1">
+                  步骤 {index + 1}
+                </Badge>
+                <Badge variant={
+                  command.type === 'execution' ? 'default' : 'destructive'
+                }>
+                  {command.type === 'execution' ? '命令' : command.type === 'urc' ? 'URC' : '子用例'}
+                </Badge>
+                <div className="flex-1 min-w-0 font-mono text-sm truncate">
+                  {command.type === 'execution' && `执行: ${command.command}`}
+                  {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
+                  {command.type === 'subcase' && `子用例: ${command.command}`}
+                </div>
+                <div className="flex items-center gap-1">
+                  {command.status === 'success' && (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  )}
+                  {command.status === 'failed' && (
+                    <XCircle className="w-4 h-4 text-red-500" />
+                  )}
+                  {command.status === 'running' && (
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  )}
+                  {command.waitTime && (
+                    <Badge variant="secondary" className="text-xs">
+                      {command.waitTime}ms
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+            
+            {filteredTestCases[0].commands.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <PlayCircle className="w-8 h-8 mb-3 opacity-30" />
+                <p className="text-sm">此测试用例暂无步骤</p>
+                <p className="text-xs mt-1">点击上方"设置"按钮添加测试步骤</p>
+              </div>
+            )}
           </div>
         )}
       </div>

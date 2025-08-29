@@ -2392,84 +2392,87 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                 const command = editingCase.commands[editingCommandIndex];
                 return (
                   <>
-                    <div>
-                      <Label className="text-sm">命令内容</Label>
-                      <Input
-                        value={command.command}
-                        onChange={(e) => updateCommand(editingCommandIndex, { command: e.target.value })}
-                        placeholder={
-                          command.type === 'execution' ? "输入AT命令" : 
-                          command.type === 'urc' ? "输入URC模式" : "命令内容"
-                        }
-                      />
-                    </div>
+                     <div>
+                       <Label className="text-sm font-medium">命令内容</Label>
+                       <Input
+                         value={command.command}
+                         onChange={(e) => updateCommand(editingCommandIndex, { command: e.target.value })}
+                         placeholder={
+                           command.type === 'execution' ? "AT+CREG?" : 
+                           command.type === 'urc' ? "输入URC模式" : "命令内容"
+                         }
+                         className="font-mono bg-muted/30"
+                       />
+                     </div>
 
-                    {/* URC特有配置 */}
-                    {command.type === 'urc' && (
-                      <div>
-                        <Label className="text-sm">URC匹配模式</Label>
-                        <Input
-                          value={command.urcPattern || ''}
-                          onChange={(e) => updateCommand(editingCommandIndex, { urcPattern: e.target.value })}
-                          placeholder="例如: +CREG: 或 %CGREG:"
-                        />
-                      </div>
-                    )}
+                     {/* URC特有配置 */}
+                     {command.type === 'urc' && (
+                       <div>
+                         <Label className="text-sm font-medium">URC匹配模式</Label>
+                         <Input
+                           value={command.urcPattern || ''}
+                           onChange={(e) => updateCommand(editingCommandIndex, { urcPattern: e.target.value })}
+                           placeholder="例如: +CREG: 或 %CGREG:"
+                           className="font-mono bg-muted/30"
+                         />
+                       </div>
+                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm">验证方式</Label>
-                        <Select
-                          value={command.validationMethod}
-                          onValueChange={(value: any) => updateCommand(editingCommandIndex, { validationMethod: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">无验证</SelectItem>
-                            <SelectItem value="contains">包含</SelectItem>
-                            <SelectItem value="equals">完全匹配</SelectItem>
-                            <SelectItem value="regex">正则表达式</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-sm">等待时间(ms)</Label>
-                        <Input
-                          type="number"
-                          value={command.waitTime}
-                          onChange={(e) => updateCommand(editingCommandIndex, { waitTime: Number(e.target.value) })}
-                        />
-                      </div>
-                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                       <div>
+                         <Label className="text-sm font-medium">验证方式</Label>
+                         <Select
+                           value={command.validationMethod}
+                           onValueChange={(value: any) => updateCommand(editingCommandIndex, { validationMethod: value })}
+                         >
+                           <SelectTrigger className="bg-background">
+                             <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent className="bg-background border shadow-md z-50">
+                             <SelectItem value="none">无验证</SelectItem>
+                             <SelectItem value="contains">包含</SelectItem>
+                             <SelectItem value="equals">完全匹配</SelectItem>
+                             <SelectItem value="regex">正则表达式</SelectItem>
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       <div>
+                         <Label className="text-sm font-medium">等待时间(ms)</Label>
+                         <Input
+                           type="number"
+                           value={command.waitTime}
+                           onChange={(e) => updateCommand(editingCommandIndex, { waitTime: Number(e.target.value) })}
+                           className="text-center bg-muted/30"
+                         />
+                       </div>
+                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm">换行符</Label>
-                        <Select
-                          value={command.lineEnding}
-                          onValueChange={(value: any) => updateCommand(editingCommandIndex, { lineEnding: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">无</SelectItem>
-                            <SelectItem value="lf">LF (\n)</SelectItem>
-                            <SelectItem value="cr">CR (\r)</SelectItem>
-                            <SelectItem value="crlf">CRLF (\r\n)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center gap-2 pt-6">
-                        <Switch
-                          checked={command.stopOnFailure}
-                          onCheckedChange={(checked) => updateCommand(editingCommandIndex, { stopOnFailure: checked })}
-                        />
-                        <Label className="text-sm">失败时停止执行</Label>
-                      </div>
-                    </div>
+                     <div>
+                       <Label className="text-sm font-medium">换行符</Label>
+                       <Select
+                         value={command.lineEnding}
+                         onValueChange={(value: any) => updateCommand(editingCommandIndex, { lineEnding: value })}
+                       >
+                         <SelectTrigger className="bg-background">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent className="bg-background border shadow-md z-50">
+                           <SelectItem value="none">无</SelectItem>
+                           <SelectItem value="lf">LF (\n)</SelectItem>
+                           <SelectItem value="cr">CR (\r)</SelectItem>
+                           <SelectItem value="crlf">CRLF (\r\n)</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+
+                     {/* 失败时停止执行 */}
+                     <div className="flex items-center justify-between py-2">
+                       <Label className="text-sm font-medium">失败时停止执行</Label>
+                       <Switch
+                         checked={command.stopOnFailure}
+                         onCheckedChange={(checked) => updateCommand(editingCommandIndex, { stopOnFailure: checked })}
+                       />
+                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button variant="outline" onClick={() => setEditingCommandIndex(null)}>

@@ -31,6 +31,7 @@ import {
   Hash
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SubcaseEditor } from './SubcaseEditor';
 
 interface TestCaseManagerProps {
   connectedPorts: Array<{
@@ -40,7 +41,7 @@ interface TestCaseManagerProps {
   receivedData: string[];
 }
 
-interface TestCommand {
+export interface TestCommand {
   id: string;
   type: 'execution' | 'urc' | 'subcase';
   command: string;
@@ -1004,20 +1005,29 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   const [subCaseSuggestions, setSubCaseSuggestions] = useState<TestCase[]>([]);
   const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
   
-  // 子用例展开状态管理  
-  const [expandedSubcases, setExpandedSubcases] = useState<Set<string>>(new Set());
+  // 子用例编辑面板状态管理  
+  const [editingSubcaseIndex, setEditingSubcaseIndex] = useState<number | null>(null);
 
-  // 切换子用例展开状态
-  const toggleSubcaseExpanded = (subcaseId: string) => {
-    setExpandedSubcases(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(subcaseId)) {
-        newSet.delete(subcaseId);
-      } else {
-        newSet.add(subcaseId);
+  // 初始化子命令（如果为空则从引用用例复制）
+  const initializeSubCommands = (commandIndex: number) => {
+    const command = editingCase.commands[commandIndex];
+    if (!command.subCommands || command.subCommands.length === 0) {
+      if (command.referencedCaseId) {
+        const referencedCase = findTestCaseById(command.referencedCaseId);
+        if (referencedCase) {
+          const deepCopyCommands = (commands: TestCommand[]): TestCommand[] => {
+            return commands.map(cmd => ({
+              ...cmd,
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              selected: false,
+              status: 'pending'
+            }));
+          };
+          
+          updateCommand(commandIndex, { subCommands: deepCopyCommands(referencedCase.commands) });
+        }
       }
-      return newSet;
-    });
+    }
   };
 
   // 根据ID查找测试用例 - 这里需要从父组件传入testCases数据
@@ -1267,38 +1277,40 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* 基本信息 */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>用例编号</Label>
-          <Input
-            value={editingCase.uniqueId}
-            disabled
-            className="bg-muted"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>用例名称 *</Label>
-          <Input
-            value={editingCase.name}
-            onChange={(e) => setEditingCase(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="输入测试用例名称"
-          />
-        </div>
-      </div>
+    <div className="flex h-full">
+      <div className={`transition-all duration-300 ${editingSubcaseIndex !== null ? 'flex-1' : 'w-full'}`}>
+        <div className="space-y-6 h-full overflow-y-auto p-1">
+          {/* 基本信息 */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>用例编号</Label>
+              <Input
+                value={editingCase.uniqueId}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>用例名称 *</Label>
+              <Input
+                value={editingCase.name}
+                onChange={(e) => setEditingCase(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="输入测试用例名称"
+              />
+            </div>
+          </div>
 
-      <div className="space-y-2">
-        <Label>描述</Label>
-        <Textarea
-          value={editingCase.description}
-          onChange={(e) => setEditingCase(prev => ({ ...prev, description: e.target.value }))}
-          rows={2}
-          placeholder="描述测试用例的功能和目的"
-        />
-      </div>
+          <div className="space-y-2">
+            <Label>描述</Label>
+            <Textarea
+              value={editingCase.description}
+              onChange={(e) => setEditingCase(prev => ({ ...prev, description: e.target.value }))}
+              rows={2}
+              placeholder="描述测试用例的功能和目的"
+            />
+          </div>
 
-      <Separator />
+          <Separator />
 
       {/* 测试步骤管理 */}
       <div className="space-y-4">
@@ -1418,107 +1430,51 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                     )}
                   </div>
                   
-                  {/* 显示和管理子命令 */}
-                  {command.subCommands && (
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-medium">子步骤管理:</Label>
+                  {/* 子用例预览和编辑 */}
+                  <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          子用例预览
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          共 {command.subCommands?.length || 0} 步
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => addSubCommand(index)}
+                          onClick={() => {
+                            initializeSubCommands(index);
+                            setEditingSubcaseIndex(index);
+                          }}
                           className="h-6 px-2 text-xs"
                         >
-                          <Plus className="w-3 h-3 mr-1" />
-                          添加子步骤
+                          设置 编辑子用例
                         </Button>
                       </div>
-                      <div className="space-y-2 max-h-60 overflow-y-auto">
-                        {command.subCommands.map((subCmd, subIdx) => (
-                          <div key={subCmd.id} className="p-2 bg-muted/10 rounded border border-border/30">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs px-1">
-                                  {index + 1}.{subIdx + 1}
-                                </Badge>
-                                <Select
-                                  value={subCmd.type}
-                                  onValueChange={(value: 'execution' | 'urc') => 
-                                    updateSubCommand(index, subIdx, { type: value })
-                                  }
-                                >
-                                  <SelectTrigger className="w-20 h-6 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="execution">命令</SelectItem>
-                                    <SelectItem value="urc">URC</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteSubCommand(index, subIdx)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                            <Input
-                              value={subCmd.command}
-                              onChange={(e) => updateSubCommand(index, subIdx, { command: e.target.value })}
-                              placeholder={
-                                subCmd.type === 'execution' ? "输入AT命令" : "输入URC模式"
-                              }
-                              className="h-7 text-xs"
-                            />
-                            <div className="grid grid-cols-3 gap-2 mt-2">
-                              <div>
-                                <Label className="text-xs">验证方式</Label>
-                                <Select
-                                  value={subCmd.validationMethod}
-                                  onValueChange={(value: any) => 
-                                    updateSubCommand(index, subIdx, { validationMethod: value })
-                                  }
-                                >
-                                  <SelectTrigger className="h-6 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">无验证</SelectItem>
-                                    <SelectItem value="contains">包含</SelectItem>
-                                    <SelectItem value="equals">完全匹配</SelectItem>
-                                    <SelectItem value="regex">正则表达式</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div>
-                                <Label className="text-xs">等待时间(ms)</Label>
-                                <Input
-                                  type="number"
-                                  className="h-6 text-xs"
-                                  value={subCmd.waitTime}
-                                  onChange={(e) => 
-                                    updateSubCommand(index, subIdx, { waitTime: Number(e.target.value) })
-                                  }
-                                />
-                              </div>
-                              <div className="flex items-center gap-2 pt-4">
-                                <Switch
-                                  checked={subCmd.stopOnFailure}
-                                  onCheckedChange={(checked) => 
-                                    updateSubCommand(index, subIdx, { stopOnFailure: checked })
-                                  }
-                                />
-                                <Label className="text-xs">失败停止</Label>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
-                  )}
+                    
+                    {/* 预览前几个步骤 */}
+                    <div className="space-y-1">
+                      {command.subCommands?.slice(0, 3).map((subCmd, subIdx) => (
+                        <div key={subCmd.id} className="text-xs text-muted-foreground font-mono">
+                          {index + 1}.{subIdx + 1}) {subCmd.type === 'execution' ? 'AT' : 'URC'}：{subCmd.command || '(未设置)'}
+                        </div>
+                      ))}
+                      {(command.subCommands?.length || 0) > 3 && (
+                        <div className="text-xs text-muted-foreground">
+                          ... 还有 {(command.subCommands?.length || 0) - 3} 个步骤
+                        </div>
+                      )}
+                      {(!command.subCommands || command.subCommands.length === 0) && (
+                        <div className="text-xs text-muted-foreground italic">
+                          点击"设置 编辑子用例"开始配置子步骤
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <Input
@@ -1746,6 +1702,20 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
           保存
         </Button>
       </div>
+        </div>
+      </div>
+
+      {/* 子用例编辑面板 */}
+      {editingSubcaseIndex !== null && (
+        <SubcaseEditor
+          parentCaseName={editingCase.name}
+          subCommands={editingCase.commands[editingSubcaseIndex]?.subCommands || []}
+          onSubCommandsChange={(subCommands) => {
+            updateCommand(editingSubcaseIndex, { subCommands });
+          }}
+          onClose={() => setEditingSubcaseIndex(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1375,7 +1375,14 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setEditingCommandIndex(editingCommandIndex === index ? null : index)}
+                    onClick={() => {
+                      if (command.type === 'subcase') {
+                        initializeSubCommands(index);
+                        setEditingSubcaseIndex(index);
+                      } else {
+                        setEditingCommandIndex(editingCommandIndex === index ? null : index);
+                      }
+                    }}
                   >
                     <Settings className="w-3 h-3" />
                   </Button>
@@ -1440,21 +1447,8 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                         <span className="text-xs text-muted-foreground">
                           共 {command.subCommands?.length || 0} 步
                         </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            initializeSubCommands(index);
-                            setEditingSubcaseIndex(index);
-                          }}
-                          className="h-6 px-2 text-xs"
-                        >
-                          设置 编辑子用例
-                        </Button>
-                      </div>
-                    </div>
+                       </div>
+                     </div>
                     
                     {/* 预览前几个步骤 */}
                     <div className="space-y-1">

@@ -598,20 +598,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           className="w-4 h-4 rounded"
                         />
                         
-                        <Badge variant="outline" className="text-xs">
-                          步骤 {index + 1}
-                        </Badge>
-                        
-                        <Badge 
-                          variant={
-                            command.type === 'execution' ? 'default' : 
-                            command.type === 'urc' ? 'destructive' : 'secondary'
-                          } 
-                          className="text-xs"
-                        >
-                          {command.type === 'execution' ? '命令' : 
-                           command.type === 'urc' ? 'URC' : '子用例'}
-                        </Badge>
+                         <Badge variant="outline" className="text-xs">
+                           {index + 1}
+                         </Badge>
+                         
+                         {command.type === 'urc' && (
+                           <Badge variant="destructive" className="text-xs">
+                             URC
+                           </Badge>
+                         )}
 
                           <div className="flex-1 min-w-0 font-mono text-sm">
                             <div className="truncate">
@@ -622,7 +617,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                   <span className="truncate">{command.command}</span>
                                   {command.referencedCaseId && (
                                     <Badge variant="outline" className="text-xs flex-shrink-0">
-                                      #{findTestCaseById(command.referencedCaseId)?.uniqueId || command.referencedCaseId}
+                                      {findTestCaseById(command.referencedCaseId)?.name || command.referencedCaseId}
                                     </Badge>
                                   )}
                                 </div>
@@ -754,16 +749,17 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                   disabled={!isEditable}
                                 />
                                 
-                                {/* 步骤编号 */}
-                                <Badge variant="outline" className="text-xs px-1 flex-shrink-0">
-                                  {index + 1}.{subIndex + 1}
-                                </Badge>
-                                
-                                {/* 命令类型 */}
-                                <Badge variant={subCommand.type === 'execution' ? 'default' : 'destructive'} 
-                                       className="text-xs px-1 flex-shrink-0">
-                                  {subCommand.type === 'execution' ? '命令' : 'URC'}
-                                </Badge>
+                                 {/* 步骤编号 */}
+                                 <Badge variant="outline" className="text-xs px-1 flex-shrink-0">
+                                   {index + 1}.{subIndex + 1}
+                                 </Badge>
+                                 
+                                 {/* 命令类型 - 只显示URC */}
+                                 {subCommand.type === 'urc' && (
+                                   <Badge variant="destructive" className="text-xs px-1 flex-shrink-0">
+                                     URC
+                                   </Badge>
+                                 )}
                                 
                                 {/* 命令内容 */}
                                  <div className="flex-1 min-w-0 font-mono text-xs truncate">

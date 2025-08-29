@@ -42,7 +42,7 @@ interface TestCaseManagerProps {
 
 interface TestCommand {
   id: string;
-  type: 'execution' | 'urc' | 'subcase';
+  type: 'execution' | 'urc';
   command: string;
   expectedResponse?: string;
   validationMethod: 'none' | 'contains' | 'equals' | 'regex';
@@ -70,9 +70,6 @@ interface TestCommand {
       targetIndex?: number;
     };
   };
-  
-  // 子用例引用字段
-  subcaseId?: string;
 }
 
 interface TestCase {
@@ -181,13 +178,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           <Badge variant="outline" className="text-xs">
             {depth > 1 ? '•' : '└'} 步骤 {cmdIndex + 1}
           </Badge>
-          <Badge variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'destructive' : 'secondary'} className="text-xs">
-            {command.type === 'execution' ? '命令' : command.type === 'urc' ? 'URC' : '子用例'}
+          <Badge variant={command.type === 'execution' ? 'default' : 'destructive'} className="text-xs">
+            {command.type === 'execution' ? '命令' : 'URC'}
           </Badge>
           <div className="text-sm text-muted-foreground font-mono">
             {command.type === 'execution' && `执行: ${command.command}`}
             {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
-            {command.type === 'subcase' && `调用: ${command.command}`}
           </div>
         </div>
       </div>
@@ -686,8 +682,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   )}
                 </div>
 
-                <Badge variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'destructive' : 'secondary'} className="text-xs px-1">
-                  {command.type === 'execution' ? '执行' : command.type === 'urc' ? 'URC' : '子用例'}
+                <Badge variant={command.type === 'execution' ? 'default' : 'destructive'} className="text-xs px-1">
+                  {command.type === 'execution' ? '执行' : 'URC'}
                 </Badge>
                 
                 <div className="flex-1 min-w-0">
@@ -967,13 +963,12 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
           <Badge variant="outline" className="text-xs">
             {depth > 1 ? '•' : '└'} 步骤 {cmdIndex + 1}
           </Badge>
-          <Badge variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'destructive' : 'secondary'} className="text-xs">
-            {command.type === 'execution' ? '命令' : command.type === 'urc' ? 'URC' : '子用例'}
+          <Badge variant={command.type === 'execution' ? 'default' : 'destructive'} className="text-xs">
+            {command.type === 'execution' ? '命令' : 'URC'}
           </Badge>
           <div className="text-sm text-muted-foreground font-mono">
             {command.type === 'execution' && `执行: ${command.command}`}
             {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
-            {command.type === 'subcase' && `调用: ${command.command}`}
           </div>
         </div>
       </div>
@@ -984,22 +979,13 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     if (!commandInput.trim()) return;
 
     // 智能判断命令类型
-    let commandType: 'execution' | 'urc' | 'subcase' = 'execution';
-    let subcaseId: string | undefined;
+    let commandType: 'execution' | 'urc' = 'execution';
     let urcPattern: string | undefined;
     
     const input = commandInput.trim();
     
-    // 检查是否是子用例引用 (格式: #1001 用例名称 或直接的用例ID)
-    if (input.startsWith('#')) {
-      commandType = 'subcase';
-      const matches = input.match(/^#(\d+)/);
-      if (matches) {
-        subcaseId = matches[1];
-      }
-    }
     // 检查是否是URC模式 (包含+或%开头)
-    else if (input.includes('+') || input.includes('%') || input.includes(':')) {
+    if (input.includes('+') || input.includes('%') || input.includes(':')) {
       commandType = 'urc';
       urcPattern = input;
     }
@@ -1017,8 +1003,7 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
       // 为新命令类型添加默认值
       urcPattern: commandType === 'urc' ? urcPattern : undefined,
       dataParseConfig: undefined,
-      jumpConfig: undefined,
-      subcaseId: commandType === 'subcase' ? subcaseId : undefined
+      jumpConfig: undefined
     };
     
     setEditingCase(prev => ({
@@ -1030,16 +1015,31 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     setSubCaseSuggestions([]);
   };
 
-  const addSubCaseReference = () => {
-    if (!subCaseInput.trim()) return;
+  // 复制用例到当前用例
+  const copyTestCaseCommands = (sourceCase: TestCase) => {
+    if (!sourceCase) return;
     
-    // 这里可以添加引用子用例的逻辑
+    // 深度复制源用例的命令，并生成新的ID
+    const copyCommands = (commands: TestCommand[]): TestCommand[] => {
+      return commands.map(cmd => ({
+        ...cmd,
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        selected: false,
+        status: 'pending'
+      }));
+    };
+    
+    const copiedCommands = copyCommands(sourceCase.commands);
+    
+    setEditingCase(prev => ({
+      ...prev,
+      commands: [...prev.commands, ...copiedCommands]
+    }));
+    
     toast({
-      title: "子用例引用",
-      description: "子用例引用功能正在开发中",
+      title: "用例已复制",
+      description: `已复制 ${sourceCase.name} 的 ${copiedCommands.length} 个步骤到当前用例`,
     });
-    setSubCaseInput('');
-    setSubCaseSuggestions([]);
   };
 
   const updateCommand = (index: number, updates: Partial<TestCommand>) => {
@@ -1146,15 +1146,13 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge variant={
-                    command.type === 'execution' ? 'default' : 
-                    command.type === 'urc' ? 'destructive' : 
-                    'secondary'
+                    command.type === 'execution' ? 'default' : 'destructive'
                   }>
                     步骤 {index + 1}
                   </Badge>
                   <Select
                     value={command.type}
-                    onValueChange={(value: 'execution' | 'urc' | 'subcase') => updateCommand(index, { type: value })}
+                    onValueChange={(value: 'execution' | 'urc') => updateCommand(index, { type: value })}
                   >
                     <SelectTrigger className="w-20 h-6">
                       <SelectValue />
@@ -1162,13 +1160,11 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                     <SelectContent>
                       <SelectItem value="execution">命令</SelectItem>
                       <SelectItem value="urc">URC</SelectItem>
-                      <SelectItem value="subcase">子用例</SelectItem>
                     </SelectContent>
                   </Select>
                   <div className="text-sm text-muted-foreground font-mono flex-1">
                     {command.type === 'execution' && `执行: ${command.command}`}
                     {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
-                    {command.type === 'subcase' && `调用: ${command.command}`}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -1190,59 +1186,15 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
               </div>
               
               {/* 步骤内容输入 */}
-              {command.type === 'subcase' ? (
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Input
-                      value={command.command}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        updateCommand(index, { command: value });
-                        // 如果是子用例，尝试提取子用例ID
-                        if (value.startsWith('#')) {
-                          const matches = value.match(/^#(\d+)/);
-                          if (matches) {
-                            updateCommand(index, { subcaseId: matches[1] });
-                          }
-                        }
-                      }}
-                      placeholder="输入子用例编号，如: #1001 或 #1001 用例名称"
-                    />
-                    {subCaseSuggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
-                        {subCaseSuggestions.map((suggestion) => (
-                          <div
-                            key={suggestion.id}
-                            className="p-2 hover:bg-muted cursor-pointer"
-                            onClick={() => {
-                              updateCommand(index, { 
-                                subcaseId: suggestion.uniqueId,
-                                command: `#${suggestion.uniqueId} ${suggestion.name}` 
-                              });
-                              setSubCaseSuggestions([]);
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
-                              <span className="text-sm">{suggestion.name}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <Input
-                  value={command.command}
-                  onChange={(e) => updateCommand(index, { command: e.target.value })}
-                  placeholder={
-                    command.type === 'execution' ? "输入AT命令，如: AT+CSQ" :
-                    command.type === 'urc' ? "输入URC模式，如: +CREG:" :
-                    "输入命令内容"
-                  }
-                />
-              )}
+              <Input
+                value={command.command}
+                onChange={(e) => updateCommand(index, { command: e.target.value })}
+                placeholder={
+                  command.type === 'execution' ? "输入AT命令，如: AT+CSQ" :
+                  command.type === 'urc' ? "输入URC模式，如: +CREG:" :
+                  "输入命令内容"
+                }
+              />
 
               {/* 详细配置 */}
               {editingCommandIndex === index && (
@@ -1335,14 +1287,14 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                       setSubCaseSuggestions([]);
                     }
                   }}
-                  placeholder="输入AT命令、URC模式或子用例名称..."
+                  placeholder="输入AT命令或URC模式..."
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && commandInput.trim()) {
                       addCommand();
                     }
                   }}
                 />
-                {(commandSuggestions.length > 0 || subCaseSuggestions.length > 0) && (
+                {commandSuggestions.length > 0 && (
                   <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
                     {commandSuggestions.map((suggestion, index) => (
                       <div
@@ -1359,22 +1311,6 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                         </div>
                       </div>
                     ))}
-                    {subCaseSuggestions.map((suggestion, index) => (
-                      <div
-                        key={`sub-${index}`}
-                        className="p-2 hover:bg-muted cursor-pointer"
-                        onClick={() => {
-                          setCommandInput(`#${suggestion.uniqueId} ${suggestion.name}`);
-                          setSubCaseSuggestions([]);
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">子用例</Badge>
-                          <Badge variant="secondary" className="text-xs">#{suggestion.uniqueId}</Badge>
-                          <span className="text-sm">{suggestion.name}</span>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 )}
               </div>
@@ -1384,7 +1320,46 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
               </Button>
             </div>
             <div className="text-xs text-muted-foreground">
-              支持添加：AT命令执行、URC监听、子用例调用。可使用参数格式 {"{参数名}"}
+              支持添加：AT命令执行、URC监听。可使用参数格式 {"{参数名}"}
+            </div>
+
+            {/* 复制用例区域 */}
+            <Separator />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">复制其他用例的步骤</Label>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    value={subCaseInput}
+                    onChange={(e) => handleSubCaseInputChange(e.target.value)}
+                    placeholder="搜索要复制的用例..."
+                  />
+                  {subCaseSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
+                      {subCaseSuggestions.map((suggestion) => (
+                        <div
+                          key={suggestion.id}
+                          className="p-2 hover:bg-muted cursor-pointer"
+                          onClick={() => {
+                            copyTestCaseCommands(suggestion);
+                            setSubCaseInput('');
+                            setSubCaseSuggestions([]);
+                          }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
+                            <span className="text-sm">{suggestion.name}</span>
+                            <Badge variant="secondary" className="text-xs">{suggestion.commands.length} 步骤</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                选择其他用例来复制其所有步骤到当前用例
+              </div>
             </div>
           </div>
         </div>

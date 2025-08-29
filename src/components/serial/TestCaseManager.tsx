@@ -1211,31 +1211,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {currentTestCase && (
         <div className="border-t bg-muted/20 p-2">
           <div className="flex items-center justify-between gap-2">
-            {/* 当前指令下拉选择 */}
+            {/* 当前用例下拉选择 */}
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">当前指令:</span>
+              <span className="text-muted-foreground">当前用例:</span>
               <Select
-                value={currentTestCase.currentCommand.toString()}
+                value={selectedTestCaseId}
                 onValueChange={(value) => {
-                  const commandIndex = parseInt(value);
-                  const updatedCase = { ...currentTestCase, currentCommand: commandIndex };
-                  const updatedTestCases = testCases.map(tc => 
-                    tc.id === currentTestCase.id ? updatedCase : tc
-                  );
-                  setTestCases(updatedTestCases);
+                  setSelectedTestCaseId(value);
                 }}
               >
                 <SelectTrigger className="h-6 w-auto min-w-[120px] text-xs bg-background">
-                  <SelectValue placeholder="选择指令" />
+                  <SelectValue placeholder="选择用例" />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-md z-50">
-                  {currentTestCase.commands.map((command, index) => (
+                  {filteredTestCases.map((testCase) => (
                     <SelectItem 
-                      key={command.id} 
-                      value={index.toString()}
+                      key={testCase.id} 
+                      value={testCase.id}
                       className="text-xs py-1"
                     >
-                      步骤 {index + 1}: {command.command.slice(0, 20)}{command.command.length > 20 ? '...' : ''}
+                      {testCase.name.slice(0, 30)}{testCase.name.length > 30 ? '...' : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

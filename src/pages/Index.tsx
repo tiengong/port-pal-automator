@@ -119,7 +119,6 @@ const Index = () => {
             <div className="border-b border-border px-1 py-1">
               <TabsList className="grid w-full grid-cols-2 h-8 bg-secondary/30">
                 <TabsTrigger value="connection" className="text-xs h-6">
-                  <Wifi className="w-3 h-3 mr-1" />
                   连接
                 </TabsTrigger>
                 <TabsTrigger value="testcase" className="text-xs h-6">

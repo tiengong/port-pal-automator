@@ -163,11 +163,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   // 根据ID查找测试用例
-  const findTestCaseById = (id: string): TestCase | null => {
-    for (const testCase of testCases) {
+  const findTestCaseById = (id: string, cases: TestCase[] = testCases): TestCase | null => {
+    for (const testCase of cases) {
       if (testCase.id === id || testCase.uniqueId === id) {
         return testCase;
       }
+      const found = findTestCaseById(id, testCase.subCases);
+      if (found) return found;
     }
     return null;
   };
@@ -763,7 +765,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 {command.type === 'subcase' && command.isExpanded && command.referencedCaseId && (
                   <div className="ml-8 mt-1 space-y-1 border-l border-border/30 pl-3">
                     {(() => {
-                      const referencedCase = findTestCaseById(command.referencedCaseId);
+                      const referencedCase = findTestCaseById(command.referencedCaseId, testCases);
                       if (referencedCase) {
                         return referencedCase.commands.map((subCommand, subIndex) => (
                           <div key={`${command.id}-sub-${subIndex}`}
@@ -1016,8 +1018,8 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   };
 
   // 根据ID查找测试用例 - 这里需要从父组件传入testCases数据
-  const findTestCaseById = (id: string, testCases: TestCase[]): TestCase | null => {
-    for (const testCase of testCases) {
+  const findTestCaseById = (id: string, cases: TestCase[] = testCases): TestCase | null => {
+    for (const testCase of cases) {
       if (testCase.id === id || testCase.uniqueId === id) {
         return testCase;
       }
@@ -1049,30 +1051,52 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     ));
   };
 
+  // 添加子用例引用
+  const addSubcaseReference = (targetCase: TestCase) => {
+    const newCommand: TestCommand = {
+      id: Date.now().toString(),
+      type: 'subcase',
+      command: targetCase.name,
+      validationMethod: 'none',
+      waitTime: 2000,
+      stopOnFailure: true,
+      lineEnding: 'crlf',
+      selected: false,
+      status: 'pending',
+      referencedCaseId: targetCase.id,
+      isExpanded: false
+    };
+    
+    setEditingCase(prev => ({
+      ...prev,
+      commands: [...prev.commands, newCommand]
+    }));
+    
+    toast({
+      title: "子用例已添加",
+      description: `已添加子用例引用：${targetCase.name}`,
+    });
+  };
+
   const addCommand = () => {
     if (!commandInput.trim()) return;
 
     // 智能判断命令类型
-    let commandType: 'execution' | 'urc' | 'subcase' = 'execution';
+    let commandType: 'execution' | 'urc' = 'execution';
     let urcPattern: string | undefined;
-    let referencedCaseId: string | undefined;
     
     const input = commandInput.trim();
     
-    // 检查是否是子用例引用 (以#开头)
+    // 只检查是否是子用例引用 (以#开头)
     if (input.startsWith('#')) {
-      commandType = 'subcase';
       const caseId = input.substring(1); // 去掉#号
       const matchedCase = testCases.find(tc => tc.uniqueId === caseId || tc.id === caseId);
       if (matchedCase) {
-        referencedCaseId = matchedCase.id;
+        addSubcaseReference(matchedCase);
+        setCommandInput('');
+        setCommandSuggestions([]);
+        return;
       }
-    }
-    // 检查是否通过搜索匹配到测试用例
-    else if (getTestCaseSuggestions(input).length > 0) {
-      const matchedCase = getTestCaseSuggestions(input)[0];
-      commandType = 'subcase';
-      referencedCaseId = matchedCase.id;
     }
     // 检查是否是URC模式 (包含+或%开头)
     else if (input.includes('+') || input.includes('%') || input.includes(':')) {
@@ -1083,9 +1107,8 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     const newCommand: TestCommand = {
       id: Date.now().toString(),
       type: commandType,
-      command: commandType === 'subcase' ? (referencedCaseId ? 
-        findTestCaseById(referencedCaseId, testCases)?.name || commandInput : commandInput) : commandInput,
-      validationMethod: commandType === 'subcase' ? 'none' : 'none',
+      command: commandInput,
+      validationMethod: 'none',
       waitTime: 2000,
       stopOnFailure: true,
       lineEnding: 'crlf',
@@ -1095,9 +1118,6 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
       urcPattern: commandType === 'urc' ? urcPattern : undefined,
       dataParseConfig: commandType === 'urc' ? undefined : undefined,
       jumpConfig: commandType === 'urc' ? undefined : undefined,
-      // 为子用例类型添加特有字段
-      referencedCaseId: commandType === 'subcase' ? referencedCaseId : undefined,
-      isExpanded: commandType === 'subcase' ? false : undefined
     };
     
     setEditingCase(prev => ({
@@ -1491,33 +1511,38 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
               提示：以#开头输入编号可快速添加子用例，如: #1001
             </div>
 
-            {/* 复制用例区域 */}
+            {/* 添加子用例引用区域 */}
             <Separator />
             <div className="space-y-2">
-              <Label className="text-sm font-medium">复制其他用例的步骤</Label>
+              <Label className="text-sm font-medium">添加子用例引用</Label>
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <Input
                     value={subCaseInput}
                     onChange={(e) => handleSubCaseInputChange(e.target.value)}
-                    placeholder="搜索要复制的用例..."
+                    placeholder="搜索要引用的测试用例..."
                   />
                   {subCaseSuggestions.length > 0 && (
                     <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
                       {subCaseSuggestions.map((suggestion) => (
                         <div
                           key={suggestion.id}
-                          className="p-2 hover:bg-muted cursor-pointer"
+                          className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
                           onClick={() => {
-                            copyTestCaseCommands(suggestion);
+                            addSubcaseReference(suggestion);
                             setSubCaseInput('');
                             setSubCaseSuggestions([]);
                           }}
                         >
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
-                            <span className="text-sm">{suggestion.name}</span>
-                            <Badge variant="secondary" className="text-xs">{suggestion.commands.length} 步骤</Badge>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
+                              <span className="text-sm">{suggestion.name}</span>
+                              <Badge variant="secondary" className="text-xs">{suggestion.commands.length} 步骤</Badge>
+                            </div>
+                            <Button size="sm" variant="outline" className="h-6 text-xs">
+                              引用
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -1526,7 +1551,32 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                 </div>
               </div>
               <div className="text-xs text-muted-foreground">
-                选择其他用例来复制其所有步骤到当前用例
+                添加对其他测试用例的引用，运行时会执行被引用用例的所有步骤
+              </div>
+            </div>
+
+            {/* 复制用例步骤区域 */}
+            <Separator />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">复制其他用例的步骤</Label>
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Input
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const suggestions = getTestCaseSuggestions(e.target.value);
+                        if (suggestions.length > 0) {
+                          copyTestCaseCommands(suggestions[0]);
+                        }
+                      }
+                    }}
+                    placeholder="搜索要复制步骤的用例..."
+                  />
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                将其他用例的所有步骤复制到当前用例中（独立的命令副本）
               </div>
             </div>
           </div>

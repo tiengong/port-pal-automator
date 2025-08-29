@@ -886,59 +886,63 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             {/* 主要操作 */}
             <div className="flex items-center gap-1">
               {/* 新增按钮 */}
-              <TooltipProvider>
-                <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
+              <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAddMenu(!showAddMenu);
+                    }}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2 z-50" align="start" side="bottom">
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-8 px-2 text-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // 添加新命令的逻辑
+                        if (currentTestCase) {
+                          // 这里可以打开命令编辑器或直接添加命令
+                          toast({
+                            title: "新增命令",
+                            description: "正在添加新命令",
+                          });
+                        }
+                        setShowAddMenu(false);
+                      }}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Play className="w-3 h-3 mr-2" />
+                      新增命令
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-2" align="start">
-                    <div className="space-y-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start h-8 px-2 text-sm"
-                        onClick={() => {
-                          // 添加新命令的逻辑
-                          if (currentTestCase) {
-                            // 这里可以打开命令编辑器或直接添加命令
-                            toast({
-                              title: "新增命令",
-                              description: "正在添加新命令",
-                            });
-                          }
-                          setShowAddMenu(false);
-                        }}
-                      >
-                        <Play className="w-3 h-3 mr-2" />
-                        新增命令
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start h-8 px-2 text-sm"
-                        onClick={() => {
-                          // 添加子用例的逻辑
-                          if (currentTestCase) {
-                            toast({
-                              title: "追加子用例",
-                              description: "正在添加子用例",
-                            });
-                          }
-                          setShowAddMenu(false);
-                        }}
-                      >
-                        <TestTube2 className="w-3 h-3 mr-2" />
-                        追加子用例
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </TooltipProvider>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-8 px-2 text-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // 添加子用例的逻辑
+                        if (currentTestCase) {
+                          toast({
+                            title: "追加子用例",
+                            description: "正在添加子用例",
+                          });
+                        }
+                        setShowAddMenu(false);
+                      }}
+                    >
+                      <TestTube2 className="w-3 h-3 mr-2" />
+                      追加子用例
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
               
               {currentTestCase && (
                 <>

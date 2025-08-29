@@ -314,25 +314,25 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
       {/* 头部工具栏 */}
-      <div className="p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
+      <div className="flex-shrink-0 p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
          {/* 当前测试用例显示 */}
          <div className="flex items-center justify-between mb-4">
-           <div className="flex items-center gap-3 flex-1">
-             <TestTube2 className="w-5 h-5 text-primary" />
-             <div className="flex-1">
+           <div className="flex items-center gap-3 flex-1 min-w-0">
+             <TestTube2 className="w-5 h-5 text-primary flex-shrink-0" />
+             <div className="flex-1 min-w-0">
                {currentTestCase ? (
                  <div className="space-y-2">
-                   <div className="flex items-center gap-2">
-                     <Badge variant="outline" className="text-xs">#{currentTestCase.uniqueId}</Badge>
-                     <span className="font-semibold text-lg">{currentTestCase.name}</span>
+                   <div className="flex items-center gap-2 min-w-0">
+                     <Badge variant="outline" className="text-xs flex-shrink-0">#{currentTestCase.uniqueId}</Badge>
+                     <span className="font-semibold text-lg truncate">{currentTestCase.name}</span>
                    </div>
                    
                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                     <span>{currentTestCase.commands.length} 个步骤</span>
+                     <span className="flex-shrink-0">{currentTestCase.commands.length} 个步骤</span>
                      {currentTestCase.description && (
-                       <span>• {currentTestCase.description}</span>
+                       <span className="truncate">• {currentTestCase.description}</span>
                      )}
                    </div>
                  </div>
@@ -344,9 +344,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
          </div>
 
           {/* 当前测试用例操作 */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 min-w-0">
             {/* 主要操作 */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {/* 新增按钮 */}
               <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
                 <PopoverTrigger asChild>
@@ -613,22 +613,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                            command.type === 'urc' ? 'URC' : '子用例'}
                         </Badge>
 
-                        <div className="flex-1 min-w-0 font-mono">
-                          {command.type === 'execution' && `执行: ${command.command}`}
-                          {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
-                          {command.type === 'subcase' && (
-                            <div className="flex items-center gap-2">
-                              <span>{`子用例: ${command.command}`}</span>
-                              {command.referencedCaseId && (
-                                <Badge variant="outline" className="text-xs">
-                                  引用: #{findTestCaseById(command.referencedCaseId)?.uniqueId || command.referencedCaseId}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                         <div className="flex-1 min-w-0 font-mono text-sm">
+                           <div className="truncate">
+                             {command.type === 'execution' && `执行: ${command.command}`}
+                             {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
+                             {command.type === 'subcase' && (
+                               <div className="flex items-center gap-2 min-w-0">
+                                 <span className="truncate">{`子用例: ${command.command}`}</span>
+                                 {command.referencedCaseId && (
+                                   <Badge variant="outline" className="text-xs flex-shrink-0">
+                                     引用: #{findTestCaseById(command.referencedCaseId)?.uniqueId || command.referencedCaseId}
+                                   </Badge>
+                                 )}
+                               </div>
+                             )}
+                           </div>
+                         </div>
 
-                        <div className="flex items-center gap-1">
+                         <div className="flex items-center gap-1 flex-shrink-0">
                           {command.status === 'success' && (
                             <CheckCircle className="w-4 h-4 text-green-500" />
                           )}
@@ -758,7 +760,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       {/* 子用例编辑弹窗 */}
       <Dialog open={editingSubcaseIndex !== null} onOpenChange={(open) => !open && setEditingSubcaseIndex(null)}>
-        <DialogContent className="max-w-2xl max-h-[70vh] overflow-hidden">
+        <DialogContent className="max-w-[90vw] w-full sm:max-w-2xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>编辑子用例 - {editingCase?.name}</DialogTitle>
           </DialogHeader>
@@ -790,80 +792,133 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       {/* 单个命令编辑弹窗 */}
       <Dialog open={editingCommandIndex !== null} onOpenChange={(open) => !open && setEditingCommandIndex(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-[90vw] w-full sm:max-w-lg max-h-[85vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>编辑命令设置</DialogTitle>
             <DialogDescription>
               配置命令的参数和验证设置
             </DialogDescription>
           </DialogHeader>
-          {editingCommandIndex !== null && editingCase && (
-            <div className="space-y-4">
-              {(() => {
-                const command = editingCase.commands[editingCommandIndex];
-                return (
-                  <>
-                     <div>
-                       <Label className="text-sm font-medium">命令内容</Label>
-                       <Input
-                         value={command.command}
-                         onChange={(e) => {
-                           const updatedCommands = [...editingCase.commands];
-                           updatedCommands[editingCommandIndex] = {
-                             ...updatedCommands[editingCommandIndex],
-                             command: e.target.value
-                           };
-                           setEditingCase({ ...editingCase, commands: updatedCommands });
-                           
-                           // 同时更新主状态
-                           const updatedTestCases = testCases.map(tc => 
-                             tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
-                           );
-                           setTestCases(updatedTestCases);
-                         }}
-                         placeholder={
-                           command.type === 'execution' ? "AT+CREG?" : 
-                           command.type === 'urc' ? "输入URC模式" : "命令内容"
-                         }
-                         className="font-mono bg-muted/30"
-                       />
-                     </div>
-
-                     {/* URC特有配置 */}
-                     {command.type === 'urc' && (
+          <div className="overflow-y-auto flex-1">
+            {editingCommandIndex !== null && editingCase && (
+              <div className="space-y-4">
+                {(() => {
+                  const command = editingCase.commands[editingCommandIndex];
+                  return (
+                    <>
                        <div>
-                         <Label className="text-sm font-medium">URC匹配模式</Label>
+                         <Label className="text-sm font-medium">命令内容</Label>
                          <Input
-                           value={command.urcPattern || ''}
+                           value={command.command}
                            onChange={(e) => {
                              const updatedCommands = [...editingCase.commands];
                              updatedCommands[editingCommandIndex] = {
                                ...updatedCommands[editingCommandIndex],
-                               urcPattern: e.target.value
+                               command: e.target.value
                              };
                              setEditingCase({ ...editingCase, commands: updatedCommands });
                              
+                             // 同时更新主状态
                              const updatedTestCases = testCases.map(tc => 
                                tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
                              );
                              setTestCases(updatedTestCases);
                            }}
-                           placeholder="例如: +CREG: 或 %CGREG:"
+                           placeholder={
+                             command.type === 'execution' ? "AT+CREG?" : 
+                             command.type === 'urc' ? "输入URC模式" : "命令内容"
+                           }
                            className="font-mono bg-muted/30"
                          />
                        </div>
-                     )}
 
-                     <div className="grid grid-cols-2 gap-4">
+                       {/* URC特有配置 */}
+                       {command.type === 'urc' && (
+                         <div>
+                           <Label className="text-sm font-medium">URC匹配模式</Label>
+                           <Input
+                             value={command.urcPattern || ''}
+                             onChange={(e) => {
+                               const updatedCommands = [...editingCase.commands];
+                               updatedCommands[editingCommandIndex] = {
+                                 ...updatedCommands[editingCommandIndex],
+                                 urcPattern: e.target.value
+                               };
+                               setEditingCase({ ...editingCase, commands: updatedCommands });
+                               
+                               const updatedTestCases = testCases.map(tc => 
+                                 tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
+                               );
+                               setTestCases(updatedTestCases);
+                             }}
+                             placeholder="例如: +CREG: 或 %CGREG:"
+                             className="font-mono bg-muted/30"
+                           />
+                         </div>
+                       )}
+
+                       <div className="grid grid-cols-2 gap-4">
+                         <div>
+                           <Label className="text-sm font-medium">验证方式</Label>
+                           <Select
+                             value={command.validationMethod}
+                             onValueChange={(value: any) => {
+                               const updatedCommands = [...editingCase.commands];
+                               updatedCommands[editingCommandIndex] = {
+                                 ...updatedCommands[editingCommandIndex],
+                                 validationMethod: value
+                               };
+                               setEditingCase({ ...editingCase, commands: updatedCommands });
+                               
+                               const updatedTestCases = testCases.map(tc => 
+                                 tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
+                               );
+                               setTestCases(updatedTestCases);
+                             }}
+                           >
+                             <SelectTrigger className="bg-background">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent className="bg-background border shadow-md z-50">
+                               <SelectItem value="none">无验证</SelectItem>
+                               <SelectItem value="contains">包含</SelectItem>
+                               <SelectItem value="equals">完全匹配</SelectItem>
+                               <SelectItem value="regex">正则表达式</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         <div>
+                           <Label className="text-sm font-medium">等待时间(ms)</Label>
+                           <Input
+                             type="number"
+                             value={command.waitTime}
+                             onChange={(e) => {
+                               const updatedCommands = [...editingCase.commands];
+                               updatedCommands[editingCommandIndex] = {
+                                 ...updatedCommands[editingCommandIndex],
+                                 waitTime: Number(e.target.value)
+                               };
+                               setEditingCase({ ...editingCase, commands: updatedCommands });
+                               
+                               const updatedTestCases = testCases.map(tc => 
+                                 tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
+                               );
+                               setTestCases(updatedTestCases);
+                             }}
+                             className="text-center bg-muted/30"
+                           />
+                         </div>
+                       </div>
+
                        <div>
-                         <Label className="text-sm font-medium">验证方式</Label>
+                         <Label className="text-sm font-medium">换行符</Label>
                          <Select
-                           value={command.validationMethod}
+                           value={command.lineEnding}
                            onValueChange={(value: any) => {
                              const updatedCommands = [...editingCase.commands];
                              updatedCommands[editingCommandIndex] = {
                                ...updatedCommands[editingCommandIndex],
-                               validationMethod: value
+                               lineEnding: value
                              };
                              setEditingCase({ ...editingCase, commands: updatedCommands });
                              
@@ -877,23 +932,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                              <SelectValue />
                            </SelectTrigger>
                            <SelectContent className="bg-background border shadow-md z-50">
-                             <SelectItem value="none">无验证</SelectItem>
-                             <SelectItem value="contains">包含</SelectItem>
-                             <SelectItem value="equals">完全匹配</SelectItem>
-                             <SelectItem value="regex">正则表达式</SelectItem>
+                             <SelectItem value="none">无</SelectItem>
+                             <SelectItem value="lf">LF (\n)</SelectItem>
+                             <SelectItem value="cr">CR (\r)</SelectItem>
+                             <SelectItem value="crlf">CRLF (\r\n)</SelectItem>
                            </SelectContent>
                          </Select>
                        </div>
-                       <div>
-                         <Label className="text-sm font-medium">等待时间(ms)</Label>
-                         <Input
-                           type="number"
-                           value={command.waitTime}
-                           onChange={(e) => {
+
+                       {/* 失败时停止执行 */}
+                       <div className="flex items-center justify-between py-2">
+                         <Label className="text-sm font-medium">失败时停止执行</Label>
+                         <Switch
+                           checked={command.stopOnFailure}
+                           onCheckedChange={(checked) => {
                              const updatedCommands = [...editingCase.commands];
                              updatedCommands[editingCommandIndex] = {
                                ...updatedCommands[editingCommandIndex],
-                               waitTime: Number(e.target.value)
+                               stopOnFailure: checked
                              };
                              setEditingCase({ ...editingCase, commands: updatedCommands });
                              
@@ -902,75 +958,22 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                              );
                              setTestCases(updatedTestCases);
                            }}
-                           className="text-center bg-muted/30"
                          />
                        </div>
-                     </div>
-
-                     <div>
-                       <Label className="text-sm font-medium">换行符</Label>
-                       <Select
-                         value={command.lineEnding}
-                         onValueChange={(value: any) => {
-                           const updatedCommands = [...editingCase.commands];
-                           updatedCommands[editingCommandIndex] = {
-                             ...updatedCommands[editingCommandIndex],
-                             lineEnding: value
-                           };
-                           setEditingCase({ ...editingCase, commands: updatedCommands });
-                           
-                           const updatedTestCases = testCases.map(tc => 
-                             tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
-                           );
-                           setTestCases(updatedTestCases);
-                         }}
-                       >
-                         <SelectTrigger className="bg-background">
-                           <SelectValue />
-                         </SelectTrigger>
-                         <SelectContent className="bg-background border shadow-md z-50">
-                           <SelectItem value="none">无</SelectItem>
-                           <SelectItem value="lf">LF (\n)</SelectItem>
-                           <SelectItem value="cr">CR (\r)</SelectItem>
-                           <SelectItem value="crlf">CRLF (\r\n)</SelectItem>
-                         </SelectContent>
-                       </Select>
-                     </div>
-
-                     {/* 失败时停止执行 */}
-                     <div className="flex items-center justify-between py-2">
-                       <Label className="text-sm font-medium">失败时停止执行</Label>
-                       <Switch
-                         checked={command.stopOnFailure}
-                         onCheckedChange={(checked) => {
-                           const updatedCommands = [...editingCase.commands];
-                           updatedCommands[editingCommandIndex] = {
-                             ...updatedCommands[editingCommandIndex],
-                             stopOnFailure: checked
-                           };
-                           setEditingCase({ ...editingCase, commands: updatedCommands });
-                           
-                           const updatedTestCases = testCases.map(tc => 
-                             tc.id === editingCase.id ? { ...editingCase, commands: updatedCommands } : tc
-                           );
-                           setTestCases(updatedTestCases);
-                         }}
-                       />
-                     </div>
-
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                      <Button variant="outline" onClick={() => setEditingCommandIndex(null)}>
-                        取消
-                      </Button>
-                      <Button onClick={() => setEditingCommandIndex(null)}>
-                        保存
-                      </Button>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setEditingCommandIndex(null)}>
+              取消
+            </Button>
+            <Button onClick={() => setEditingCommandIndex(null)}>
+              保存
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

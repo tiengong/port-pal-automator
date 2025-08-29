@@ -58,33 +58,34 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full max-h-[60vh] overflow-hidden">
       {/* Header */}
-      <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded text-xs text-blue-700 dark:text-blue-300">
+      <div className="flex-shrink-0 p-3 bg-blue-50 dark:bg-blue-950/30 rounded text-xs text-blue-700 dark:text-blue-300 mb-4">
         <span className="font-medium">注意：</span>这里的修改只影响当前父用例中的子步骤，不会影响原始用例
       </div>
 
-      {/* Content */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">子步骤列表</Label>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              共 {subCommands.length} 步
-            </Badge>
-            <Button variant="outline" size="sm" onClick={addSubCommand}>
-              <Plus className="w-3 h-3 mr-1" />
-              添加
-            </Button>
-          </div>
+      {/* Content Header */}
+      <div className="flex-shrink-0 flex items-center justify-between mb-4">
+        <Label className="text-sm font-medium">子步骤列表</Label>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            共 {subCommands.length} 步
+          </Badge>
+          <Button variant="outline" size="sm" onClick={addSubCommand}>
+            <Plus className="w-3 h-3 mr-1" />
+            添加
+          </Button>
         </div>
+      </div>
 
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+        <div className="space-y-3">
           {subCommands.map((command, index) => (
-            <div key={command.id} className="border rounded-lg p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs px-1">
+            <div key={command.id} className="border rounded-lg p-3 space-y-3 bg-card">
+              <div className="flex items-center justify-between min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Badge variant="outline" className="text-xs px-1 flex-shrink-0">
                     {index + 1}
                   </Badge>
                   <Select
@@ -93,16 +94,16 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                       updateSubCommand(index, { type: value })
                     }
                   >
-                    <SelectTrigger className="w-20 h-6">
+                    <SelectTrigger className="w-20 h-6 bg-background">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border shadow-md z-50">
                       <SelectItem value="execution">命令</SelectItem>
                       <SelectItem value="urc">URC</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {index > 0 && (
                     <Button
                       variant="ghost"
@@ -127,6 +128,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => setEditingIndex(editingIndex === index ? null : index)}
+                    className="h-6 w-6 p-0"
                   >
                     <Settings className="w-3 h-3" />
                   </Button>
@@ -134,6 +136,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => deleteSubCommand(index)}
+                    className="h-6 w-6 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -146,18 +149,20 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                 placeholder={
                   command.type === 'execution' ? "输入AT命令" : "输入URC模式"
                 }
-                className="h-8 text-sm"
+                className="h-8 text-sm font-mono bg-background"
               />
 
               {/* 详细配置 */}
               {editingIndex === index && (
-                <div className="space-y-3 bg-muted/30 p-3 rounded">
+                <div className="space-y-3 bg-muted/30 p-3 rounded border-l-2 border-primary">
+                  <Label className="text-xs font-medium text-primary">详细配置</Label>
+                  
                   {/* URC特有配置 */}
                   {command.type === 'urc' && (
                     <div>
                       <Label className="text-xs">URC匹配模式</Label>
                       <Input
-                        className="h-7 text-xs mt-1"
+                        className="h-7 text-xs mt-1 font-mono bg-background"
                         value={command.urcPattern || ''}
                         onChange={(e) => updateSubCommand(index, { urcPattern: e.target.value })}
                         placeholder="例如: +CREG: 或 %CGREG:"
@@ -173,10 +178,10 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                         value={command.validationMethod}
                         onValueChange={(value: any) => updateSubCommand(index, { validationMethod: value })}
                       >
-                        <SelectTrigger className="h-7 text-xs mt-1">
+                        <SelectTrigger className="h-7 text-xs mt-1 bg-background">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background border shadow-md z-50">
                           <SelectItem value="none">无验证</SelectItem>
                           <SelectItem value="contains">包含</SelectItem>
                           <SelectItem value="equals">完全匹配</SelectItem>
@@ -188,7 +193,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                       <Label className="text-xs">等待时间(ms)</Label>
                       <Input
                         type="number"
-                        className="h-7 text-xs mt-1"
+                        className="h-7 text-xs mt-1 text-center bg-background"
                         value={command.waitTime}
                         onChange={(e) => updateSubCommand(index, { waitTime: Number(e.target.value) })}
                       />
@@ -199,10 +204,10 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                         value={command.lineEnding}
                         onValueChange={(value: any) => updateSubCommand(index, { lineEnding: value })}
                       >
-                        <SelectTrigger className="h-7 text-xs mt-1">
+                        <SelectTrigger className="h-7 text-xs mt-1 bg-background">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background border shadow-md z-50">
                           <SelectItem value="none">无</SelectItem>
                           <SelectItem value="lf">LF (\n)</SelectItem>
                           <SelectItem value="cr">CR (\r)</SelectItem>

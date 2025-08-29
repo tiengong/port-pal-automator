@@ -613,22 +613,22 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                            command.type === 'urc' ? 'URC' : '子用例'}
                         </Badge>
 
-                         <div className="flex-1 min-w-0 font-mono text-sm">
-                           <div className="truncate">
-                             {command.type === 'execution' && `执行: ${command.command}`}
-                             {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
-                             {command.type === 'subcase' && (
-                               <div className="flex items-center gap-2 min-w-0">
-                                 <span className="truncate">{`子用例: ${command.command}`}</span>
-                                 {command.referencedCaseId && (
-                                   <Badge variant="outline" className="text-xs flex-shrink-0">
-                                     引用: #{findTestCaseById(command.referencedCaseId)?.uniqueId || command.referencedCaseId}
-                                   </Badge>
-                                 )}
-                               </div>
-                             )}
-                           </div>
-                         </div>
+                          <div className="flex-1 min-w-0 font-mono text-sm">
+                            <div className="truncate">
+                              {command.type === 'execution' && command.command}
+                              {command.type === 'urc' && (command.urcPattern || command.command)}
+                              {command.type === 'subcase' && (
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="truncate">{command.command}</span>
+                                  {command.referencedCaseId && (
+                                    <Badge variant="outline" className="text-xs flex-shrink-0">
+                                      #{findTestCaseById(command.referencedCaseId)?.uniqueId || command.referencedCaseId}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
 
                          <div className="flex items-center gap-1 flex-shrink-0">
                           {command.status === 'success' && (
@@ -766,10 +766,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                 </Badge>
                                 
                                 {/* 命令内容 */}
-                                <div className="flex-1 min-w-0 font-mono text-xs truncate">
-                                  {subCommand.type === 'execution' && `执行: ${subCommand.command}`}
-                                  {subCommand.type === 'urc' && `监听: ${subCommand.urcPattern || subCommand.command}`}
-                                </div>
+                                 <div className="flex-1 min-w-0 font-mono text-xs truncate">
+                                   {subCommand.type === 'execution' && subCommand.command}
+                                   {subCommand.type === 'urc' && (subCommand.urcPattern || subCommand.command)}
+                                 </div>
                                 
                                 {/* 操作按钮区域 */}
                                 <div className="flex items-center gap-1 flex-shrink-0">

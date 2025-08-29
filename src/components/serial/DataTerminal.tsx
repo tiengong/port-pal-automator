@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Send, 
   Trash2, 
@@ -424,48 +425,77 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         </div>
 
         {/* 控制选项 */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="displayFormat">显示格式:</Label>
-            <Select value={displayFormat} onValueChange={setDisplayFormat as any}>
-              <SelectTrigger className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ascii">ASCII</SelectItem>
-                <SelectItem value="hex">HEX</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="displayFormat" className="text-sm">Format:</Label>
+              <Select value={displayFormat} onValueChange={setDisplayFormat as any}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ascii">ASCII</SelectItem>
+                  <SelectItem value="hex">HEX</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Switch
-              id="autoScroll"
-              checked={autoScrollEnabled}
-              onCheckedChange={setAutoScrollEnabled}
-            />
-            <Label htmlFor="autoScroll">自动滚动</Label>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Switch
-              id="showTimestamp"
-              checked={showTimestamp}
-              onCheckedChange={setShowTimestamp}
-            />
-            <Label htmlFor="showTimestamp">显示时间戳</Label>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={clearLogs}>
-              <Trash2 className="w-4 h-4 mr-1" />
-              清空
-            </Button>
-            <Button variant="outline" size="sm" onClick={exportLogs}>
-              <Download className="w-4 h-4 mr-1" />
-              导出
-            </Button>
-          </div>
+          <TooltipProvider>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Switch
+                    id="autoScroll"
+                    checked={autoScrollEnabled}
+                    onCheckedChange={setAutoScrollEnabled}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Auto Scroll</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Switch
+                    id="showTimestamp"
+                    checked={showTimestamp}
+                    onCheckedChange={setShowTimestamp}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Show Timestamp</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={clearLogs} className="hover:bg-destructive hover:text-destructive-foreground">
+                    <Trash2 className="w-4 h-4" />
+                    <span className="sr-only">Clear Logs</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Clear Logs</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={exportLogs} className="hover:bg-accent">
+                    <Download className="w-4 h-4" />
+                    <span className="sr-only">Export Logs</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Export Logs</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </div>
       </div>
 

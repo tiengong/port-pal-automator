@@ -137,12 +137,92 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 参数存储系统 - 用于URC解析的参数
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: string }>({});
+  
+  // 子用例展开状态管理
+  const [expandedSubcases, setExpandedSubcases] = useState<Set<string>>(new Set());
 
   // 生成唯一编号
   const generateUniqueId = () => {
     const id = nextUniqueId.toString();
     setNextUniqueId(prev => prev + 1);
     return id;
+  };
+
+  // 切换子用例展开状态
+  const toggleSubcaseExpanded = (subcaseId: string) => {
+    setExpandedSubcases(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(subcaseId)) {
+        newSet.delete(subcaseId);
+      } else {
+        newSet.add(subcaseId);
+      }
+      return newSet;
+    });
+  };
+
+  // 根据ID查找测试用例
+  const findTestCaseById = (id: string): TestCase | null => {
+    for (const testCase of testCases) {
+      if (testCase.id === id || testCase.uniqueId === id) {
+        return testCase;
+      }
+    }
+    return null;
+  };
+
+  // 递归渲染子用例步骤
+  const renderSubcaseSteps = (subcase: TestCase, depth: number = 1): React.ReactNode => {
+    return subcase.commands.map((command, cmdIndex) => (
+      <div key={`${subcase.id}-cmd-${cmdIndex}`} 
+           className={`border-l-2 border-muted-foreground/20 pl-4 ml-${depth * 4} space-y-2`}
+           style={{ marginLeft: `${depth * 16}px` }}>
+        <div className="flex items-center gap-2 py-2">
+          <Badge variant="outline" className="text-xs">
+            {depth > 1 ? '•' : '└'} 步骤 {cmdIndex + 1}
+          </Badge>
+          <Badge variant={
+            command.type === 'execution' ? 'default' : 
+            command.type === 'urc' ? 'destructive' : 
+            'secondary'
+          } className="text-xs">
+            {command.type === 'execution' ? '命令' : 
+             command.type === 'urc' ? 'URC' : '子用例'}
+          </Badge>
+          <div className="text-sm text-muted-foreground font-mono">
+            {command.type === 'execution' && `${command.command}`}
+            {command.type === 'urc' && `${command.urcPattern || command.command}`}
+            {command.type === 'subcase' && command.subcaseId && (
+              <div className="flex items-center gap-1">
+                <span>{command.subcaseId}</span>
+                {(() => {
+                  const nestedSubcase = findTestCaseById(command.subcaseId);
+                  if (nestedSubcase && expandedSubcases.has(command.subcaseId)) {
+                    return (
+                      <div className="ml-2 mt-2">
+                        {renderSubcaseSteps(nestedSubcase, depth + 1)}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+        {command.type === 'subcase' && command.subcaseId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs ml-auto"
+            onClick={() => toggleSubcaseExpanded(command.subcaseId!)}
+          >
+            {expandedSubcases.has(command.subcaseId) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {expandedSubcases.has(command.subcaseId) ? '收起' : '展开'}
+          </Button>
+        )}
+      </div>
+    ));
   };
 
   // 初始化示例数据
@@ -791,6 +871,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             {editingCase && (
               <TestCaseEditor 
                 testCase={editingCase}
+                testCases={testCases}
                 onSave={(updatedCase) => {
                   const updateCase = (cases: TestCase[]): TestCase[] => {
                     return cases.map(tc => {
@@ -852,6 +933,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 // 测试用例编辑器组件
 interface TestCaseEditorProps {
   testCase: TestCase;
+  testCases: TestCase[]; // 添加所有测试用例数据
   onSave: (testCase: TestCase) => void;
   onCancel: () => void;
   getCommandSuggestions: (input: string) => string[];
@@ -862,6 +944,7 @@ interface TestCaseEditorProps {
 
 const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   testCase,
+  testCases,
   onSave,
   onCancel,
   getCommandSuggestions,
@@ -876,6 +959,86 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   const [commandSuggestions, setCommandSuggestions] = useState<string[]>([]);
   const [subCaseSuggestions, setSubCaseSuggestions] = useState<TestCase[]>([]);
   const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
+  
+  // 子用例展开状态管理
+  const [expandedSubcases, setExpandedSubcases] = useState<Set<string>>(new Set());
+
+  // 切换子用例展开状态
+  const toggleSubcaseExpanded = (subcaseId: string) => {
+    setExpandedSubcases(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(subcaseId)) {
+        newSet.delete(subcaseId);
+      } else {
+        newSet.add(subcaseId);
+      }
+      return newSet;
+    });
+  };
+
+  // 根据ID查找测试用例 - 这里需要从父组件传入testCases数据
+  const findTestCaseById = (id: string, testCases: TestCase[]): TestCase | null => {
+    for (const testCase of testCases) {
+      if (testCase.id === id || testCase.uniqueId === id) {
+        return testCase;
+      }
+    }
+    return null;
+  };
+
+  // 递归渲染子用例步骤
+  const renderSubcaseSteps = (subcase: TestCase, testCases: TestCase[], depth: number = 1): React.ReactNode => {
+    return subcase.commands.map((command, cmdIndex) => (
+      <div key={`${subcase.id}-cmd-${cmdIndex}`} 
+           className={`border-l-2 border-muted-foreground/20 pl-4 space-y-2`}
+           style={{ marginLeft: `${depth * 16}px` }}>
+        <div className="flex items-center gap-2 py-2">
+          <Badge variant="outline" className="text-xs">
+            {depth > 1 ? '•' : '└'} 步骤 {cmdIndex + 1}
+          </Badge>
+          <Badge variant={
+            command.type === 'execution' ? 'default' : 
+            command.type === 'urc' ? 'destructive' : 
+            'secondary'
+          } className="text-xs">
+            {command.type === 'execution' ? '命令' : 
+             command.type === 'urc' ? 'URC' : '子用例'}
+          </Badge>
+          <div className="text-sm text-muted-foreground font-mono">
+            {command.type === 'execution' && `${command.command}`}
+            {command.type === 'urc' && `${command.urcPattern || command.command}`}
+            {command.type === 'subcase' && command.subcaseId && (
+              <div className="flex items-center gap-1">
+                <span>{command.subcaseId}</span>
+                {(() => {
+                  const nestedSubcase = findTestCaseById(command.subcaseId, testCases);
+                  if (nestedSubcase && expandedSubcases.has(command.subcaseId)) {
+                    return (
+                      <div className="ml-2 mt-2">
+                        {renderSubcaseSteps(nestedSubcase, testCases, depth + 1)}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+        {command.type === 'subcase' && command.subcaseId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs ml-auto"
+            onClick={() => toggleSubcaseExpanded(command.subcaseId!)}
+          >
+            {expandedSubcases.has(command.subcaseId) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {expandedSubcases.has(command.subcaseId) ? '收起' : '展开'}
+          </Button>
+        )}
+      </div>
+    ));
+  };
 
   const addCommand = () => {
     if (!commandInput.trim()) return;
@@ -1040,10 +1203,44 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                       <SelectItem value="subcase">子用例</SelectItem>
                     </SelectContent>
                   </Select>
-                  <div className="text-sm text-muted-foreground font-mono">
+                  <div className="text-sm text-muted-foreground font-mono flex-1">
                     {command.type === 'execution' && `执行: ${command.command}`}
                     {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
-                    {command.type === 'subcase' && `调用: ${command.subcaseId || command.command}`}
+                    {command.type === 'subcase' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span>调用: {command.subcaseId || command.command}</span>
+                          {command.subcaseId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => toggleSubcaseExpanded(command.subcaseId!)}
+                            >
+                              {expandedSubcases.has(command.subcaseId) ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                              {expandedSubcases.has(command.subcaseId) ? '收起' : '展开'}
+                            </Button>
+                          )}
+                        </div>
+                        {/* 展开的子用例内容 */}
+                        {command.subcaseId && expandedSubcases.has(command.subcaseId) && (() => {
+                          const subcase = findTestCaseById(command.subcaseId, testCases);
+                          if (subcase) {
+                            return (
+                              <div className="mt-3 p-3 bg-muted/30 rounded border-l-4 border-primary/30">
+                                <div className="text-xs text-muted-foreground mb-2">
+                                  子用例: #{subcase.uniqueId} {subcase.name}
+                                </div>
+                                <div className="space-y-2">
+                                  {renderSubcaseSteps(subcase, testCases)}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return <div className="text-xs text-destructive">子用例未找到: {command.subcaseId}</div>;
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">

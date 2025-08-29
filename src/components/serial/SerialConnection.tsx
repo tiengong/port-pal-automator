@@ -71,19 +71,26 @@ export const SerialConnection: React.FC<SerialConnectionProps> = ({
     }
   };
 
-  // 请求新串口访问
-  const requestPort = async () => {
+  // 请求新串口访问并刷新
+  const requestPortAndRefresh = async () => {
     if (!isSupported) return;
 
     try {
-      const port = await (navigator as any).serial.requestPort();
+      // 先刷新现有端口
       await refreshPorts();
-      setSelectedPort(port);
       
-      toast({
-        title: "设备已添加",
-        description: "串口设备已成功添加到列表",
-      });
+      // 如果没有可用端口，自动请求新设备
+      const ports = await (navigator as any).serial.getPorts();
+      if (ports.length === 0) {
+        const port = await (navigator as any).serial.requestPort();
+        await refreshPorts();
+        setSelectedPort(port);
+        
+        toast({
+          title: "设备已添加",
+          description: "串口设备已成功添加到列表",
+        });
+      }
     } catch (error) {
       if ((error as any).name !== 'NotFoundError') {
         console.error('请求串口访问失败:', error);
@@ -243,6 +250,11 @@ export const SerialConnection: React.FC<SerialConnectionProps> = ({
                   setSelectedPort(port);
                 }
               }}
+              onOpenChange={(isOpen) => {
+                if (isOpen) {
+                  requestPortAndRefresh();
+                }
+              }}
               disabled={connectedPorts.length >= 2}
             >
               <SelectTrigger>
@@ -271,7 +283,7 @@ export const SerialConnection: React.FC<SerialConnectionProps> = ({
         {connectedPorts.length < 2 && (
           <Button
             variant="outline"
-            onClick={requestPort}
+            onClick={requestPortAndRefresh}
             disabled={isConnecting}
             className="w-full"
           >

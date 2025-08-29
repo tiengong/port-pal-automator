@@ -958,7 +958,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       <Dialog open={editingSubcaseIndex !== null} onOpenChange={(open) => !open && setEditingSubcaseIndex(null)}>
         <DialogContent className="max-w-[90vw] w-full sm:max-w-2xl max-h-[85vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>编辑子用例 - {editingCase?.name}</DialogTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">编辑子用例 -</span>
+              <Input
+                value={editingCase?.name || ''}
+                onChange={(e) => {
+                  if (editingCase) {
+                    const updatedCase = { ...editingCase, name: e.target.value };
+                    setEditingCase(updatedCase);
+                    
+                    // 同时更新主状态
+                    const updatedTestCases = testCases.map(tc => 
+                      tc.id === editingCase.id ? updatedCase : tc
+                    );
+                    setTestCases(updatedTestCases);
+                  }
+                }}
+                className="flex-1 h-8 text-sm font-medium"
+                placeholder="输入用例名称"
+              />
+            </div>
           </DialogHeader>
           <div className="overflow-y-auto flex-1">
             {editingSubcaseIndex !== null && editingCase && (

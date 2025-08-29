@@ -127,6 +127,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCase, setSelectedCase] = useState<TestCase | null>(null);
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
+  const [editingSubcaseIndex, setEditingSubcaseIndex] = useState<number | null>(null);
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
   const [waitingForUser, setWaitingForUser] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
@@ -1025,7 +1026,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               <div 
                 key={command.id}
                 className={`
-                  flex items-center gap-2 p-3 rounded border
+                  flex items-center gap-3 p-2 rounded border hover:bg-muted/50
                   ${index === filteredTestCases[0].currentCommand ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : 'bg-card border-border/50'}
                   ${command.status === 'success' ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : ''}
                   ${command.status === 'failed' ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800' : ''}
@@ -1038,20 +1039,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   onChange={(e) => toggleSelection(command.id, 'command')}
                   className="rounded"
                 />
-                <Badge variant="outline" className="text-xs px-1">
-                  步骤 {index + 1}
-                </Badge>
-                <Badge variant={
-                  command.type === 'execution' ? 'default' : 'destructive'
-                }>
-                  {command.type === 'execution' ? '命令' : command.type === 'urc' ? 'URC' : '子用例'}
-                </Badge>
-                <div className="flex-1 min-w-0 font-mono text-sm truncate">
-                  {command.type === 'execution' && `执行: ${command.command}`}
-                  {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}
-                  {command.type === 'subcase' && `子用例: ${command.command}`}
+                
+                <div className="flex-1 min-w-0 font-mono text-sm">
+                  {command.type === 'execution' && command.command}
+                  {command.type === 'urc' && (command.urcPattern || command.command)}
+                  {command.type === 'subcase' && command.command}
                 </div>
+
                 <div className="flex items-center gap-1">
+                  {/* 状态指示器 */}
                   {command.status === 'success' && (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   )}
@@ -1061,11 +1057,68 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   {command.status === 'running' && (
                     <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   )}
-                  {command.waitTime && (
-                    <Badge variant="secondary" className="text-xs">
-                      {command.waitTime}ms
-                    </Badge>
-                  )}
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 w-7 p-0"
+                          onClick={() => {
+                            // 单独运行这个命令
+                            const updatedCommands = filteredTestCases[0].commands.map((cmd, i) => ({
+                              ...cmd,
+                              selected: i === index
+                            }));
+                            const updatedCase = { ...filteredTestCases[0], commands: updatedCommands };
+                            const updatedTestCases = testCases.map(tc => 
+                              tc.id === filteredTestCases[0].id ? updatedCase : tc
+                            );
+                            setTestCases(updatedTestCases);
+                            
+                            // 执行运行逻辑
+                            toast({
+                              title: "开始执行",
+                              description: `正在执行步骤 ${index + 1}: ${command.command}`,
+                            });
+                          }}
+                          disabled={connectedPorts.length === 0}
+                        >
+                          <Play className="w-3 h-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>运行此步骤</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 w-7 p-0"
+                          onClick={() => {
+                            // 打开设置对话框，针对单个命令
+                            if (command.type === 'subcase') {
+                              // 如果是子用例，打开子用例编辑器
+                              const commandIndex = filteredTestCases[0].commands.findIndex(cmd => cmd.id === command.id);
+                              setEditingSubcaseIndex(commandIndex);
+                            } else {
+                              // 打开整个测试用例编辑器并定位到该命令
+                              setEditingCase(filteredTestCases[0]);
+                            }
+                          }}
+                        >
+                          <Settings className="w-3 h-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>设置此步骤</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
             ))}

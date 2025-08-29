@@ -1105,6 +1105,8 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   const addCommand = () => {
     if (!commandInput.trim()) return;
 
+    console.log('Adding command:', commandInput, 'Available test cases:', testCases.length);
+
     // 智能判断命令类型
     let commandType: 'execution' | 'urc' = 'execution';
     let urcPattern: string | undefined;
@@ -1114,11 +1116,21 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     // 只检查是否是子用例引用 (以#开头)
     if (input.startsWith('#')) {
       const caseId = input.substring(1); // 去掉#号
+      console.log('Looking for case with ID:', caseId);
       const matchedCase = testCases.find(tc => tc.uniqueId === caseId || tc.id === caseId);
+      console.log('Found matched case:', matchedCase);
       if (matchedCase) {
         addSubcaseReference(matchedCase);
         setCommandInput('');
         setCommandSuggestions([]);
+        return;
+      } else {
+        console.log('No matching case found for ID:', caseId);
+        toast({
+          title: "未找到子用例",
+          description: `找不到编号为 ${caseId} 的测试用例`,
+          variant: "destructive"
+        });
         return;
       }
     }
@@ -1680,7 +1692,7 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                 <Input
                   value={commandInput}
                   onChange={(e) => handleCommandInputChange(e.target.value)}
-                  placeholder="输入AT命令或URC模式..."
+                  placeholder="输入AT命令、URC模式或#编号添加子用例..."
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && commandInput.trim()) {
                       addCommand();
@@ -1712,11 +1724,63 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                 添加步骤
               </Button>
             </div>
-            <div className="text-xs text-muted-foreground">
-              支持添加：AT命令执行、URC监听、子用例引用。可使用参数格式 {"{参数名}"}
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <div>• AT命令: AT+CSQ</div>
+              <div>• URC监听: +CREG:</div>
+              <div>• 子用例: #1001</div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              提示：以#开头输入编号可快速添加子用例，如: #1001
+            
+            {/* 子用例快速添加 */}
+            <div className="border-t pt-3">
+              <Label className="text-xs font-medium text-blue-600">快速添加子用例</Label>
+              <div className="flex gap-2 mt-2">
+                <div className="flex-1 relative">
+                  <Input
+                    value={subCaseInput}
+                    onChange={(e) => handleSubCaseInputChange(e.target.value)}
+                    placeholder="搜索测试用例..."
+                    className="h-8"
+                  />
+                  {subCaseSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
+                      {subCaseSuggestions.map((suggestion) => (
+                        <div
+                          key={suggestion.id}
+                          className="p-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                          onClick={() => {
+                            addSubcaseReference(suggestion);
+                            setSubCaseInput('');
+                            setSubCaseSuggestions([]);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
+                              <span className="text-sm">{suggestion.name}</span>
+                              <Badge variant="secondary" className="text-xs">{suggestion.commands.length} 步骤</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    if (subCaseInput.trim() && subCaseSuggestions.length > 0) {
+                      addSubcaseReference(subCaseSuggestions[0]);
+                      setSubCaseInput('');
+                      setSubCaseSuggestions([]);
+                    }
+                  }}
+                  disabled={!subCaseInput.trim() || subCaseSuggestions.length === 0}
+                  className="h-8"
+                >
+                  添加子用例
+                </Button>
+              </div>
             </div>
           </div>
         </div>

@@ -875,28 +875,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                )}
              </div>
            </div>
-
-           {/* 测试用例选择按钮 */}
-           <div className="flex items-center gap-2">
-             <TooltipProvider>
-               <Tooltip>
-                 <TooltipTrigger asChild>
-                   <Button 
-                     variant="outline" 
-                     size="sm"
-                     onClick={() => setShowCaseSelector(true)}
-                     className="h-8 px-3 gap-2"
-                   >
-                     <Search className="w-4 h-4" />
-                     <span className="text-sm">选择用例</span>
-                   </Button>
-                 </TooltipTrigger>
-                 <TooltipContent>
-                   <p>搜索和选择测试用例</p>
-                 </TooltipContent>
-               </Tooltip>
-             </TooltipProvider>
-           </div>
          </div>
 
         {/* 搜索切换测试用例 */}
@@ -1233,6 +1211,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-xs">获取用例</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <div className="w-px h-4 bg-border mx-1" />
+
+                {/* 测试用例选择按钮 */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowCaseSelector(true)}
+                      className="h-6 px-2 gap-1 text-xs"
+                    >
+                      <Search className="w-3 h-3" />
+                      <span>选择用例</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">搜索和选择测试用例</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

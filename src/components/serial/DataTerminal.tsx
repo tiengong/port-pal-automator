@@ -436,6 +436,15 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               >
                 {displayFormat.toUpperCase()}
               </Button>
+              
+              <Button 
+                variant={showTimestamp ? "default" : "outline"}
+                size="sm" 
+                onClick={() => setShowTimestamp(!showTimestamp)}
+                className="w-8 h-8 p-0"
+              >
+                <Clock className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
@@ -452,20 +461,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Auto Scroll</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Switch
-                    id="showTimestamp"
-                    checked={showTimestamp}
-                    onCheckedChange={setShowTimestamp}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Show Timestamp</p>
                 </TooltipContent>
               </Tooltip>
               

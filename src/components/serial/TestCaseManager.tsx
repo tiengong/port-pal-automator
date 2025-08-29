@@ -1352,19 +1352,24 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                   }>
                     步骤 {index + 1}
                   </Badge>
-                  <Select
-                    value={command.type}
-                    onValueChange={(value: 'execution' | 'urc' | 'subcase') => updateCommand(index, { type: value })}
-                  >
-                    <SelectTrigger className="w-24 h-6">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="execution">命令</SelectItem>
-                      <SelectItem value="urc">URC</SelectItem>
-                      <SelectItem value="subcase">子用例</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {command.type === 'subcase' ? (
+                    <Badge variant="secondary" className="h-6 px-2">
+                      子用例
+                    </Badge>
+                  ) : (
+                    <Select
+                      value={command.type}
+                      onValueChange={(value: 'execution' | 'urc') => updateCommand(index, { type: value })}
+                    >
+                      <SelectTrigger className="w-24 h-6">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="execution">命令</SelectItem>
+                        <SelectItem value="urc">URC</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                   <div className="text-sm text-muted-foreground font-mono flex-1">
                     {command.type === 'execution' && `执行: ${command.command}`}
                     {command.type === 'urc' && `监听: ${command.urcPattern || command.command}`}

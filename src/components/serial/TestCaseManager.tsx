@@ -842,16 +842,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                     >
                                       <Settings className="w-2 h-2" />
                                     </Button>
-                                  )}
-                                  
-                                  {/* 只读标识 */}
-                                  {!isEditable && (
-                                    <div className="text-xs text-muted-foreground px-1 bg-muted rounded">
-                                      引用
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                                   )}
+                                 </div>
+                               </div>
                             ));
                           })()}
                           

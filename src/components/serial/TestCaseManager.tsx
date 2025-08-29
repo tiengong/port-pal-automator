@@ -1,0 +1,1193 @@
+import React, { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { 
+  Plus, 
+  Play, 
+  Trash2, 
+  Edit,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Settings,
+  TestTube2,
+  Search,
+  Upload,
+  Download,
+  CheckSquare,
+  Square,
+  PlayCircle,
+  RotateCcw,
+  Hash
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface TestCaseManagerProps {
+  connectedPorts: Array<{
+    port: any;
+    params: any;
+  }>;
+  receivedData: string[];
+}
+
+interface TestCommand {
+  id: string;
+  type: 'execution' | 'response';
+  command: string;
+  expectedResponse?: string;
+  validationMethod: 'none' | 'contains' | 'equals' | 'regex';
+  validationPattern?: string;
+  waitTime: number;
+  stopOnFailure: boolean;
+  requiresUserAction?: boolean;
+  userPrompt?: string;
+  lineEnding: 'none' | 'lf' | 'cr' | 'crlf';
+  selected: boolean;
+  status: 'pending' | 'running' | 'success' | 'failed' | 'skipped';
+}
+
+interface TestCase {
+  id: string;
+  uniqueId: string; // 唯一编号
+  name: string;
+  description: string;
+  commands: TestCommand[];
+  subCases: TestCase[];
+  isExpanded: boolean;
+  isRunning: boolean;
+  currentCommand: number;
+  selected: boolean;
+  status: 'pending' | 'running' | 'success' | 'failed' | 'partial';
+}
+
+interface ExecutionResult {
+  commandId: string;
+  success: boolean;
+  responseTime: number;
+  actualResponse?: string;
+  error?: string;
+}
+
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+  targetId: string;
+  targetType: 'case' | 'command';
+}
+
+export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
+  connectedPorts,
+  receivedData
+}) => {
+  const { toast } = useToast();
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  
+  // AT命令库
+  const atCommands = [
+    'AT', 'AT+CGMR', 'AT+CGMI', 'AT+CGSN', 'AT+CSQ', 'AT+CREG', 'AT+COPS',
+    'AT+CGATT', 'AT+CGACT', 'AT+CGDCONT', 'AT+CPINR', 'AT+CPIN', 'AT+CCID'
+  ];
+  
+  // 状态管理
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCase, setSelectedCase] = useState<TestCase | null>(null);
+  const [editingCase, setEditingCase] = useState<TestCase | null>(null);
+  const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
+  const [waitingForUser, setWaitingForUser] = useState(false);
+  const [userPrompt, setUserPrompt] = useState('');
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    targetId: '',
+    targetType: 'case'
+  });
+  const [nextUniqueId, setNextUniqueId] = useState(1001);
+
+  // 生成唯一编号
+  const generateUniqueId = () => {
+    const id = nextUniqueId.toString();
+    setNextUniqueId(prev => prev + 1);
+    return id;
+  };
+
+  // 初始化示例数据
+  useEffect(() => {
+    const sampleTestCases: TestCase[] = [
+      {
+        id: 'case1',
+        uniqueId: '1001',
+        name: 'AT指令基础测试',
+        description: '测试基本AT指令响应',
+        isExpanded: false,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: 'pending',
+        subCases: [],
+        commands: [
+          {
+            id: 'cmd1',
+            type: 'execution',
+            command: 'AT',
+            expectedResponse: 'OK',
+            validationMethod: 'contains',
+            validationPattern: 'OK',
+            waitTime: 2000,
+            stopOnFailure: true,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          },
+          {
+            id: 'cmd2',
+            type: 'execution',
+            command: 'AT+CGMR',
+            validationMethod: 'none',
+            waitTime: 3000,
+            stopOnFailure: false,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          }
+        ]
+      },
+      {
+        id: 'case2',
+        uniqueId: '1002',
+        name: '网络连接测试',
+        description: '测试网络连接相关指令',
+        isExpanded: false,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: 'pending',
+        subCases: [
+          {
+            id: 'subcase1',
+            uniqueId: '1003',
+            name: '信号强度检测',
+            description: '检测信号强度',
+            isExpanded: false,
+            isRunning: false,
+            currentCommand: -1,
+            selected: false,
+            status: 'pending',
+            subCases: [],
+            commands: [
+              {
+                id: 'subcmd1',
+                type: 'execution',
+                command: 'AT+CSQ',
+                validationMethod: 'regex',
+                validationPattern: '\\+CSQ: \\d+,\\d+',
+                waitTime: 2000,
+                stopOnFailure: false,
+                lineEnding: 'crlf',
+                selected: false,
+                status: 'pending'
+              }
+            ]
+          }
+        ],
+        commands: [
+          {
+            id: 'cmd3',
+            type: 'execution',
+            command: 'AT+CREG?',
+            validationMethod: 'contains',
+            validationPattern: '+CREG:',
+            waitTime: 2000,
+            stopOnFailure: true,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          }
+        ]
+      }
+    ];
+    setTestCases(sampleTestCases);
+    setNextUniqueId(1004);
+  }, []);
+
+  // 隐藏右键菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+        setContextMenu(prev => ({ ...prev, visible: false }));
+      }
+    };
+
+    if (contextMenu.visible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [contextMenu.visible]);
+
+  // 获取命令建议
+  const getCommandSuggestions = (input: string) => {
+    if (!input) return [];
+    return atCommands.filter(cmd => 
+      cmd.toLowerCase().includes(input.toLowerCase())
+    ).slice(0, 5);
+  };
+
+  // 获取测试用例建议
+  const getTestCaseSuggestions = (input: string): TestCase[] => {
+    if (!input) return [];
+    
+    const searchInCases = (cases: TestCase[]): TestCase[] => {
+      const results: TestCase[] = [];
+      cases.forEach(testCase => {
+        if (testCase.uniqueId.includes(input) || 
+            testCase.name.toLowerCase().includes(input.toLowerCase())) {
+          results.push(testCase);
+        }
+        results.push(...searchInCases(testCase.subCases));
+      });
+      return results;
+    };
+    
+    return searchInCases(testCases).slice(0, 5);
+  };
+
+  // 递归查找测试用例
+  const findTestCase = (cases: TestCase[], id: string): TestCase | null => {
+    for (const testCase of cases) {
+      if (testCase.id === id) return testCase;
+      const found = findTestCase(testCase.subCases, id);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  // 更新测试用例状态
+  const updateTestCaseStatus = (cases: TestCase[], caseId: string, updates: Partial<TestCase>): TestCase[] => {
+    return cases.map(testCase => {
+      if (testCase.id === caseId) {
+        return { ...testCase, ...updates };
+      }
+      if (testCase.subCases.length > 0) {
+        return {
+          ...testCase,
+          subCases: updateTestCaseStatus(testCase.subCases, caseId, updates)
+        };
+      }
+      return testCase;
+    });
+  };
+
+  // 右键菜单处理
+  const handleContextMenu = (e: React.MouseEvent, id: string, type: 'case' | 'command') => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      targetId: id,
+      targetType: type
+    });
+  };
+
+  // 切换选择状态
+  const toggleSelection = (id: string, type: 'case' | 'command') => {
+    if (type === 'case') {
+      const updateSelection = (cases: TestCase[]): TestCase[] => {
+        return cases.map(testCase => {
+          if (testCase.id === id) {
+            const newSelected = !testCase.selected;
+            return {
+              ...testCase,
+              selected: newSelected,
+              commands: testCase.commands.map(cmd => ({ ...cmd, selected: newSelected })),
+              subCases: updateCaseSelection(testCase.subCases, newSelected)
+            };
+          }
+          return {
+            ...testCase,
+            subCases: updateSelection(testCase.subCases)
+          };
+        });
+      };
+      
+      const updateCaseSelection = (cases: TestCase[], selected: boolean): TestCase[] => {
+        return cases.map(testCase => ({
+          ...testCase,
+          selected,
+          commands: testCase.commands.map(cmd => ({ ...cmd, selected })),
+          subCases: updateCaseSelection(testCase.subCases, selected)
+        }));
+      };
+      
+      setTestCases(updateSelection);
+    } else {
+      // 更新命令选择状态
+      const updateCommandSelection = (cases: TestCase[]): TestCase[] => {
+        return cases.map(testCase => ({
+          ...testCase,
+          commands: testCase.commands.map(cmd => 
+            cmd.id === id ? { ...cmd, selected: !cmd.selected } : cmd
+          ),
+          subCases: updateCommandSelection(testCase.subCases)
+        }));
+      };
+      
+      setTestCases(updateCommandSelection);
+    }
+    
+    setContextMenu(prev => ({ ...prev, visible: false }));
+  };
+
+  // 手动修改状态
+  const changeStatus = (id: string, type: 'case' | 'command', status: string) => {
+    if (type === 'case') {
+      setTestCases(prev => updateTestCaseStatus(prev, id, { status: status as any }));
+    } else {
+      const updateCommandStatus = (cases: TestCase[]): TestCase[] => {
+        return cases.map(testCase => ({
+          ...testCase,
+          commands: testCase.commands.map(cmd => 
+            cmd.id === id ? { ...cmd, status: status as any } : cmd
+          ),
+          subCases: updateCommandStatus(testCase.subCases)
+        }));
+      };
+      setTestCases(updateCommandStatus);
+    }
+    setContextMenu(prev => ({ ...prev, visible: false }));
+  };
+
+  // 添加测试用例
+  const addTestCase = (parentId?: string) => {
+    const newTestCase: TestCase = {
+      id: Date.now().toString(),
+      uniqueId: generateUniqueId(),
+      name: '新测试用例',
+      description: '',
+      commands: [],
+      subCases: [],
+      isExpanded: false,
+      isRunning: false,
+      currentCommand: -1,
+      selected: false,
+      status: 'pending'
+    };
+
+    if (parentId) {
+      // 添加为子用例
+      const addSubCase = (cases: TestCase[]): TestCase[] => {
+        return cases.map(testCase => {
+          if (testCase.id === parentId) {
+            return {
+              ...testCase,
+              subCases: [...testCase.subCases, newTestCase],
+              isExpanded: true
+            };
+          }
+          return {
+            ...testCase,
+            subCases: addSubCase(testCase.subCases)
+          };
+        });
+      };
+      setTestCases(addSubCase);
+    } else {
+      setTestCases(prev => [...prev, newTestCase]);
+    }
+    
+    setSelectedCase(newTestCase);
+    setEditingCase(newTestCase);
+  };
+
+  // 删除测试用例
+  const deleteTestCase = (caseId: string) => {
+    const removeCase = (cases: TestCase[]): TestCase[] => {
+      return cases.filter(tc => tc.id !== caseId).map(tc => ({
+        ...tc,
+        subCases: removeCase(tc.subCases)
+      }));
+    };
+    
+    setTestCases(removeCase);
+    if (selectedCase?.id === caseId) {
+      setSelectedCase(null);
+      setEditingCase(null);
+    }
+    toast({
+      title: "测试用例已删除",
+      description: "测试用例已被删除",
+    });
+  };
+
+  // 切换展开状态
+  const toggleExpansion = (caseId: string) => {
+    setTestCases(prev => updateTestCaseStatus(prev, caseId, { 
+      isExpanded: !(findTestCase(prev, caseId)?.isExpanded) 
+    }));
+  };
+
+  // 运行选中的测试用例/命令
+  const runSelected = () => {
+    // 实现运行逻辑
+    toast({
+      title: "开始执行",
+      description: "正在执行选中的测试用例和命令",
+    });
+  };
+
+  // 全选/取消全选
+  const toggleSelectAll = () => {
+    const hasSelected = testCases.some(tc => tc.selected);
+    const updateAllSelection = (cases: TestCase[], selected: boolean): TestCase[] => {
+      return cases.map(testCase => ({
+        ...testCase,
+        selected,
+        commands: testCase.commands.map(cmd => ({ ...cmd, selected })),
+        subCases: updateAllSelection(testCase.subCases, selected)
+      }));
+    };
+    
+    setTestCases(prev => updateAllSelection(prev, !hasSelected));
+  };
+
+  // 过滤测试用例
+  const filterTestCases = (cases: TestCase[], query: string): TestCase[] => {
+    if (!query) return cases;
+    
+    return cases.filter(testCase => {
+      const matchesName = testCase.name.toLowerCase().includes(query.toLowerCase());
+      const matchesId = testCase.uniqueId.includes(query);
+      const hasMatchingSubCase = filterTestCases(testCase.subCases, query).length > 0;
+      
+      return matchesName || matchesId || hasMatchingSubCase;
+    }).map(testCase => ({
+      ...testCase,
+      subCases: filterTestCases(testCase.subCases, query)
+    }));
+  };
+
+  // 渲染测试用例树
+  const renderTestCaseTree = (cases: TestCase[], level = 0) => {
+    return cases.map(testCase => (
+      <div key={testCase.id} className={`ml-${level * 4}`}>
+        <div 
+          className={`
+            flex items-center gap-2 p-2 rounded border cursor-pointer hover:bg-muted/50 text-sm
+            ${selectedCase?.id === testCase.id ? 'bg-secondary/50 border-primary/30' : 'border-border/50'}
+            ${testCase.isRunning ? 'bg-blue-50 border-blue-200' : ''}
+            ${testCase.status === 'success' ? 'bg-green-50 border-green-200' : ''}
+            ${testCase.status === 'failed' ? 'bg-red-50 border-red-200' : ''}
+            ${!testCase.selected ? 'opacity-60' : ''}
+          `}
+          onClick={() => setSelectedCase(testCase)}
+          onContextMenu={(e) => handleContextMenu(e, testCase.id, 'case')}
+        >
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpansion(testCase.id);
+            }}
+            className="p-0.5"
+          >
+            {testCase.isExpanded ? (
+              <ChevronDown className="w-3 h-3" />
+            ) : (
+              <ChevronRight className="w-3 h-3" />
+            )}
+          </button>
+
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSelection(testCase.id, 'case');
+            }}
+            className="p-0.5"
+          >
+            {testCase.selected ? (
+              <CheckSquare className="w-3 h-3 text-primary" />
+            ) : (
+              <Square className="w-3 h-3" />
+            )}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs px-1">
+                #{testCase.uniqueId}
+              </Badge>
+              <span className="font-medium text-xs truncate">{testCase.name}</span>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {testCase.commands.length} 命令, {testCase.subCases.length} 子用例
+              {testCase.isRunning && testCase.currentCommand !== -1 && (
+                <span className="text-primary ml-2">
+                  {testCase.currentCommand + 1}/{testCase.commands.length}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                // runTestCase(testCase);
+              }}
+              disabled={testCase.isRunning || connectedPorts.length === 0}
+              className="h-6 w-6 p-0"
+            >
+              <Play className="w-3 h-3" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingCase(testCase);
+              }}
+              className="h-6 w-6 p-0"
+            >
+              <Edit className="w-3 h-3" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteTestCase(testCase.id);
+              }}
+              className="h-6 w-6 p-0"
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+
+        {testCase.isExpanded && (
+          <div className="ml-4 mt-1 space-y-1 border-l border-border/50 pl-3">
+            {/* 渲染子用例 */}
+            {renderTestCaseTree(testCase.subCases, level + 1)}
+            
+            {/* 渲染命令 */}
+            {testCase.commands.map((command, index) => (
+              <div 
+                key={command.id}
+                className={`
+                  flex items-center gap-2 p-1.5 rounded text-xs border
+                  ${index === testCase.currentCommand ? 'bg-blue-50 border-blue-200' : 'bg-secondary/30 border-border/30'}
+                  ${command.status === 'success' ? 'bg-green-50 border-green-200' : ''}
+                  ${command.status === 'failed' ? 'bg-red-50 border-red-200' : ''}
+                  ${command.status === 'running' ? 'bg-yellow-50 border-yellow-200' : ''}
+                  ${!command.selected ? 'opacity-60' : ''}
+                  hover:bg-muted/50 cursor-pointer
+                `}
+                onContextMenu={(e) => handleContextMenu(e, command.id, 'command')}
+              >
+                <div 
+                  onClick={() => toggleSelection(command.id, 'command')}
+                  className="p-0.5"
+                >
+                  {command.selected ? (
+                    <CheckSquare className="w-3 h-3 text-primary" />
+                  ) : (
+                    <Square className="w-3 h-3" />
+                  )}
+                </div>
+
+                <Badge variant={command.type === 'execution' ? 'default' : 'secondary'} className="text-xs px-1">
+                  {command.type === 'execution' ? '执行' : '响应'}
+                </Badge>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono text-xs truncate">{command.command}</div>
+                </div>
+
+                <div className="flex items-center gap-0.5">
+                  {command.requiresUserAction && (
+                    <AlertCircle className="w-3 h-3 text-orange-500" />
+                  )}
+                  {command.status === 'success' && (
+                    <CheckCircle className="w-3 h-3 text-green-500" />
+                  )}
+                  {command.status === 'failed' && (
+                    <XCircle className="w-3 h-3 text-red-500" />
+                  )}
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      // 单独运行命令
+                    }}
+                    className="h-4 w-4 p-0"
+                  >
+                    <PlayCircle className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    ));
+  };
+
+  const filteredTestCases = filterTestCases(testCases, searchQuery);
+
+  return (
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30">
+      {/* 头部工具栏 */}
+      <div className="p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <TestTube2 className="w-5 h-5 text-primary" />
+            测试用例管理
+          </h3>
+        </div>
+
+        {/* 搜索栏 */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="搜索测试用例 (支持编号和名称)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+
+        {/* 操作按钮 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button onClick={() => addTestCase()} size="sm" className="h-8 px-3 text-xs">
+              <Plus className="w-3 h-3 mr-1" />
+              新建用例
+            </Button>
+            <Button onClick={toggleSelectAll} variant="outline" size="sm" className="h-8 px-3 text-xs">
+              <CheckSquare className="w-3 h-3 mr-1" />
+              全选
+            </Button>
+            <Button onClick={runSelected} variant="default" size="sm" className="h-8 px-3 text-xs" disabled={connectedPorts.length === 0}>
+              <Play className="w-3 h-3 mr-1" />
+              运行选中
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 px-2">
+              <Upload className="w-3 h-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2">
+              <Download className="w-3 h-3" />
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2">
+              <RotateCcw className="w-3 h-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* 测试用例列表 */}
+      <div className="flex-1 overflow-y-auto p-3">
+        {filteredTestCases.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+            <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
+            <p className="text-sm">
+              {searchQuery ? '未找到匹配的测试用例' : '暂无测试用例，点击新建用例开始'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {renderTestCaseTree(filteredTestCases)}
+          </div>
+        )}
+      </div>
+
+      {/* 右键菜单 */}
+      {contextMenu.visible && (
+        <div
+          ref={contextMenuRef}
+          className="fixed bg-card border border-border shadow-lg rounded-md py-1 z-50 min-w-32"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            className="w-full px-3 py-1 text-left text-sm hover:bg-muted flex items-center gap-2"
+            onClick={() => toggleSelection(contextMenu.targetId, contextMenu.targetType)}
+          >
+            <CheckSquare className="w-3 h-3" />
+            切换选择
+          </button>
+          <Separator className="my-1" />
+          <button
+            className="w-full px-3 py-1 text-left text-sm hover:bg-muted text-green-600"
+            onClick={() => changeStatus(contextMenu.targetId, contextMenu.targetType, 'success')}
+          >
+            标记为通过
+          </button>
+          <button
+            className="w-full px-3 py-1 text-left text-sm hover:bg-muted text-red-600"
+            onClick={() => changeStatus(contextMenu.targetId, contextMenu.targetType, 'failed')}
+          >
+            标记为失败
+          </button>
+          <button
+            className="w-full px-3 py-1 text-left text-sm hover:bg-muted text-blue-600"
+            onClick={() => changeStatus(contextMenu.targetId, contextMenu.targetType, 'pending')}
+          >
+            重置状态
+          </button>
+        </div>
+      )}
+
+      {/* 编辑弹窗 */}
+      <Dialog open={!!editingCase} onOpenChange={(open) => !open && setEditingCase(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>编辑测试用例</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto">
+            {editingCase && (
+              <TestCaseEditor 
+                testCase={editingCase}
+                onSave={(updatedCase) => {
+                  const updateCase = (cases: TestCase[]): TestCase[] => {
+                    return cases.map(tc => {
+                      if (tc.id === updatedCase.id) {
+                        return updatedCase;
+                      }
+                      return {
+                        ...tc,
+                        subCases: updateCase(tc.subCases)
+                      };
+                    });
+                  };
+                  
+                  setTestCases(updateCase);
+                  setEditingCase(null);
+                  setSelectedCase(updatedCase);
+                  toast({
+                    title: "保存成功",
+                    description: "测试用例已更新"
+                  });
+                }}
+                onCancel={() => setEditingCase(null)}
+                getCommandSuggestions={getCommandSuggestions}
+                getTestCaseSuggestions={getTestCaseSuggestions}
+                onAddSubCase={(parentId) => addTestCase(parentId)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 用户操作提示弹窗 */}
+      <Dialog open={waitingForUser} onOpenChange={setWaitingForUser}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>需要用户操作</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>{userPrompt}</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setWaitingForUser(false)}>
+                取消
+              </Button>
+              <Button onClick={() => {
+                setWaitingForUser(false);
+                setUserPrompt('');
+              }}>
+                继续执行
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// 测试用例编辑器组件
+interface TestCaseEditorProps {
+  testCase: TestCase;
+  onSave: (testCase: TestCase) => void;
+  onCancel: () => void;
+  getCommandSuggestions: (input: string) => string[];
+  getTestCaseSuggestions: (input: string) => TestCase[];
+  onAddSubCase: (parentId: string) => void;
+}
+
+const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
+  testCase,
+  onSave,
+  onCancel,
+  getCommandSuggestions,
+  getTestCaseSuggestions,
+  onAddSubCase
+}) => {
+  const { toast } = useToast();
+  const [editingCase, setEditingCase] = useState<TestCase>({ ...testCase });
+  const [commandInput, setCommandInput] = useState('');
+  const [subCaseInput, setSubCaseInput] = useState('');
+  const [commandSuggestions, setCommandSuggestions] = useState<string[]>([]);
+  const [subCaseSuggestions, setSubCaseSuggestions] = useState<TestCase[]>([]);
+  const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
+
+  const addCommand = () => {
+    if (!commandInput.trim()) return;
+
+    const newCommand: TestCommand = {
+      id: Date.now().toString(),
+      type: 'execution',
+      command: commandInput,
+      validationMethod: 'none',
+      waitTime: 2000,
+      stopOnFailure: true,
+      lineEnding: 'crlf',
+      selected: false,
+      status: 'pending'
+    };
+    
+    setEditingCase(prev => ({
+      ...prev,
+      commands: [...prev.commands, newCommand]
+    }));
+    setCommandInput('');
+    setCommandSuggestions([]);
+  };
+
+  const addSubCaseReference = () => {
+    if (!subCaseInput.trim()) return;
+    
+    // 这里可以添加引用子用例的逻辑
+    toast({
+      title: "子用例引用",
+      description: "子用例引用功能正在开发中",
+    });
+    setSubCaseInput('');
+    setSubCaseSuggestions([]);
+  };
+
+  const updateCommand = (index: number, updates: Partial<TestCommand>) => {
+    setEditingCase(prev => ({
+      ...prev,
+      commands: prev.commands.map((cmd, i) => 
+        i === index ? { ...cmd, ...updates } : cmd
+      )
+    }));
+  };
+
+  const deleteCommand = (index: number) => {
+    setEditingCase(prev => ({
+      ...prev,
+      commands: prev.commands.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCommandInputChange = (value: string) => {
+    setCommandInput(value);
+    if (value) {
+      setCommandSuggestions(getCommandSuggestions(value));
+    } else {
+      setCommandSuggestions([]);
+    }
+  };
+
+  const handleSubCaseInputChange = (value: string) => {
+    setSubCaseInput(value);
+    if (value) {
+      setSubCaseSuggestions(getTestCaseSuggestions(value));
+    } else {
+      setSubCaseSuggestions([]);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 基本信息 */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>用例编号</Label>
+          <Input
+            value={editingCase.uniqueId}
+            disabled
+            className="bg-muted"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>用例名称 *</Label>
+          <Input
+            value={editingCase.name}
+            onChange={(e) => setEditingCase(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="输入测试用例名称"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>描述</Label>
+        <Textarea
+          value={editingCase.description}
+          onChange={(e) => setEditingCase(prev => ({ ...prev, description: e.target.value }))}
+          rows={2}
+          placeholder="描述测试用例的功能和目的"
+        />
+      </div>
+
+      <Separator />
+
+      {/* 子用例管理 */}
+      <div className="space-y-4">
+        <Label className="text-base font-medium">子用例引用</Label>
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Input
+              value={subCaseInput}
+              onChange={(e) => handleSubCaseInputChange(e.target.value)}
+              placeholder="输入用例编号或名称进行联想"
+            />
+            {subCaseSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10 max-h-32 overflow-y-auto">
+                {subCaseSuggestions.map((suggestion) => (
+                  <div
+                    key={suggestion.id}
+                    className="p-2 hover:bg-muted cursor-pointer"
+                    onClick={() => {
+                      setSubCaseInput(`#${suggestion.uniqueId} ${suggestion.name}`);
+                      setSubCaseSuggestions([]);
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">#{suggestion.uniqueId}</Badge>
+                      <span className="text-sm">{suggestion.name}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Button onClick={addSubCaseReference} disabled={!subCaseInput.trim()}>
+            <Plus className="w-4 h-4" />
+          </Button>
+          <Button onClick={() => onAddSubCase(editingCase.id)} variant="outline">
+            新建子用例
+          </Button>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* 命令管理 */}
+      <div className="space-y-4">
+        <Label className="text-base font-medium">测试命令</Label>
+        <div className="space-y-3">
+          {editingCase.commands.map((command, index) => (
+            <div key={command.id} className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant={command.type === 'execution' ? 'default' : 'secondary'}>
+                    命令 {index + 1}
+                  </Badge>
+                  <Select
+                    value={command.type}
+                    onValueChange={(value: 'execution' | 'response') => updateCommand(index, { type: value })}
+                  >
+                    <SelectTrigger className="w-24 h-6">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="execution">执行</SelectItem>
+                      <SelectItem value="response">响应</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditingCommandIndex(editingCommandIndex === index ? null : index)}
+                  >
+                    <Settings className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteCommand(index)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+              
+              <Input
+                value={command.command}
+                onChange={(e) => updateCommand(index, { command: e.target.value })}
+                placeholder="输入命令，如 AT+C 会自动提示"
+              />
+
+              {editingCommandIndex === index && (
+                <div className="space-y-3 bg-muted/30 p-3 rounded">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-xs">验证方式</Label>
+                      <Select
+                        value={command.validationMethod}
+                        onValueChange={(value: any) => updateCommand(index, { validationMethod: value })}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">无验证</SelectItem>
+                          <SelectItem value="contains">包含</SelectItem>
+                          <SelectItem value="equals">完全匹配</SelectItem>
+                          <SelectItem value="regex">正则表达式</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">等待时间(ms)</Label>
+                      <Input
+                        type="number"
+                        className="h-8"
+                        value={command.waitTime}
+                        onChange={(e) => updateCommand(index, { waitTime: Number(e.target.value) })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">换行符</Label>
+                      <Select
+                        value={command.lineEnding}
+                        onValueChange={(value: any) => updateCommand(index, { lineEnding: value })}
+                      >
+                        <SelectTrigger className="h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">无</SelectItem>
+                          <SelectItem value="lf">LF (\n)</SelectItem>
+                          <SelectItem value="cr">CR (\r)</SelectItem>
+                          <SelectItem value="crlf">CRLF (\r\n)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {command.validationMethod !== 'none' && (
+                    <div>
+                      <Label className="text-xs">验证模式</Label>
+                      <Input
+                        className="h-8"
+                        value={command.validationPattern || ''}
+                        onChange={(e) => updateCommand(index, { validationPattern: e.target.value })}
+                        placeholder="输入期望的响应内容"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={command.stopOnFailure}
+                        onCheckedChange={(checked) => updateCommand(index, { stopOnFailure: checked })}
+                        id={`stop-${index}`}
+                      />
+                      <Label htmlFor={`stop-${index}`} className="text-xs">失败时停止</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={command.requiresUserAction || false}
+                        onCheckedChange={(checked) => updateCommand(index, { requiresUserAction: checked })}
+                        id={`user-${index}`}
+                      />
+                      <Label htmlFor={`user-${index}`} className="text-xs">需要用户操作</Label>
+                    </div>
+                  </div>
+
+                  {command.requiresUserAction && (
+                    <div>
+                      <Label className="text-xs">用户提示</Label>
+                      <Input
+                        className="h-8"
+                        value={command.userPrompt || ''}
+                        onChange={(e) => updateCommand(index, { userPrompt: e.target.value })}
+                        placeholder="提示用户进行的操作"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* 添加新命令 */}
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Input
+              value={commandInput}
+              onChange={(e) => handleCommandInputChange(e.target.value)}
+              placeholder="输入新的测试命令"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && commandInput.trim()) {
+                  addCommand();
+                }
+              }}
+            />
+            {commandSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 bg-card border border-border rounded-b shadow-lg z-10">
+                {commandSuggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="p-2 hover:bg-muted cursor-pointer"
+                    onClick={() => {
+                      setCommandInput(suggestion);
+                      setCommandSuggestions([]);
+                    }}
+                  >
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <Button onClick={addCommand} disabled={!commandInput.trim()}>
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* 保存按钮 */}
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button variant="outline" onClick={onCancel}>
+          取消
+        </Button>
+        <Button 
+          onClick={() => onSave(editingCase)}
+          disabled={!editingCase.name.trim()}
+        >
+          保存
+        </Button>
+      </div>
+    </div>
+  );
+};

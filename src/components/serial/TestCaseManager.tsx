@@ -613,14 +613,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                               {command.type === 'execution' && command.command}
                               {command.type === 'urc' && (command.urcPattern || command.command)}
                               {command.type === 'subcase' && (
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="truncate">{command.command}</span>
-                                  {command.referencedCaseId && (
-                                    <Badge variant="outline" className="text-xs flex-shrink-0">
-                                      {findTestCaseById(command.referencedCaseId)?.name || command.referencedCaseId}
-                                    </Badge>
-                                  )}
-                                </div>
+                                <span className="truncate">{command.command}</span>
                               )}
                             </div>
                           </div>

@@ -909,10 +909,28 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                         e.stopPropagation();
                         // 添加新命令的逻辑
                         if (currentTestCase) {
-                          // 这里可以打开命令编辑器或直接添加命令
+                          const newCommand: TestCommand = {
+                            id: `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            type: 'execution',
+                            command: 'AT',
+                            validationMethod: 'none',
+                            waitTime: 1000,
+                            stopOnFailure: false,
+                            lineEnding: 'crlf',
+                            selected: false,
+                            status: 'pending'
+                          };
+
+                          const updatedCommands = [...currentTestCase.commands, newCommand];
+                          const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                          const updatedTestCases = testCases.map(tc => 
+                            tc.id === currentTestCase.id ? updatedCase : tc
+                          );
+                          setTestCases(updatedTestCases);
+
                           toast({
                             title: "新增命令",
-                            description: "正在添加新命令",
+                            description: `已添加新命令: ${newCommand.command}`,
                           });
                         }
                         setShowAddMenu(false);

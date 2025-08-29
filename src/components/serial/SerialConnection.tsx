@@ -241,55 +241,33 @@ export const SerialConnection: React.FC<SerialConnectionProps> = ({
         {/* 端口选择 */}
         <div className="space-y-2">
           <Label>选择端口</Label>
-          <div className="flex gap-2">
-            <Select
-              value={selectedPort ? "selected" : ""}
-              onValueChange={(value) => {
-                if (value !== "selected") {
-                  const port = availablePorts[parseInt(value)];
-                  setSelectedPort(port);
-                }
-              }}
-              onOpenChange={(isOpen) => {
-                if (isOpen) {
-                  requestPortAndRefresh();
-                }
-              }}
-              disabled={connectedPorts.length >= 2}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="选择串口设备" />
-              </SelectTrigger>
-              <SelectContent>
-                {availablePorts.map((port, index) => (
-                  <SelectItem key={index} value={index.toString()}>
-                    串口设备 #{index + 1}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshPorts}
-              disabled={isConnecting || connectedPorts.length >= 2}
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* 请求新设备按钮 */}
-        {connectedPorts.length < 2 && (
-          <Button
-            variant="outline"
-            onClick={requestPortAndRefresh}
-            disabled={isConnecting}
-            className="w-full"
+          <Select
+            value={selectedPort ? "selected" : ""}
+            onValueChange={(value) => {
+              if (value !== "selected") {
+                const port = availablePorts[parseInt(value)];
+                setSelectedPort(port);
+              }
+            }}
+            onOpenChange={(isOpen) => {
+              if (isOpen) {
+                requestPortAndRefresh();
+              }
+            }}
+            disabled={connectedPorts.length >= 2}
           >
-            请求访问新设备
-          </Button>
-        )}
+            <SelectTrigger>
+              <SelectValue placeholder="选择串口设备" />
+            </SelectTrigger>
+            <SelectContent>
+              {availablePorts.map((port, index) => (
+                <SelectItem key={index} value={index.toString()}>
+                  串口设备 #{index + 1}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <Separator />
 

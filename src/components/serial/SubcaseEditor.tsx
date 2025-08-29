@@ -10,20 +10,19 @@ import { X, Plus, Settings, Trash2 } from "lucide-react";
 import { TestCommand } from './TestCaseManager';
 
 interface SubcaseEditorProps {
-  command: TestCommand;
-  onSave: (updatedCommand: TestCommand) => void;
-  onCancel: () => void;
+  parentCaseName: string;
+  subCommands: TestCommand[];
+  onSubCommandsChange: (subCommands: TestCommand[]) => void;
+  onClose: () => void;
 }
 
 export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
-  command,
-  onSave,
-  onCancel
+  parentCaseName,
+  subCommands,
+  onSubCommandsChange,
+  onClose
 }) => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [localCommand, setLocalCommand] = useState<TestCommand>(command);
-
-  const subCommands = localCommand.subCommands || [];
 
   const addSubCommand = () => {
     const newCommand: TestCommand = {
@@ -37,41 +36,25 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
       selected: false,
       status: 'pending'
     };
-    setLocalCommand(prev => ({
-      ...prev,
-      subCommands: [...subCommands, newCommand]
-    }));
+    onSubCommandsChange([...subCommands, newCommand]);
   };
 
   const updateSubCommand = (index: number, updates: Partial<TestCommand>) => {
     const updated = subCommands.map((cmd, i) => 
       i === index ? { ...cmd, ...updates } : cmd
     );
-    setLocalCommand(prev => ({
-      ...prev,
-      subCommands: updated
-    }));
+    onSubCommandsChange(updated);
   };
 
   const deleteSubCommand = (index: number) => {
-    setLocalCommand(prev => ({
-      ...prev,
-      subCommands: subCommands.filter((_, i) => i !== index)
-    }));
+    onSubCommandsChange(subCommands.filter((_, i) => i !== index));
   };
 
   const moveSubCommand = (fromIndex: number, toIndex: number) => {
     const updated = [...subCommands];
     const [moved] = updated.splice(fromIndex, 1);
     updated.splice(toIndex, 0, moved);
-    setLocalCommand(prev => ({
-      ...prev,
-      subCommands: updated
-    }));
-  };
-
-  const handleSave = () => {
-    onSave(localCommand);
+    onSubCommandsChange(updated);
   };
 
   return (
@@ -113,7 +96,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                     <SelectTrigger className="w-20 h-6">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-md z-50">
+                    <SelectContent>
                       <SelectItem value="execution">命令</SelectItem>
                       <SelectItem value="urc">URC</SelectItem>
                     </SelectContent>
@@ -193,7 +176,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                         <SelectTrigger className="h-7 text-xs mt-1">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-background border shadow-md z-50">
+                        <SelectContent>
                           <SelectItem value="none">无验证</SelectItem>
                           <SelectItem value="contains">包含</SelectItem>
                           <SelectItem value="equals">完全匹配</SelectItem>
@@ -219,7 +202,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                         <SelectTrigger className="h-7 text-xs mt-1">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-background border shadow-md z-50">
+                        <SelectContent>
                           <SelectItem value="none">无</SelectItem>
                           <SelectItem value="lf">LF (\n)</SelectItem>
                           <SelectItem value="cr">CR (\r)</SelectItem>
@@ -246,16 +229,6 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
               <p className="text-xs mt-1">点击上方"添加"按钮创建第一个子步骤</p>
             </div>
           )}
-        </div>
-        
-        {/* 底部操作按钮 */}
-        <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={onCancel}>
-            取消
-          </Button>
-          <Button onClick={handleSave}>
-            保存
-          </Button>
         </div>
       </div>
     </div>

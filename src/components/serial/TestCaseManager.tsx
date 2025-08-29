@@ -726,6 +726,34 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                               <div key={`${command.id}-sub-${subIndex}`}
                                    className="flex items-center gap-2 p-2 rounded text-xs bg-muted/20 border-border/20 border hover:bg-muted/30 transition-colors">
                                 
+                                {/* 选择框 */}
+                                <input
+                                  type="checkbox"
+                                  checked={subCommand.selected || false}
+                                  onChange={() => {
+                                    if (isEditable && command.subCommands) {
+                                      // 更新子命令的选择状态
+                                      const updatedSubCommands = command.subCommands.map((cmd, i) => 
+                                        i === subIndex ? { ...cmd, selected: !cmd.selected } : cmd
+                                      );
+                                      
+                                      // 更新父级命令
+                                      const updatedCommands = currentTestCase.commands.map((cmd, i) => 
+                                        i === index ? { ...cmd, subCommands: updatedSubCommands } : cmd
+                                      );
+                                      
+                                      // 更新测试用例
+                                      const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                                      const updatedTestCases = testCases.map(tc => 
+                                        tc.id === currentTestCase.id ? updatedCase : tc
+                                      );
+                                      setTestCases(updatedTestCases);
+                                    }
+                                  }}
+                                  className="w-3 h-3 rounded flex-shrink-0"
+                                  disabled={!isEditable}
+                                />
+                                
                                 {/* 步骤编号 */}
                                 <Badge variant="outline" className="text-xs px-1 flex-shrink-0">
                                   {index + 1}.{subIndex + 1}
@@ -831,31 +859,105 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                             ));
                           })()}
                           
-                          {/* 添加新子命令按钮（仅当可编辑时显示） */}
+                          {/* 子命令操作栏 */}
                           {(() => {
                             const isEditable = command.subCommands !== undefined;
-                            return isEditable && (
-                              <div className="pt-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 text-xs px-2 text-primary hover:bg-primary/10 w-full justify-start"
-                                  onClick={() => {
-                                    // 打开子用例编辑器
-                                    const commandWithSubCommands = {
-                                      ...command,
-                                      subCommands: command.subCommands || []
-                                    };
-                                    const updatedCommands = [...currentTestCase.commands];
-                                    updatedCommands[index] = commandWithSubCommands;
+                            const hasSubCommands = (command.subCommands && command.subCommands.length > 0) || 
+                                                 (command.referencedCaseId && findTestCaseById(command.referencedCaseId)?.commands.length > 0);
+                            
+                            return hasSubCommands && (
+                              <div className="pt-2 border-t border-border/20 mt-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  {/* 左侧：选择操作 */}
+                                  <div className="flex items-center gap-1">
+                                    {isEditable && command.subCommands && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 text-xs px-1"
+                                        onClick={() => {
+                                          // 全选/取消全选子命令
+                                          const hasSelected = command.subCommands?.some(cmd => cmd.selected);
+                                          const newSelectedState = !hasSelected;
+                                          
+                                          const updatedSubCommands = command.subCommands.map(cmd => ({
+                                            ...cmd,
+                                            selected: newSelectedState
+                                          }));
+                                          
+                                          // 更新父级命令
+                                          const updatedCommands = currentTestCase.commands.map((cmd, i) => 
+                                            i === index ? { ...cmd, subCommands: updatedSubCommands } : cmd
+                                          );
+                                          
+                                          // 更新测试用例
+                                          const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                                          const updatedTestCases = testCases.map(tc => 
+                                            tc.id === currentTestCase.id ? updatedCase : tc
+                                          );
+                                          setTestCases(updatedTestCases);
+                                        }}
+                                        title={command.subCommands?.some(cmd => cmd.selected) ? '取消全选' : '全选子命令'}
+                                      >
+                                        {command.subCommands?.some(cmd => cmd.selected) ? (
+                                          <>
+                                            <Square className="w-2 h-2 mr-1" />
+                                            取消全选
+                                          </>
+                                        ) : (
+                                          <>
+                                            <CheckSquare className="w-2 h-2 mr-1" />
+                                            全选
+                                          </>
+                                        )}
+                                      </Button>
+                                    )}
                                     
-                                    setEditingCase({ ...currentTestCase, commands: updatedCommands });
-                                    setEditingSubcaseIndex(index);
-                                  }}
-                                >
-                                  <Plus className="w-3 h-3 mr-1" />
-                                  添加子命令到此用例
-                                </Button>
+                                    {/* 运行选中的子命令 */}
+                                    {isEditable && command.subCommands?.some(cmd => cmd.selected) && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 text-xs px-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30"
+                                        onClick={() => {
+                                          const selectedCount = command.subCommands?.filter(cmd => cmd.selected).length || 0;
+                                          toast({
+                                            title: "开始执行选中的子命令",
+                                            description: `将依次执行 ${selectedCount} 个子步骤`,
+                                          });
+                                        }}
+                                        disabled={connectedPorts.length === 0}
+                                      >
+                                        <PlayCircle className="w-2 h-2 mr-1" />
+                                        运行选中
+                                      </Button>
+                                    )}
+                                  </div>
+                                  
+                                  {/* 右侧：添加命令 */}
+                                  {isEditable && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-5 text-xs px-1 text-primary hover:bg-primary/10"
+                                      onClick={() => {
+                                        // 打开子用例编辑器
+                                        const commandWithSubCommands = {
+                                          ...command,
+                                          subCommands: command.subCommands || []
+                                        };
+                                        const updatedCommands = [...currentTestCase.commands];
+                                        updatedCommands[index] = commandWithSubCommands;
+                                        
+                                        setEditingCase({ ...currentTestCase, commands: updatedCommands });
+                                        setEditingSubcaseIndex(index);
+                                      }}
+                                    >
+                                      <Plus className="w-2 h-2 mr-1" />
+                                      添加
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             );
                           })()}

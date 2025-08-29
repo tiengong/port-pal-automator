@@ -149,9 +149,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   // 新增菜单状态
   const [showAddMenu, setShowAddMenu] = useState(false);
   
-  // 子用例选择对话框状态
-  const [showSubcaseSelector, setShowSubcaseSelector] = useState(false);
-  
   // 参数存储系统 - 用于URC解析的参数
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: string }>({});
   
@@ -410,8 +407,36 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       className="w-full justify-start h-8 px-2 text-sm"
                       onClick={(e) => {
                         e.stopPropagation();
+                        // 添加子用例的逻辑
+                        if (currentTestCase) {
+                          const newSubcase: TestCommand = {
+                            id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            type: 'subcase',
+                            command: '新建子用例',
+                            validationMethod: 'none',
+                            waitTime: 0,
+                            stopOnFailure: false,
+                            lineEnding: 'none',
+                            selected: false,
+                            status: 'pending',
+                            referencedCaseId: '',
+                            isExpanded: false,
+                            subCommands: []
+                          };
+
+                          const updatedCommands = [...currentTestCase.commands, newSubcase];
+                          const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                          const updatedTestCases = testCases.map(tc => 
+                            tc.id === currentTestCase.id ? updatedCase : tc
+                          );
+                          setTestCases(updatedTestCases);
+
+                          toast({
+                            title: "追加子用例",
+                            description: `已添加新子用例: ${newSubcase.command}`,
+                          });
+                        }
                         setShowAddMenu(false);
-                        setShowSubcaseSelector(true);
                       }}
                     >
                       <TestTube2 className="w-3 h-3 mr-2" />
@@ -1285,80 +1310,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             </Button>
             <Button onClick={() => setEditingCommandIndex(null)}>
               保存
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* 选择引用测试用例对话框 */}
-      <Dialog open={showSubcaseSelector} onOpenChange={setShowSubcaseSelector}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>选择引用测试用例</DialogTitle>
-            <DialogDescription>
-              选择要引用的测试用例作为子用例
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {testCases
-              .filter(tc => tc.id !== currentTestCase?.id) // 排除当前测试用例
-              .map((testCase) => (
-                <Button
-                  key={testCase.id}
-                  variant="ghost"
-                  className="w-full justify-start h-auto p-3 text-left"
-                  onClick={() => {
-                    if (currentTestCase) {
-                      const newSubcase: TestCommand = {
-                        id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                        type: 'subcase',
-                        command: testCase.name,
-                        validationMethod: 'none',
-                        waitTime: 0,
-                        stopOnFailure: false,
-                        lineEnding: 'none',
-                        selected: false,
-                        status: 'pending',
-                        referencedCaseId: testCase.id,
-                        isExpanded: false,
-                        subCommands: []
-                      };
-
-                      const updatedCommands = [...currentTestCase.commands, newSubcase];
-                      const updatedCase = { ...currentTestCase, commands: updatedCommands };
-                      const updatedTestCases = testCases.map(tc => 
-                        tc.id === currentTestCase.id ? updatedCase : tc
-                      );
-                      setTestCases(updatedTestCases);
-
-                      toast({
-                        title: "追加子用例",
-                        description: `已引用测试用例: ${testCase.name}`,
-                      });
-                      
-                      setShowSubcaseSelector(false);
-                    }
-                  }}
-                >
-                  <div className="flex flex-col items-start gap-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">#{testCase.uniqueId}</Badge>
-                      <span className="font-medium">{testCase.name}</span>
-                    </div>
-                    {testCase.description && (
-                      <span className="text-xs text-muted-foreground">{testCase.description}</span>
-                    )}
-                    <span className="text-xs text-muted-foreground">{testCase.commands.length} 个步骤</span>
-                  </div>
-                </Button>
-              ))
-            }
-          </div>
-          
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => setShowSubcaseSelector(false)}>
-              取消
             </Button>
           </div>
         </DialogContent>

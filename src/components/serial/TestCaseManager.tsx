@@ -126,6 +126,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCase, setSelectedCase] = useState<TestCase | null>(null);
+  const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
   const [editingSubcaseIndex, setEditingSubcaseIndex] = useState<number | null>(null);
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
@@ -824,27 +825,80 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   const filteredTestCases = filterTestCases(testCases, searchQuery);
+  
+  // 获取当前选中的测试用例
+  const getCurrentTestCase = () => {
+    if (selectedTestCaseId) {
+      return testCases.find(tc => tc.id === selectedTestCaseId) || filteredTestCases[0];
+    }
+    return filteredTestCases[0];
+  };
+  
+  const currentTestCase = getCurrentTestCase();
+
+  // 自动选中第一个测试用例
+  React.useEffect(() => {
+    if (filteredTestCases.length > 0 && !selectedTestCaseId) {
+      setSelectedTestCaseId(filteredTestCases[0].id);
+    }
+  }, [filteredTestCases, selectedTestCaseId]);
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30">
       {/* 头部工具栏 */}
       <div className="p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
-        {/* 当前测试用例显示 */}
+        {/* 当前测试用例选择 */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <TestTube2 className="w-5 h-5 text-primary" />
-            <div>
-              <h3 className="text-lg font-semibold">
-                {filteredTestCases.length > 0 ? filteredTestCases[0].name : '无测试用例'}
-              </h3>
-              {filteredTestCases.length > 0 && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline" className="text-xs">#{filteredTestCases[0].uniqueId}</Badge>
-                  <span>{filteredTestCases[0].commands.length} 个步骤</span>
-                  {filteredTestCases[0].description && (
-                    <span>• {filteredTestCases[0].description}</span>
+            <div className="flex-1">
+              {testCases.length > 0 ? (
+                <div className="space-y-2">
+                  <Select 
+                    value={selectedTestCaseId} 
+                    onValueChange={setSelectedTestCaseId}
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="选择测试用例">
+                        {currentTestCase && (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">#{currentTestCase.uniqueId}</Badge>
+                            <span className="font-semibold">{currentTestCase.name}</span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {testCases.map((testCase) => (
+                        <SelectItem key={testCase.id} value={testCase.id}>
+                          <div className="flex items-center gap-2 py-1">
+                            <Badge variant="outline" className="text-xs">#{testCase.uniqueId}</Badge>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{testCase.name}</span>
+                              {testCase.description && (
+                                <span className="text-xs text-muted-foreground">{testCase.description}</span>
+                              )}
+                            </div>
+                            <Badge variant="secondary" className="text-xs ml-auto">
+                              {testCase.commands.length} 步骤
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {currentTestCase && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{currentTestCase.commands.length} 个步骤</span>
+                      {currentTestCase.description && (
+                        <span>• {currentTestCase.description}</span>
+                      )}
+                    </div>
                   )}
                 </div>
+              ) : (
+                <h3 className="text-lg font-semibold text-muted-foreground">无测试用例</h3>
               )}
             </div>
           </div>
@@ -864,12 +918,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         {/* 当前测试用例操作 */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1">
-            {filteredTestCases.length > 0 && (
+            {currentTestCase && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      onClick={() => setEditingCase(filteredTestCases[0])} 
+                      onClick={() => setEditingCase(currentTestCase)} 
                       variant="outline" 
                       size="sm" 
                       className="h-8 w-8 p-0"
@@ -886,18 +940,17 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   <TooltipTrigger asChild>
                     <Button 
                       onClick={() => {
-                        const currentCase = filteredTestCases[0];
-                        const hasSelectedCommands = currentCase.commands.some(cmd => cmd.selected);
+                        const hasSelectedCommands = currentTestCase.commands.some(cmd => cmd.selected);
                         const newSelectedState = !hasSelectedCommands;
                         
-                        const updatedCommands = currentCase.commands.map(cmd => ({
+                        const updatedCommands = currentTestCase.commands.map(cmd => ({
                           ...cmd,
                           selected: newSelectedState
                         }));
                         
-                        const updatedCase = { ...currentCase, commands: updatedCommands };
+                        const updatedCase = { ...currentTestCase, commands: updatedCommands };
                         const updatedTestCases = testCases.map(tc => 
-                          tc.id === currentCase.id ? updatedCase : tc
+                          tc.id === currentTestCase.id ? updatedCase : tc
                         );
                         setTestCases(updatedTestCases);
                       }} 
@@ -905,21 +958,21 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       size="sm" 
                       className="h-8 w-8 p-0"
                     >
-                      {filteredTestCases[0].commands.some(cmd => cmd.selected) ? 
+                      {currentTestCase.commands.some(cmd => cmd.selected) ? 
                         <Square className="w-4 h-4" /> : 
                         <CheckSquare className="w-4 h-4" />
                       }
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{filteredTestCases[0].commands.some(cmd => cmd.selected) ? '取消全选' : '全选步骤'}</p>
+                    <p>{currentTestCase.commands.some(cmd => cmd.selected) ? '取消全选' : '全选步骤'}</p>
                   </TooltipContent>
                 </Tooltip>
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      onClick={() => runTestCase(filteredTestCases[0].id)} 
+                      onClick={() => runTestCase(currentTestCase.id)} 
                       variant="default" 
                       size="sm" 
                       className="h-8 w-8 p-0" 
@@ -955,11 +1008,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           
           <div className="flex items-center gap-1">
             <TooltipProvider>
-              {filteredTestCases.length > 0 && (
+              {currentTestCase && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      onClick={() => deleteTestCase(filteredTestCases[0].id)} 
+                      onClick={() => deleteTestCase(currentTestCase.id)} 
                       variant="outline" 
                       size="sm" 
                       className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
@@ -1012,7 +1065,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       {/* 测试用例步骤展开 */}
       <div className="flex-1 overflow-y-auto p-3">
-        {filteredTestCases.length === 0 ? (
+        {!currentTestCase ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
             <p className="text-sm">
@@ -1022,12 +1075,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         ) : (
           <div className="space-y-2">
             {/* 直接显示当前测试用例的命令步骤 */}
-            {filteredTestCases[0].commands.map((command, index) => (
+            {currentTestCase.commands.map((command, index) => (
               <div 
                 key={command.id}
                 className={`
                   flex items-center gap-3 p-2 rounded border hover:bg-muted/50
-                  ${index === filteredTestCases[0].currentCommand ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : 'bg-card border-border/50'}
+                  ${index === currentTestCase.currentCommand ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : 'bg-card border-border/50'}
                   ${command.status === 'success' ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : ''}
                   ${command.status === 'failed' ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800' : ''}
                   ${command.status === 'running' ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800' : ''}
@@ -1067,13 +1120,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           className="h-7 w-7 p-0"
                           onClick={() => {
                             // 单独运行这个命令
-                            const updatedCommands = filteredTestCases[0].commands.map((cmd, i) => ({
+                            const updatedCommands = currentTestCase.commands.map((cmd, i) => ({
                               ...cmd,
                               selected: i === index
                             }));
-                            const updatedCase = { ...filteredTestCases[0], commands: updatedCommands };
+                            const updatedCase = { ...currentTestCase, commands: updatedCommands };
                             const updatedTestCases = testCases.map(tc => 
-                              tc.id === filteredTestCases[0].id ? updatedCase : tc
+                              tc.id === currentTestCase.id ? updatedCase : tc
                             );
                             setTestCases(updatedTestCases);
                             
@@ -1103,11 +1156,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                             // 打开设置对话框，针对单个命令
                             if (command.type === 'subcase') {
                               // 如果是子用例，打开子用例编辑器
-                              const commandIndex = filteredTestCases[0].commands.findIndex(cmd => cmd.id === command.id);
+                              const commandIndex = currentTestCase.commands.findIndex(cmd => cmd.id === command.id);
                               setEditingSubcaseIndex(commandIndex);
                             } else {
                               // 打开整个测试用例编辑器并定位到该命令
-                              setEditingCase(filteredTestCases[0]);
+                              setEditingCase(currentTestCase);
                             }
                           }}
                         >
@@ -1123,7 +1176,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </div>
             ))}
             
-            {filteredTestCases[0].commands.length === 0 && (
+            {currentTestCase.commands.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <PlayCircle className="w-8 h-8 mb-3 opacity-30" />
                 <p className="text-sm">此测试用例暂无步骤</p>

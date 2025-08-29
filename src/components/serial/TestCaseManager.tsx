@@ -678,8 +678,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button onClick={() => addTestCase()} size="sm" className="h-8 px-3 text-xs">
               <Plus className="w-3 h-3 mr-1" />
               新建用例
@@ -693,7 +693,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               运行选中
             </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button variant="outline" size="sm" className="h-8 px-2">
               <Upload className="w-3 h-3" />
             </Button>

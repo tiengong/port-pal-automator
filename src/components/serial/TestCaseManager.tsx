@@ -715,32 +715,32 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                    className="flex items-center gap-2 p-2 rounded text-xs bg-muted/20 border-border/20 border hover:bg-muted/30 transition-colors">
                                 
                                 {/* 选择框 */}
-                                <input
-                                  type="checkbox"
-                                  checked={subCommand.selected || false}
-                                  onChange={() => {
-                                    if (isEditable && command.subCommands) {
-                                      // 更新子命令的选择状态
-                                      const updatedSubCommands = command.subCommands.map((cmd, i) => 
-                                        i === subIndex ? { ...cmd, selected: !cmd.selected } : cmd
-                                      );
-                                      
-                                      // 更新父级命令
-                                      const updatedCommands = currentTestCase.commands.map((cmd, i) => 
-                                        i === index ? { ...cmd, subCommands: updatedSubCommands } : cmd
-                                      );
-                                      
-                                      // 更新测试用例
-                                      const updatedCase = { ...currentTestCase, commands: updatedCommands };
-                                      const updatedTestCases = testCases.map(tc => 
-                                        tc.id === currentTestCase.id ? updatedCase : tc
-                                      );
-                                      setTestCases(updatedTestCases);
-                                    }
-                                  }}
-                                  className="w-3 h-3 rounded flex-shrink-0"
-                                  disabled={!isEditable}
-                                />
+                                 <input
+                                   type="checkbox"
+                                   checked={subCommand.selected || false}
+                                   onChange={() => {
+                                     if (isEditable && command.subCommands) {
+                                       // 更新子命令的选择状态
+                                       const updatedSubCommands = command.subCommands.map((cmd, i) => 
+                                         i === subIndex ? { ...cmd, selected: !subCommand.selected } : cmd
+                                       );
+                                       
+                                       // 更新父级命令
+                                       const updatedCommands = currentTestCase.commands.map((cmd, i) => 
+                                         i === index ? { ...cmd, subCommands: updatedSubCommands } : cmd
+                                       );
+                                       
+                                       // 更新测试用例
+                                       const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                                       const updatedTestCases = testCases.map(tc => 
+                                         tc.id === currentTestCase.id ? updatedCase : tc
+                                       );
+                                       setTestCases(updatedTestCases);
+                                     }
+                                   }}
+                                   className="w-3 h-3 rounded flex-shrink-0"
+                                   disabled={!isEditable}
+                                 />
                                 
                                  {/* 步骤编号 */}
                                  <Badge variant="outline" className="text-xs px-1 flex-shrink-0">

@@ -183,6 +183,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     }
 
     let dataToSend = sendData;
+    // 立即清空输入框
+    setSendData("");
     
     // 添加换行符
     switch (newlineMode) {
@@ -226,7 +228,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         await writer.releaseLock();
         
         // 记录发送的数据到对应端口
-        addLog('sent', sendData, sendFormat, index);
+        addLog('sent', dataToSend, sendFormat, index);
         return true;
       } catch (error) {
         console.error(`发送数据到端口 ${index + 1} 失败:`, error);
@@ -238,9 +240,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     try {
       const results = await Promise.all(sendPromises);
       const successCount = results.filter(Boolean).length;
-      
-      // 清空输入框
-      setSendData("");
 
       toast({
         title: "数据已发送",

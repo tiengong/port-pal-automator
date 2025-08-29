@@ -142,6 +142,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   });
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   
+  // 测试用例选择窗口状态
+  const [showCaseSelector, setShowCaseSelector] = useState(false);
+  
   // 参数存储系统 - 用于URC解析的参数
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: string }>({});
   
@@ -872,6 +875,28 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                )}
              </div>
            </div>
+
+           {/* 测试用例选择按钮 */}
+           <div className="flex items-center gap-2">
+             <TooltipProvider>
+               <Tooltip>
+                 <TooltipTrigger asChild>
+                   <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => setShowCaseSelector(true)}
+                     className="h-8 px-3 gap-2"
+                   >
+                     <Search className="w-4 h-4" />
+                     <span className="text-sm">选择用例</span>
+                   </Button>
+                 </TooltipTrigger>
+                 <TooltipContent>
+                   <p>搜索和选择测试用例</p>
+                 </TooltipContent>
+               </Tooltip>
+             </TooltipProvider>
+           </div>
          </div>
 
         {/* 搜索切换测试用例 */}
@@ -1144,33 +1169,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {/* 命令操作下拉栏 */}
       {currentTestCase && (
         <div className="border-t bg-muted/20 p-2">
-          <div className="flex items-center justify-between gap-2">
-            {/* 当前用例下拉选择 */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">当前用例:</span>
-              <Select
-                value={selectedTestCaseId}
-                onValueChange={(value) => {
-                  setSelectedTestCaseId(value);
-                }}
-              >
-                <SelectTrigger className="h-6 w-auto min-w-[120px] text-xs bg-background">
-                  <SelectValue placeholder="选择用例" />
-                </SelectTrigger>
-                <SelectContent className="bg-background border shadow-md z-50">
-                  {filteredTestCases.map((testCase) => (
-                    <SelectItem 
-                      key={testCase.id} 
-                      value={testCase.id}
-                      className="text-xs py-1"
-                    >
-                      {testCase.name.slice(0, 30)}{testCase.name.length > 30 ? '...' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
+          <div className="flex items-center justify-end gap-2">
             {/* 用例操作按钮 */}
             <div className="flex items-center gap-1">
               <TooltipProvider>
@@ -1241,6 +1240,78 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
         </div>
       )}
+
+      {/* 测试用例选择窗口 */}
+      <Dialog open={showCaseSelector} onOpenChange={setShowCaseSelector}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>选择测试用例</DialogTitle>
+            <DialogDescription>
+              搜索并选择要执行的测试用例
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            {/* 搜索框 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="搜索测试用例名称或编号..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* 测试用例列表 */}
+            <div className="flex-1 max-h-96 overflow-y-auto space-y-2">
+              {filteredTestCases.length > 0 ? (
+                filteredTestCases.map((testCase) => (
+                  <div
+                    key={testCase.id}
+                    className={`
+                      flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                      ${selectedTestCaseId === testCase.id 
+                        ? 'bg-primary/10 border-primary text-primary' 
+                        : 'bg-card border-border hover:bg-muted/50'
+                      }
+                    `}
+                    onClick={() => {
+                      setSelectedTestCaseId(testCase.id);
+                      setShowCaseSelector(false);
+                      setSearchQuery(''); // 清空搜索
+                    }}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">
+                          #{testCase.uniqueId}
+                        </Badge>
+                        <span className="font-medium">{testCase.name}</span>
+                        {selectedTestCaseId === testCase.id && (
+                          <CheckCircle className="w-4 h-4 text-primary" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{testCase.commands.length} 个步骤</span>
+                        {testCase.description && (
+                          <span>• {testCase.description}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <TestTube2 className="w-8 h-8 mb-2 opacity-30" />
+                  <p className="text-sm">
+                    {searchQuery ? '未找到匹配的测试用例' : '暂无测试用例'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* 右键菜单 */}
       {contextMenu.visible && (

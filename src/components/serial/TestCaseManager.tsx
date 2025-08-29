@@ -64,7 +64,7 @@ export interface TestCommand {
   // URC特有字段
   urcPattern?: string; // URC匹配模式
   dataParseConfig?: {
-    parseType: 'regex' | 'split' | 'json';
+    parseType: 'contains' | 'exact' | 'regex' | 'split' | 'json';
     parsePattern: string;
     parameterMap: { [key: string]: string }; // 参数映射 
   };
@@ -1503,10 +1503,121 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                           className="h-8"
                           value={command.urcPattern || ''}
                           onChange={(e) => updateCommand(index, { urcPattern: e.target.value })}
-                          placeholder="例如: +CREG: 或 %CGREG:"
+                          placeholder="例如: +CREG: 或 %CGREG: 或 +CSQ:"
                         />
                       </div>
-                      {/* ... 其他URC配置 ... */}
+
+                      {/* 匹配方式 */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">匹配方式</Label>
+                          <Select
+                            value={command.dataParseConfig?.parseType || 'contains'}
+                            onValueChange={(value: 'contains' | 'exact' | 'regex') => 
+                              updateCommand(index, { 
+                                dataParseConfig: { 
+                                  ...command.dataParseConfig,
+                                  parseType: value,
+                                  parsePattern: command.dataParseConfig?.parsePattern || '',
+                                  parameterMap: command.dataParseConfig?.parameterMap || {}
+                                } 
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="contains">包含匹配</SelectItem>
+                              <SelectItem value="exact">精确匹配</SelectItem>
+                              <SelectItem value="regex">正则表达式</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">超时时间(ms)</Label>
+                          <Input
+                            type="number"
+                            className="h-8"
+                            value={command.waitTime}
+                            onChange={(e) => updateCommand(index, { waitTime: Number(e.target.value) })}
+                            placeholder="5000"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 参数提取配置 */}
+                      <div>
+                        <Label className="text-xs">参数提取模式</Label>
+                        <Input
+                          className="h-8"
+                          value={command.dataParseConfig?.parsePattern || ''}
+                          onChange={(e) => 
+                            updateCommand(index, { 
+                              dataParseConfig: { 
+                                ...command.dataParseConfig,
+                                parseType: command.dataParseConfig?.parseType || 'regex',
+                                parsePattern: e.target.value,
+                                parameterMap: command.dataParseConfig?.parameterMap || {}
+                              } 
+                            })
+                          }
+                          placeholder={
+                            command.dataParseConfig?.parseType === 'regex' 
+                              ? '例如: \\+CREG: (\\d+),(\\d+) 提取状态和信号' 
+                              : command.dataParseConfig?.parseType === 'split'
+                              ? '例如: , 按逗号分割'
+                              : '留空则匹配整行'
+                          }
+                        />
+                      </div>
+
+                      {/* 参数映射 */}
+                      <div>
+                        <Label className="text-xs">参数映射 (格式: 参数名=组号,参数名2=组号2)</Label>
+                        <Input
+                          className="h-8"
+                          value={
+                            command.dataParseConfig?.parameterMap 
+                              ? Object.entries(command.dataParseConfig.parameterMap)
+                                  .map(([key, value]) => `${key}=${value}`)
+                                  .join(',')
+                              : ''
+                          }
+                          onChange={(e) => {
+                            const parameterMap: { [key: string]: string } = {};
+                            if (e.target.value.trim()) {
+                              e.target.value.split(',').forEach(pair => {
+                                const [key, value] = pair.split('=');
+                                if (key && value) {
+                                  parameterMap[key.trim()] = value.trim();
+                                }
+                              });
+                            }
+                            updateCommand(index, { 
+                              dataParseConfig: { 
+                                ...command.dataParseConfig,
+                                parseType: command.dataParseConfig?.parseType || 'regex',
+                                parsePattern: command.dataParseConfig?.parsePattern || '',
+                                parameterMap
+                              } 
+                            });
+                          }}
+                          placeholder="例如: status=1,signal=2"
+                        />
+                        <div className="text-xs text-muted-foreground mt-1">
+                          提取的参数可在后续步骤中使用 {"{参数名}"} 引用
+                        </div>
+                      </div>
+
+                      {/* 失败处理 */}
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={command.stopOnFailure}
+                          onCheckedChange={(checked) => updateCommand(index, { stopOnFailure: checked })}
+                        />
+                        <Label className="text-xs">匹配失败时停止执行</Label>
+                      </div>
                     </div>
                   )}
 

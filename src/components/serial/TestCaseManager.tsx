@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Plus, 
   Play, 
@@ -144,6 +145,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 测试用例选择窗口状态
   const [showCaseSelector, setShowCaseSelector] = useState(false);
+  
+  // 新增菜单状态
+  const [showAddMenu, setShowAddMenu] = useState(false);
   
   // 参数存储系统 - 用于URC解析的参数
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: string }>({});
@@ -877,51 +881,106 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
            </div>
          </div>
 
-         {/* 当前测试用例操作 */}
-         <div className="flex items-center justify-between gap-3">
-           {/* 主要操作 */}
-           <div className="flex items-center gap-1">
-             {currentTestCase && (
-               <>
-                 <TooltipProvider>
-                   <Tooltip>
-                     <TooltipTrigger asChild>
-                       <Button 
-                         onClick={() => setEditingCase(currentTestCase)} 
-                         variant="outline" 
-                         size="sm" 
-                         className="h-8 w-8 p-0"
-                       >
-                         <Settings className="w-4 h-4" />
-                       </Button>
-                     </TooltipTrigger>
-                     <TooltipContent>
-                       <p>编辑测试用例</p>
-                     </TooltipContent>
-                   </Tooltip>
-                 </TooltipProvider>
-                 
-                 <TooltipProvider>
-                   <Tooltip>
-                     <TooltipTrigger asChild>
-                       <Button 
-                         onClick={() => runTestCase(currentTestCase.id)} 
-                         variant="default" 
-                         size="sm" 
-                         className="h-8 w-8 p-0" 
-                         disabled={connectedPorts.length === 0}
-                       >
-                         <Play className="w-4 h-4" />
-                       </Button>
-                     </TooltipTrigger>
-                     <TooltipContent>
-                       <p>运行测试用例</p>
-                     </TooltipContent>
-                   </Tooltip>
-                 </TooltipProvider>
-               </>
-             )}
-           </div>
+          {/* 当前测试用例操作 */}
+          <div className="flex items-center justify-between gap-3">
+            {/* 主要操作 */}
+            <div className="flex items-center gap-1">
+              {/* 新增按钮 */}
+              <TooltipProvider>
+                <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-2" align="start">
+                    <div className="space-y-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start h-8 px-2 text-sm"
+                        onClick={() => {
+                          // 添加新命令的逻辑
+                          if (currentTestCase) {
+                            // 这里可以打开命令编辑器或直接添加命令
+                            toast({
+                              title: "新增命令",
+                              description: "正在添加新命令",
+                            });
+                          }
+                          setShowAddMenu(false);
+                        }}
+                      >
+                        <Play className="w-3 h-3 mr-2" />
+                        新增命令
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start h-8 px-2 text-sm"
+                        onClick={() => {
+                          // 添加子用例的逻辑
+                          if (currentTestCase) {
+                            toast({
+                              title: "追加子用例",
+                              description: "正在添加子用例",
+                            });
+                          }
+                          setShowAddMenu(false);
+                        }}
+                      >
+                        <TestTube2 className="w-3 h-3 mr-2" />
+                        追加子用例
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </TooltipProvider>
+              
+              {currentTestCase && (
+                <>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          onClick={() => setEditingCase(currentTestCase)} 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>编辑测试用例</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          onClick={() => runTestCase(currentTestCase.id)} 
+                          variant="default" 
+                          size="sm" 
+                          className="h-8 w-8 p-0" 
+                          disabled={connectedPorts.length === 0}
+                        >
+                          <Play className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>运行测试用例</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </>
+              )}
+            </div>
           
           {/* 选择操作 */}
           <div className="flex items-center gap-1">

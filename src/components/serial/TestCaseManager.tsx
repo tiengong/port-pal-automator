@@ -709,31 +709,35 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           {(() => {
                             // 显示子命令或引用的测试用例命令
                             let commandsToShow: TestCommand[] = [];
+                            let isEditable = false;
                             
                             if (command.subCommands && command.subCommands.length > 0) {
                               commandsToShow = command.subCommands;
+                              isEditable = true; // 子命令可编辑
                             } else if (command.referencedCaseId) {
                               const referencedCase = findTestCaseById(command.referencedCaseId);
                               if (referencedCase) {
                                 commandsToShow = referencedCase.commands;
+                                isEditable = false; // 引用的命令不可直接编辑
                               }
                             }
 
                             return commandsToShow.map((subCommand, subIndex) => (
                               <div key={`${command.id}-sub-${subIndex}`}
-                                   className="flex items-center gap-2 p-1 rounded text-xs bg-muted/20 border-border/20 border">
-                                <Badge variant="outline" className="text-xs px-1">
+                                   className="flex items-center gap-2 p-2 rounded text-xs bg-muted/20 border-border/20 border hover:bg-muted/30 transition-colors">
+                                <Badge variant="outline" className="text-xs px-1 flex-shrink-0">
                                   {index + 1}.{subIndex + 1}
                                 </Badge>
                                 <Badge variant={subCommand.type === 'execution' ? 'default' : 'destructive'} 
-                                       className="text-xs px-1">
+                                       className="text-xs px-1 flex-shrink-0">
                                   {subCommand.type === 'execution' ? '命令' : 'URC'}
                                 </Badge>
                                 <div className="flex-1 min-w-0 font-mono text-xs truncate">
                                   {subCommand.type === 'execution' && `执行: ${subCommand.command}`}
                                   {subCommand.type === 'urc' && `监听: ${subCommand.urcPattern || subCommand.command}`}
                                 </div>
-                                <div className="flex items-center gap-0.5">
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  {/* 状态指示器 */}
                                   {subCommand.status === 'success' && (
                                     <CheckCircle className="w-3 h-3 text-green-500" />
                                   )}
@@ -743,9 +747,85 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                   {subCommand.status === 'running' && (
                                     <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                   )}
+                                  
+                                  {/* 操作按钮 */}
+                                  {isEditable && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 w-5 p-0"
+                                        onClick={() => {
+                                          // 运行单个子命令
+                                          toast({
+                                            title: "开始执行",
+                                            description: `正在执行子步骤 ${index + 1}.${subIndex + 1}: ${subCommand.command}`,
+                                          });
+                                        }}
+                                        disabled={connectedPorts.length === 0}
+                                      >
+                                        <Play className="w-2 h-2" />
+                                      </Button>
+                                      
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 w-5 p-0"
+                                        onClick={() => {
+                                          // 编辑子命令 - 打开子用例编辑器并定位到特定命令
+                                          const commandWithSubCommands = {
+                                            ...command,
+                                            subCommands: command.subCommands || []
+                                          };
+                                          const updatedCommands = [...currentTestCase.commands];
+                                          updatedCommands[index] = commandWithSubCommands;
+                                          
+                                          setEditingCase({ ...currentTestCase, commands: updatedCommands });
+                                          setEditingSubcaseIndex(index);
+                                        }}
+                                      >
+                                        <Settings className="w-2 h-2" />
+                                      </Button>
+                                    </>
+                                  )}
+                                  
+                                  {!isEditable && (
+                                    <div className="text-xs text-muted-foreground px-1">
+                                      只读
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ));
+                          })()}
+                          
+                          {/* 添加新子命令按钮（仅当可编辑时显示） */}
+                          {(() => {
+                            const isEditable = command.subCommands && command.subCommands.length >= 0;
+                            return isEditable && (
+                              <div className="pt-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs px-2 text-primary hover:bg-primary/10"
+                                  onClick={() => {
+                                    // 打开子用例编辑器
+                                    const commandWithSubCommands = {
+                                      ...command,
+                                      subCommands: command.subCommands || []
+                                    };
+                                    const updatedCommands = [...currentTestCase.commands];
+                                    updatedCommands[index] = commandWithSubCommands;
+                                    
+                                    setEditingCase({ ...currentTestCase, commands: updatedCommands });
+                                    setEditingSubcaseIndex(index);
+                                  }}
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  添加子命令
+                                </Button>
+                              </div>
+                            );
                           })()}
                         </div>
                       )}

@@ -144,8 +144,26 @@ export const SerialConnection: React.FC<SerialConnectionProps> = ({
   // 断开指定串口
   const disconnectPort = async (port: any) => {
     try {
-      await port.close();
+      // 先调用父组件的断开处理，这会停止数据读取
       onDisconnect(port);
+      
+      // 等待一下让数据读取停止
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 然后关闭端口
+      if (port.readable && port.readable.locked) {
+        // 如果端口仍然被锁定，尝试获取并释放reader
+        try {
+          const reader = port.readable.getReader();
+          await reader.cancel();
+          reader.releaseLock();
+        } catch (readerError) {
+          console.log('Reader cleanup error (expected):', readerError);
+        }
+      }
+      
+      // 关闭端口
+      await port.close();
 
       toast({
         title: "已断开连接",
@@ -153,9 +171,13 @@ export const SerialConnection: React.FC<SerialConnectionProps> = ({
       });
     } catch (error) {
       console.error('断开串口失败:', error);
+      
+      // 即使关闭失败，也要调用断开处理以更新UI状态
+      onDisconnect(port);
+      
       toast({
-        title: "断开失败",
-        description: "无法断开串口连接",
+        title: "端口已断开",
+        description: "连接已断开，端口可能仍在使用中",
         variant: "destructive"
       });
     }

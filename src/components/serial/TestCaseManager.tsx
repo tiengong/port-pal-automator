@@ -888,68 +888,51 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           />
         </div>
 
-        {/* 当前测试用例操作 */}
-        <div className="flex items-center justify-between gap-3">
-          {/* 主要操作 */}
-          <div className="flex items-center gap-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={() => addTestCase()} 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>新建测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            {currentTestCase && (
-              <>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        onClick={() => setEditingCase(currentTestCase)} 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                      >
-                        <Settings className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>编辑测试用例</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        onClick={() => runTestCase(currentTestCase.id)} 
-                        variant="default" 
-                        size="sm" 
-                        className="h-8 w-8 p-0" 
-                        disabled={connectedPorts.length === 0}
-                      >
-                        <Play className="w-4 h-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>运行测试用例</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </>
-            )}
-          </div>
+         {/* 当前测试用例操作 */}
+         <div className="flex items-center justify-between gap-3">
+           {/* 主要操作 */}
+           <div className="flex items-center gap-1">
+             {currentTestCase && (
+               <>
+                 <TooltipProvider>
+                   <Tooltip>
+                     <TooltipTrigger asChild>
+                       <Button 
+                         onClick={() => setEditingCase(currentTestCase)} 
+                         variant="outline" 
+                         size="sm" 
+                         className="h-8 w-8 p-0"
+                       >
+                         <Settings className="w-4 h-4" />
+                       </Button>
+                     </TooltipTrigger>
+                     <TooltipContent>
+                       <p>编辑测试用例</p>
+                     </TooltipContent>
+                   </Tooltip>
+                 </TooltipProvider>
+                 
+                 <TooltipProvider>
+                   <Tooltip>
+                     <TooltipTrigger asChild>
+                       <Button 
+                         onClick={() => runTestCase(currentTestCase.id)} 
+                         variant="default" 
+                         size="sm" 
+                         className="h-8 w-8 p-0" 
+                         disabled={connectedPorts.length === 0}
+                       >
+                         <Play className="w-4 h-4" />
+                       </Button>
+                     </TooltipTrigger>
+                     <TooltipContent>
+                       <p>运行测试用例</p>
+                     </TooltipContent>
+                   </Tooltip>
+                 </TooltipProvider>
+               </>
+             )}
+           </div>
           
           {/* 选择操作 */}
           <div className="flex items-center gap-1">
@@ -1165,6 +1148,25 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-xs">显示当前测试用例编号</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <div className="w-px h-4 bg-border mx-1" />
+
+                {/* 新建测试用例按钮 */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => addTestCase()} 
+                      variant="default"
+                      size="sm" 
+                      className="h-6 w-6 p-0"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">新建测试用例</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

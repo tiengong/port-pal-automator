@@ -42,7 +42,7 @@ interface TestCaseManagerProps {
 
 interface TestCommand {
   id: string;
-  type: 'execution' | 'response';
+  type: 'execution' | 'urc' | 'subcase';
   command: string;
   expectedResponse?: string;
   validationMethod: 'none' | 'contains' | 'equals' | 'regex';
@@ -54,6 +54,25 @@ interface TestCommand {
   lineEnding: 'none' | 'lf' | 'cr' | 'crlf';
   selected: boolean;
   status: 'pending' | 'running' | 'success' | 'failed' | 'skipped';
+  
+  // URC特有字段
+  urcPattern?: string; // URC匹配模式
+  dataParseConfig?: {
+    parseType: 'regex' | 'split' | 'json';
+    parsePattern: string;
+    parameterMap: { [key: string]: string }; // 参数映射 
+  };
+  jumpConfig?: {
+    onReceived: 'continue' | 'jump';
+    jumpTarget?: {
+      type: 'command' | 'case';
+      targetId: string;
+      targetIndex?: number;
+    };
+  };
+  
+  // 子用例引用字段
+  subcaseId?: string;
 }
 
 interface TestCase {
@@ -115,6 +134,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     targetType: 'case'
   });
   const [nextUniqueId, setNextUniqueId] = useState(1001);
+  
+  // 参数存储系统 - 用于URC解析的参数
+  const [storedParameters, setStoredParameters] = useState<{ [key: string]: string }>({});
 
   // 生成唯一编号
   const generateUniqueId = () => {
@@ -615,8 +637,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   )}
                 </div>
 
-                <Badge variant={command.type === 'execution' ? 'default' : 'secondary'} className="text-xs px-1">
-                  {command.type === 'execution' ? '执行' : '响应'}
+                <Badge variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'destructive' : 'secondary'} className="text-xs px-1">
+                  {command.type === 'execution' ? '执行' : command.type === 'urc' ? 'URC' : '子用例'}
                 </Badge>
                 
                 <div className="flex-1 min-w-0">
@@ -794,6 +816,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 getCommandSuggestions={getCommandSuggestions}
                 getTestCaseSuggestions={getTestCaseSuggestions}
                 onAddSubCase={(parentId) => addTestCase(parentId)}
+                storedParameters={storedParameters}
               />
             )}
           </div>
@@ -834,6 +857,7 @@ interface TestCaseEditorProps {
   getCommandSuggestions: (input: string) => string[];
   getTestCaseSuggestions: (input: string) => TestCase[];
   onAddSubCase: (parentId: string) => void;
+  storedParameters: { [key: string]: string }; // 添加参数存储
 }
 
 const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
@@ -842,7 +866,8 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
   onCancel,
   getCommandSuggestions,
   getTestCaseSuggestions,
-  onAddSubCase
+  onAddSubCase,
+  storedParameters
 }) => {
   const { toast } = useToast();
   const [editingCase, setEditingCase] = useState<TestCase>({ ...testCase });
@@ -864,7 +889,12 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
       stopOnFailure: true,
       lineEnding: 'crlf',
       selected: false,
-      status: 'pending'
+      status: 'pending',
+      // 为新命令类型添加默认值
+      urcPattern: undefined,
+      dataParseConfig: undefined,
+      jumpConfig: undefined,
+      subcaseId: undefined
     };
     
     setEditingCase(prev => ({
@@ -1004,19 +1034,20 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
             <div key={command.id} className="border rounded-lg p-4 space-y-3 max-h-[400px] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge variant={command.type === 'execution' ? 'default' : 'secondary'}>
+                  <Badge variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'destructive' : 'secondary'}>
                     命令 {index + 1}
                   </Badge>
                   <Select
                     value={command.type}
-                    onValueChange={(value: 'execution' | 'response') => updateCommand(index, { type: value })}
+                    onValueChange={(value: 'execution' | 'urc' | 'subcase') => updateCommand(index, { type: value })}
                   >
                     <SelectTrigger className="w-24 h-6">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="execution">执行</SelectItem>
-                      <SelectItem value="response">响应</SelectItem>
+                      <SelectItem value="urc">URC</SelectItem>
+                      <SelectItem value="subcase">子用例</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1046,6 +1077,199 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
 
               {editingCommandIndex === index && (
                 <div className="space-y-3 bg-muted/30 p-3 rounded">
+                  {/* URC特有配置 */}
+                  {command.type === 'urc' && (
+                    <div className="space-y-3 border-l-2 border-orange-500 pl-3">
+                      <Label className="text-xs font-medium text-orange-600">URC配置</Label>
+                      
+                      {/* URC匹配模式 */}
+                      <div>
+                        <Label className="text-xs">URC匹配模式</Label>
+                        <Input
+                          className="h-8"
+                          value={command.urcPattern || ''}
+                          onChange={(e) => updateCommand(index, { urcPattern: e.target.value })}
+                          placeholder="例如: +CREG: 或 %CGREG:"
+                        />
+                      </div>
+
+                      {/* 数据解析配置 */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">解析类型</Label>
+                          <Select
+                            value={command.dataParseConfig?.parseType || 'regex'}
+                            onValueChange={(value: 'regex' | 'split' | 'json') => 
+                              updateCommand(index, { 
+                                dataParseConfig: { 
+                                  ...command.dataParseConfig, 
+                                  parseType: value,
+                                  parsePattern: command.dataParseConfig?.parsePattern || '',
+                                  parameterMap: command.dataParseConfig?.parameterMap || {}
+                                } 
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="regex">正则表达式</SelectItem>
+                              <SelectItem value="split">分割符</SelectItem>
+                              <SelectItem value="json">JSON</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">解析模式</Label>
+                          <Input
+                            className="h-8"
+                            value={command.dataParseConfig?.parsePattern || ''}
+                            onChange={(e) => updateCommand(index, { 
+                              dataParseConfig: { 
+                                ...command.dataParseConfig,
+                                parseType: command.dataParseConfig?.parseType || 'regex',
+                                parsePattern: e.target.value,
+                                parameterMap: command.dataParseConfig?.parameterMap || {}
+                              } 
+                            })}
+                            placeholder={
+                              command.dataParseConfig?.parseType === 'regex' ? '(\\d+),(\\d+)' :
+                              command.dataParseConfig?.parseType === 'split' ? ',' :
+                              '{"key": "value"}'
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      {/* 参数映射 */}
+                      <div>
+                        <Label className="text-xs">参数映射 (格式: param1=值1,param2=值2)</Label>
+                        <Input
+                          className="h-8"
+                          value={
+                            command.dataParseConfig?.parameterMap ? 
+                            Object.entries(command.dataParseConfig.parameterMap).map(([k,v]) => `${k}=${v}`).join(',') : 
+                            ''
+                          }
+                          onChange={(e) => {
+                            const pairs = e.target.value.split(',').filter(p => p.includes('='));
+                            const parameterMap: { [key: string]: string } = {};
+                            pairs.forEach(pair => {
+                              const [key, value] = pair.split('=');
+                              if (key && value) parameterMap[key.trim()] = value.trim();
+                            });
+                            updateCommand(index, { 
+                              dataParseConfig: { 
+                                ...command.dataParseConfig,
+                                parseType: command.dataParseConfig?.parseType || 'regex',
+                                parsePattern: command.dataParseConfig?.parsePattern || '',
+                                parameterMap
+                              } 
+                            });
+                          }}
+                          placeholder="signal=$1,quality=$2"
+                        />
+                      </div>
+
+                      {/* 跳转配置 */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">收到后行为</Label>
+                          <Select
+                            value={command.jumpConfig?.onReceived || 'continue'}
+                            onValueChange={(value: 'continue' | 'jump') => 
+                              updateCommand(index, { 
+                                jumpConfig: { 
+                                  ...command.jumpConfig, 
+                                  onReceived: value 
+                                } 
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="continue">继续执行</SelectItem>
+                              <SelectItem value="jump">跳转执行</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {command.jumpConfig?.onReceived === 'jump' && (
+                          <div>
+                            <Label className="text-xs">跳转目标</Label>
+                            <Select
+                              value={command.jumpConfig?.jumpTarget?.type || 'command'}
+                              onValueChange={(value: 'command' | 'case') => 
+                                updateCommand(index, { 
+                                  jumpConfig: { 
+                                    ...command.jumpConfig,
+                                    onReceived: 'jump',
+                                    jumpTarget: { 
+                                      ...command.jumpConfig?.jumpTarget, 
+                                      type: value,
+                                      targetId: command.jumpConfig?.jumpTarget?.targetId || '',
+                                      targetIndex: command.jumpConfig?.jumpTarget?.targetIndex
+                                    } 
+                                  } 
+                                })
+                              }
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="command">指定命令</SelectItem>
+                                <SelectItem value="case">指定用例</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+
+                      {command.jumpConfig?.onReceived === 'jump' && (
+                        <div>
+                          <Label className="text-xs">目标ID或索引</Label>
+                          <Input
+                            className="h-8"
+                            value={command.jumpConfig?.jumpTarget?.targetId || ''}
+                            onChange={(e) => updateCommand(index, { 
+                              jumpConfig: { 
+                                ...command.jumpConfig,
+                                onReceived: 'jump',
+                                jumpTarget: { 
+                                  ...command.jumpConfig?.jumpTarget,
+                                  type: command.jumpConfig?.jumpTarget?.type || 'command',
+                                  targetId: e.target.value,
+                                  targetIndex: command.jumpConfig?.jumpTarget?.targetIndex
+                                } 
+                              } 
+                            })}
+                            placeholder="目标用例ID或命令索引(从1开始)"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 子用例配置 */}
+                  {command.type === 'subcase' && (
+                    <div className="space-y-3 border-l-2 border-blue-500 pl-3">
+                      <Label className="text-xs font-medium text-blue-600">子用例配置</Label>
+                      <div>
+                        <Label className="text-xs">子用例ID</Label>
+                        <Input
+                          className="h-8"
+                          value={command.subcaseId || ''}
+                          onChange={(e) => updateCommand(index, { subcaseId: e.target.value })}
+                          placeholder="输入子用例的ID"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 通用配置 */}
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <Label className="text-xs">验证方式</Label>
@@ -1140,13 +1364,33 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
           ))}
         </div>
 
+        {/* 参数显示 */}
+        {Object.keys(storedParameters).length > 0 && (
+          <div className="space-y-2 mb-4">
+            <Label className="text-xs font-medium text-primary">可用参数</Label>
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(storedParameters).map(([key, value]) => (
+                <Badge key={key} variant="outline" className="text-xs cursor-pointer"
+                  onClick={() => setCommandInput(prev => prev + `{${key}}`)}
+                  title={`点击插入参数 {${key}}, 当前值: ${value}`}
+                >
+                  {key}: {String(value).length > 10 ? String(value).substring(0, 10) + '...' : String(value)}
+                </Badge>
+              ))}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              使用格式: 在命令中输入 {"{参数名}"} 来引用参数
+            </div>
+          </div>
+        )}
+
         {/* 添加新命令 */}
         <div className="flex gap-2">
           <div className="flex-1 relative">
             <Input
               value={commandInput}
               onChange={(e) => handleCommandInputChange(e.target.value)}
-              placeholder="输入新的测试命令"
+              placeholder="输入新的测试命令，支持参数如: AT+CGDCONT=1,IP,{apn}"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && commandInput.trim()) {
                   addCommand();

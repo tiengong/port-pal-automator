@@ -917,25 +917,71 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
         {/* 当前测试用例操作 */}
         <div className="flex items-center justify-between gap-3">
+          {/* 主要操作 */}
+          <div className="flex items-center gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={() => addTestCase()} 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>新建测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            {currentTestCase && (
+              <>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        onClick={() => setEditingCase(currentTestCase)} 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>编辑测试用例</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        onClick={() => runTestCase(currentTestCase.id)} 
+                        variant="default" 
+                        size="sm" 
+                        className="h-8 w-8 p-0" 
+                        disabled={connectedPorts.length === 0}
+                      >
+                        <Play className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>运行测试用例</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            )}
+          </div>
+          
+          {/* 选择操作 */}
           <div className="flex items-center gap-1">
             {currentTestCase && (
               <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => setEditingCase(currentTestCase)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>设置测试用例</p>
-                  </TooltipContent>
-                </Tooltip>
-                
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -968,64 +1014,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     <p>{currentTestCase.commands.some(cmd => cmd.selected) ? '取消全选' : '全选步骤'}</p>
                   </TooltipContent>
                 </Tooltip>
-                
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => runTestCase(currentTestCase.id)} 
-                      variant="default" 
-                      size="sm" 
-                      className="h-8 w-8 p-0" 
-                      disabled={connectedPorts.length === 0}
-                    >
-                      <Play className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>运行测试用例</p>
-                  </TooltipContent>
-                </Tooltip>
               </TooltipProvider>
             )}
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={() => addTestCase()} 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>新建测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
           
+          {/* 文件操作和其他 */}
           <div className="flex items-center gap-1">
             <TooltipProvider>
-              {currentTestCase && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => deleteTestCase(currentTestCase.id)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>删除测试用例</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8 w-8 p-0">
@@ -1048,6 +1043,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 </TooltipContent>
               </Tooltip>
               
+              <div className="w-px h-4 bg-border mx-1" />
+              
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8 w-8 p-0">
@@ -1055,9 +1052,27 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>刷新</p>
+                  <p>刷新列表</p>
                 </TooltipContent>
               </Tooltip>
+              
+              {currentTestCase && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => deleteTestCase(currentTestCase.id)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>删除测试用例</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </TooltipProvider>
           </div>
         </div>

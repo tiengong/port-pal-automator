@@ -58,6 +58,7 @@ interface TestCommand {
   // 子用例特有字段
   referencedCaseId?: string; // 引用的测试用例ID
   isExpanded?: boolean; // 是否展开显示子步骤
+  subCommands?: TestCommand[]; // 可编辑的子命令列表（子用例展开后的命令副本）
   
   // URC特有字段
   urcPattern?: string; // URC匹配模式
@@ -761,31 +762,33 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   </div>
                 </div>
 
-                {/* 子用例展开显示子步骤 */}
-                {command.type === 'subcase' && command.isExpanded && command.referencedCaseId && (
+                {/* 子用例展开显示可编辑子步骤 */}
+                {command.type === 'subcase' && command.isExpanded && command.subCommands && (
                   <div className="ml-8 mt-1 space-y-1 border-l border-border/30 pl-3">
-                    {(() => {
-                      const referencedCase = findTestCaseById(command.referencedCaseId, testCases);
-                      if (referencedCase) {
-                        return referencedCase.commands.map((subCommand, subIndex) => (
-                          <div key={`${command.id}-sub-${subIndex}`}
-                               className="flex items-center gap-2 p-1 rounded text-xs bg-muted/20 border-border/20 border">
-                            <Badge variant="outline" className="text-xs px-1">
-                              {index + 1}.{subIndex + 1}
-                            </Badge>
-                            <Badge variant={subCommand.type === 'execution' ? 'default' : 'destructive'} 
-                                   className="text-xs px-1">
-                              {subCommand.type === 'execution' ? '命令' : 'URC'}
-                            </Badge>
-                            <div className="flex-1 min-w-0 font-mono text-xs truncate">
-                              {subCommand.type === 'execution' && `执行: ${subCommand.command}`}
-                              {subCommand.type === 'urc' && `监听: ${subCommand.urcPattern || subCommand.command}`}
-                            </div>
-                          </div>
-                        ));
-                      }
-                      return <div className="text-xs text-muted-foreground">找不到引用的测试用例</div>;
-                    })()}
+                    {command.subCommands.map((subCommand, subIndex) => (
+                      <div key={`${command.id}-sub-${subIndex}`}
+                           className="flex items-center gap-2 p-1 rounded text-xs bg-muted/20 border-border/20 border">
+                        <Badge variant="outline" className="text-xs px-1">
+                          {index + 1}.{subIndex + 1}
+                        </Badge>
+                        <Badge variant={subCommand.type === 'execution' ? 'default' : 'destructive'} 
+                               className="text-xs px-1">
+                          {subCommand.type === 'execution' ? '命令' : 'URC'}
+                        </Badge>
+                        <div className="flex-1 min-w-0 font-mono text-xs truncate">
+                          {subCommand.type === 'execution' && `执行: ${subCommand.command}`}
+                          {subCommand.type === 'urc' && `监听: ${subCommand.urcPattern || subCommand.command}`}
+                        </div>
+                        <div className="flex items-center gap-0.5">
+                          {subCommand.status === 'success' && (
+                            <CheckCircle className="w-3 h-3 text-green-500" />
+                          )}
+                          {subCommand.status === 'failed' && (
+                            <XCircle className="w-3 h-3 text-red-500" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </React.Fragment>
@@ -1053,6 +1056,16 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
 
   // 添加子用例引用
   const addSubcaseReference = (targetCase: TestCase) => {
+    // 深度复制目标用例的命令作为可编辑的子命令
+    const deepCopyCommands = (commands: TestCommand[]): TestCommand[] => {
+      return commands.map(cmd => ({
+        ...cmd,
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        selected: false,
+        status: 'pending'
+      }));
+    };
+
     const newCommand: TestCommand = {
       id: Date.now().toString(),
       type: 'subcase',
@@ -1064,7 +1077,8 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
       selected: false,
       status: 'pending',
       referencedCaseId: targetCase.id,
-      isExpanded: false
+      isExpanded: false,
+      subCommands: deepCopyCommands(targetCase.commands) // 深度复制命令作为可编辑子步骤
     };
     
     setEditingCase(prev => ({
@@ -1074,7 +1088,7 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     
     toast({
       title: "子用例已添加",
-      description: `已添加子用例引用：${targetCase.name}`,
+      description: `已添加子用例引用：${targetCase.name}，包含 ${targetCase.commands.length} 个可编辑子步骤`,
     });
   };
 
@@ -1162,6 +1176,68 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
       commands: prev.commands.map((cmd, i) => 
         i === index ? { ...cmd, ...updates } : cmd
       )
+    }));
+  };
+
+  // 更新子命令
+  const updateSubCommand = (commandIndex: number, subIndex: number, updates: Partial<TestCommand>) => {
+    setEditingCase(prev => ({
+      ...prev,
+      commands: prev.commands.map((cmd, i) => {
+        if (i === commandIndex && cmd.subCommands) {
+          return {
+            ...cmd,
+            subCommands: cmd.subCommands.map((subCmd, j) => 
+              j === subIndex ? { ...subCmd, ...updates } : subCmd
+            )
+          };
+        }
+        return cmd;
+      })
+    }));
+  };
+
+  // 删除子命令
+  const deleteSubCommand = (commandIndex: number, subIndex: number) => {
+    setEditingCase(prev => ({
+      ...prev,
+      commands: prev.commands.map((cmd, i) => {
+        if (i === commandIndex && cmd.subCommands) {
+          return {
+            ...cmd,
+            subCommands: cmd.subCommands.filter((_, j) => j !== subIndex)
+          };
+        }
+        return cmd;
+      })
+    }));
+  };
+
+  // 添加子命令
+  const addSubCommand = (commandIndex: number) => {
+    const newSubCommand: TestCommand = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      type: 'execution',
+      command: '',
+      validationMethod: 'none',
+      waitTime: 2000,
+      stopOnFailure: true,
+      lineEnding: 'crlf',
+      selected: false,
+      status: 'pending'
+    };
+
+    setEditingCase(prev => ({
+      ...prev,
+      commands: prev.commands.map((cmd, i) => {
+        if (i === commandIndex) {
+          return {
+            ...cmd,
+            subCommands: [...(cmd.subCommands || []), newSubCommand]
+          };
+        }
+        return cmd;
+      })
     }));
   };
 
@@ -1342,32 +1418,107 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                     )}
                   </div>
                   
-                  {/* 显示子用例的步骤预览 */}
-                  {command.referencedCaseId && (() => {
-                    const referencedCase = findTestCaseById(command.referencedCaseId, testCases);
-                    return referencedCase ? (
-                      <div className="mt-2 p-2 bg-muted/20 rounded border">
-                        <Label className="text-xs font-medium">子用例步骤预览:</Label>
-                        <div className="mt-1 space-y-1">
-                          {referencedCase.commands.slice(0, 3).map((subCmd, subIdx) => (
-                            <div key={subIdx} className="text-xs text-muted-foreground flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs px-1">
-                                {index + 1}.{subIdx + 1}
-                              </Badge>
-                              <span className="font-mono">{subCmd.command}</span>
+                  {/* 显示和管理子命令 */}
+                  {command.subCommands && (
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-medium">子步骤管理:</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addSubCommand(index)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          添加子步骤
+                        </Button>
+                      </div>
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {command.subCommands.map((subCmd, subIdx) => (
+                          <div key={subCmd.id} className="p-2 bg-muted/10 rounded border border-border/30">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs px-1">
+                                  {index + 1}.{subIdx + 1}
+                                </Badge>
+                                <Select
+                                  value={subCmd.type}
+                                  onValueChange={(value: 'execution' | 'urc') => 
+                                    updateSubCommand(index, subIdx, { type: value })
+                                  }
+                                >
+                                  <SelectTrigger className="w-20 h-6 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="execution">命令</SelectItem>
+                                    <SelectItem value="urc">URC</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteSubCommand(index, subIdx)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
                             </div>
-                          ))}
-                          {referencedCase.commands.length > 3 && (
-                            <div className="text-xs text-muted-foreground">...还有 {referencedCase.commands.length - 3} 个步骤</div>
-                          )}
-                        </div>
+                            <Input
+                              value={subCmd.command}
+                              onChange={(e) => updateSubCommand(index, subIdx, { command: e.target.value })}
+                              placeholder={
+                                subCmd.type === 'execution' ? "输入AT命令" : "输入URC模式"
+                              }
+                              className="h-7 text-xs"
+                            />
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                              <div>
+                                <Label className="text-xs">验证方式</Label>
+                                <Select
+                                  value={subCmd.validationMethod}
+                                  onValueChange={(value: any) => 
+                                    updateSubCommand(index, subIdx, { validationMethod: value })
+                                  }
+                                >
+                                  <SelectTrigger className="h-6 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">无验证</SelectItem>
+                                    <SelectItem value="contains">包含</SelectItem>
+                                    <SelectItem value="equals">完全匹配</SelectItem>
+                                    <SelectItem value="regex">正则表达式</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs">等待时间(ms)</Label>
+                                <Input
+                                  type="number"
+                                  className="h-6 text-xs"
+                                  value={subCmd.waitTime}
+                                  onChange={(e) => 
+                                    updateSubCommand(index, subIdx, { waitTime: Number(e.target.value) })
+                                  }
+                                />
+                              </div>
+                              <div className="flex items-center gap-2 pt-4">
+                                <Switch
+                                  checked={subCmd.stopOnFailure}
+                                  onCheckedChange={(checked) => 
+                                    updateSubCommand(index, subIdx, { stopOnFailure: checked })
+                                  }
+                                />
+                                <Label className="text-xs">失败停止</Label>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="mt-2 p-2 bg-red-50 rounded border text-xs text-red-600">
-                        找不到引用的测试用例
-                      </div>
-                    );
-                  })()}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Input

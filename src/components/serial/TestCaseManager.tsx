@@ -1147,7 +1147,29 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {/* 命令操作下拉栏 */}
       {currentTestCase && (
         <div className="border-t bg-muted/20 p-2">
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-between gap-2">
+            {/* 显示当前测试用例编号按钮 */}
+            <div className="flex items-center gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setShowCaseSelector(true)}
+                      className="h-6 px-2 gap-1 text-xs"
+                    >
+                      <Hash className="w-3 h-3" />
+                      <span>{currentTestCase ? `#${currentTestCase.uniqueId}` : '无用例'}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">显示当前测试用例编号</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
             {/* 用例操作按钮 */}
             <div className="flex items-center gap-1">
               <TooltipProvider>

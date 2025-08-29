@@ -1055,12 +1055,24 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     // 智能判断命令类型
     let commandType: 'execution' | 'urc' | 'subcase' = 'execution';
     let urcPattern: string | undefined;
+    let referencedCaseId: string | undefined;
     
     const input = commandInput.trim();
     
-    // 检查是否是子用例引用 (以#开头或包含测试用例名称)
-    if (input.startsWith('#') || getTestCaseSuggestions(input).length > 0) {
+    // 检查是否是子用例引用 (以#开头)
+    if (input.startsWith('#')) {
       commandType = 'subcase';
+      const caseId = input.substring(1); // 去掉#号
+      const matchedCase = testCases.find(tc => tc.uniqueId === caseId || tc.id === caseId);
+      if (matchedCase) {
+        referencedCaseId = matchedCase.id;
+      }
+    }
+    // 检查是否通过搜索匹配到测试用例
+    else if (getTestCaseSuggestions(input).length > 0) {
+      const matchedCase = getTestCaseSuggestions(input)[0];
+      commandType = 'subcase';
+      referencedCaseId = matchedCase.id;
     }
     // 检查是否是URC模式 (包含+或%开头)
     else if (input.includes('+') || input.includes('%') || input.includes(':')) {
@@ -1071,18 +1083,20 @@ const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
     const newCommand: TestCommand = {
       id: Date.now().toString(),
       type: commandType,
-      command: commandInput,
-      validationMethod: 'none',
+      command: commandType === 'subcase' ? (referencedCaseId ? 
+        findTestCaseById(referencedCaseId, testCases)?.name || commandInput : commandInput) : commandInput,
+      validationMethod: commandType === 'subcase' ? 'none' : 'none',
       waitTime: 2000,
       stopOnFailure: true,
       lineEnding: 'crlf',
       selected: false,
       status: 'pending',
-      // 为新命令类型添加默认值
+      // 为URC类型添加特有字段
       urcPattern: commandType === 'urc' ? urcPattern : undefined,
-      dataParseConfig: undefined,
-      jumpConfig: undefined,
-      referencedCaseId: commandType === 'subcase' ? undefined : undefined,
+      dataParseConfig: commandType === 'urc' ? undefined : undefined,
+      jumpConfig: commandType === 'urc' ? undefined : undefined,
+      // 为子用例类型添加特有字段
+      referencedCaseId: commandType === 'subcase' ? referencedCaseId : undefined,
       isExpanded: commandType === 'subcase' ? false : undefined
     };
     

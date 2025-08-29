@@ -527,6 +527,27 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  // 运行单个测试用例
+  const runTestCase = (caseId: string) => {
+    // 先选中该测试用例的所有命令
+    const updatedTestCases = testCases.map(tc => {
+      if (tc.id === caseId) {
+        return {
+          ...tc,
+          commands: tc.commands.map(cmd => ({ ...cmd, selected: true }))
+        };
+      }
+      return tc;
+    });
+    setTestCases(updatedTestCases);
+    
+    // 然后执行
+    toast({
+      title: "开始执行",
+      description: `正在执行测试用例: ${testCases.find(tc => tc.id === caseId)?.name}`,
+    });
+  };
+
   // 全选/取消全选
   const toggleSelectAll = () => {
     const hasSelected = testCases.some(tc => tc.selected);
@@ -806,41 +827,105 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30">
       {/* 头部工具栏 */}
       <div className="p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+        {/* 当前测试用例显示 */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
             <TestTube2 className="w-5 h-5 text-primary" />
-            测试用例管理
-          </h3>
+            <div>
+              <h3 className="text-lg font-semibold">
+                {filteredTestCases.length > 0 ? filteredTestCases[0].name : '无测试用例'}
+              </h3>
+              {filteredTestCases.length > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="text-xs">#{filteredTestCases[0].uniqueId}</Badge>
+                  <span>{filteredTestCases[0].commands.length} 个步骤</span>
+                  {filteredTestCases[0].description && (
+                    <span>• {filteredTestCases[0].description}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* 搜索栏 */}
+        {/* 搜索切换测试用例 */}
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="搜索测试用例 (支持编号和名称)"
+            placeholder="搜索切换测试用例 (支持编号和名称)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-9"
           />
         </div>
 
-        {/* 操作按钮 */}
+        {/* 当前测试用例操作 */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="flex items-center gap-2 flex-wrap">
+            {filteredTestCases.length > 0 && (
+              <>
+                <Button 
+                  onClick={() => setEditingCase(filteredTestCases[0])} 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 px-3 text-xs"
+                >
+                  <Settings className="w-3 h-3 mr-1" />
+                  设置
+                </Button>
+                <Button 
+                  onClick={() => {
+                    const currentCase = filteredTestCases[0];
+                    const hasSelectedCommands = currentCase.commands.some(cmd => cmd.selected);
+                    const newSelectedState = !hasSelectedCommands;
+                    
+                    const updatedCommands = currentCase.commands.map(cmd => ({
+                      ...cmd,
+                      selected: newSelectedState
+                    }));
+                    
+                    const updatedCase = { ...currentCase, commands: updatedCommands };
+                    const updatedTestCases = testCases.map(tc => 
+                      tc.id === currentCase.id ? updatedCase : tc
+                    );
+                    setTestCases(updatedTestCases);
+                  }} 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 px-3 text-xs"
+                >
+                  <CheckSquare className="w-3 h-3 mr-1" />
+                  {filteredTestCases[0].commands.some(cmd => cmd.selected) ? '取消全选' : '全选'}
+                </Button>
+                <Button 
+                  onClick={() => runTestCase(filteredTestCases[0].id)} 
+                  variant="default" 
+                  size="sm" 
+                  className="h-8 px-3 text-xs" 
+                  disabled={connectedPorts.length === 0}
+                >
+                  <Play className="w-3 h-3 mr-1" />
+                  运行
+                </Button>
+              </>
+            )}
             <Button onClick={() => addTestCase()} size="sm" className="h-8 px-3 text-xs">
               <Plus className="w-3 h-3 mr-1" />
               新建用例
             </Button>
-            <Button onClick={toggleSelectAll} variant="outline" size="sm" className="h-8 px-3 text-xs">
-              <CheckSquare className="w-3 h-3 mr-1" />
-              全选
-            </Button>
-            <Button onClick={runSelected} variant="default" size="sm" className="h-8 px-3 text-xs" disabled={connectedPorts.length === 0}>
-              <Play className="w-3 h-3 mr-1" />
-              运行选中
-            </Button>
           </div>
+          
           <div className="flex items-center gap-2 flex-shrink-0">
+            {filteredTestCases.length > 0 && (
+              <Button 
+                onClick={() => deleteTestCase(filteredTestCases[0].id)} 
+                variant="outline" 
+                size="sm" 
+                className="h-8 px-2 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="h-8 px-2">
               <Upload className="w-3 h-3" />
             </Button>

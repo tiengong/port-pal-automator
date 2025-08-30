@@ -15,17 +15,7 @@ import {
   Download,
   RefreshCw
 } from "lucide-react";
-
-interface TestCase {
-  id: string;
-  uniqueId: string;
-  name: string;
-  description: string;
-  status: 'pending' | 'running' | 'passed' | 'failed' | 'paused';
-  isRunning: boolean;
-  currentCommand: number;
-  commands: any[];
-}
+import { TestCase } from "./TestCaseManager";
 
 interface TestCaseActionsProps {
   currentTestCase: TestCase | null;

@@ -2,17 +2,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { TestTube2, Clock, CheckCircle2, XCircle, Pause } from "lucide-react";
-
-interface TestCase {
-  id: string;
-  uniqueId: string;
-  name: string;
-  description: string;
-  status: 'pending' | 'running' | 'passed' | 'failed' | 'paused';
-  isRunning: boolean;
-  currentCommand: number;
-  commands: any[];
-}
+import { TestCase } from "./TestCaseManager";
 
 interface TestCaseHeaderProps {
   currentTestCase: TestCase | null;

@@ -6,16 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, TestTube2, ChevronDown, Hash } from "lucide-react";
-
-interface TestCase {
-  id: string;
-  uniqueId: string;
-  name: string;
-  description: string;
-  status: 'pending' | 'running' | 'passed' | 'failed' | 'paused';
-  isRunning: boolean;
-  commands: any[];
-}
+import { TestCase } from "./TestCaseManager";
 
 interface TestCaseSwitcherProps {
   currentTestCase: TestCase | null;

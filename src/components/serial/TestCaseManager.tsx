@@ -17,7 +17,7 @@ import { Play, TestTube2 } from "lucide-react";
 // Interfaces
 export interface TestCommand {
   id: string;
-  type: 'execution' | 'urc_listen' | 'subcase';
+  type: 'execution' | 'urc_listen' | 'subcase' | 'urc';
   command: string;
   expectedResponse?: string;
   validationMethod: 'contains' | 'equals' | 'regex' | 'none';
@@ -28,9 +28,11 @@ export interface TestCommand {
   stopOnFailure?: boolean;
   lineEnding?: 'crlf' | 'lf' | 'cr';
   selected?: boolean;
+  referencedCaseId?: string;
+  urcPattern?: string;
 }
 
-interface TestCase {
+export interface TestCase {
   id: string;
   uniqueId: string;
   name: string;
@@ -441,7 +443,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     tc.id === editingCase.id ? editingCase : tc
                   );
                   setTestCases(updatedTestCases);
-                  setSelectedCase(editingCase);
+                  if (selectedCase?.id === editingCase.id) {
+                    setSelectedCase(editingCase);
+                  }
                 }
                 setIsEditDialogOpen(false);
               }}

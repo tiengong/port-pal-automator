@@ -288,99 +288,180 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         />
       </div>
 
-      {/* 3. 中间测试用例展示区 */}
+      {/* 测试用例列表 */}
       <div className="flex-1 overflow-y-auto p-3">
-        {!currentTestCase ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
-            <p className="text-sm">暂无测试用例，点击新建用例开始</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {/* 当前测试用例的命令列表 */}
-            <div className="border border-border rounded-lg bg-card">
-              {/* 命令列表 */}
-              <div className="divide-y divide-border">
-                {currentTestCase.commands.map((command, index) => (
-                  <div key={command.id} className="p-3 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="text-xs text-muted-foreground w-8 text-center">
-                          {index + 1}
-                        </span>
-                        
-                        <Badge 
-                          variant={
-                            command.status === 'success' ? 'default' :
-                            command.status === 'failed' ? 'destructive' :
-                            command.status === 'running' ? 'secondary' :
-                            'outline'
-                          }
-                          className="w-12 justify-center text-xs"
-                        >
-                          {command.status === 'pending' ? '待执行' :
-                           command.status === 'running' ? '执行中' :
-                           command.status === 'success' ? '成功' :
-                           command.status === 'failed' ? '失败' : '跳过'}
-                        </Badge>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="font-mono text-sm truncate">
-                            {command.command}
-                          </div>
-                          {command.expectedResponse && (
-                            <div className="text-xs text-muted-foreground truncate">
-                              期望: {command.expectedResponse}
-                            </div>
-                          )}
-                        </div>
+        <div className="space-y-3">
+          {testCases.map((testCase) => (
+            <Card key={testCase.id} className="overflow-hidden">
+              <CardHeader className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <TestTube2 className="w-5 h-5 text-primary flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="text-xs">#{testCase.uniqueId}</Badge>
+                        <CardTitle className="text-lg truncate">{testCase.name}</CardTitle>
                       </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => runCommand(currentTestCase.id, index)}
-                                disabled={connectedPorts.length === 0}
-                              >
-                                <Play className="w-3 h-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>运行此步骤</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => setEditingCommandIndex(index)}
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>编辑步骤</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                      <p className="text-sm text-muted-foreground truncate">{testCase.description}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+                  
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={
+                        testCase.status === 'success' ? 'default' :
+                        testCase.status === 'failed' ? 'destructive' :
+                        testCase.status === 'running' ? 'secondary' :
+                        'outline'
+                      }
+                    >
+                      {testCase.status === 'pending' ? '待执行' :
+                       testCase.status === 'running' ? '执行中' :
+                       testCase.status === 'success' ? '成功' :
+                       testCase.status === 'failed' ? '失败' : '部分成功'}
+                    </Badge>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => runTestCase(testCase.id)}
+                            disabled={connectedPorts.length === 0}
+                          >
+                            <Play className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>运行测试用例</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleEditCase(testCase)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>编辑测试用例</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive"
+                            onClick={() => deleteTestCase(testCase.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>删除测试用例</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-0">
+                <div className="border-t border-border">
+                  {testCase.commands.map((command, index) => (
+                    <div key={command.id} className="p-3 border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className="text-xs text-muted-foreground w-6 text-center">
+                            {index + 1}
+                          </span>
+                          
+                          <Badge 
+                            variant={
+                              command.status === 'success' ? 'default' :
+                              command.status === 'failed' ? 'destructive' :
+                              command.status === 'running' ? 'secondary' :
+                              'outline'
+                            }
+                            className="w-12 justify-center text-xs"
+                          >
+                            {command.status === 'pending' ? '待执行' :
+                             command.status === 'running' ? '执行中' :
+                             command.status === 'success' ? '成功' :
+                             command.status === 'failed' ? '失败' : '跳过'}
+                          </Badge>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="font-mono text-sm truncate">
+                              {command.command}
+                            </div>
+                            {command.expectedResponse && (
+                              <div className="text-xs text-muted-foreground truncate">
+                                期望: {command.expectedResponse}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => runCommand(testCase.id, index)}
+                                  disabled={connectedPorts.length === 0}
+                                >
+                                  <Play className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>运行此步骤</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => setEditingCommandIndex(index)}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>编辑步骤</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* 4. 测试用例切换区 */}

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Hash } from 'lucide-react';
 
 interface VariableDisplayProps {
-  storedParameters: { [key: string]: { value: string; scope: string; timestamp: number } };
+  storedParameters: { [key: string]: { value: string; timestamp: number } };
   onClearParameter: (key: string) => void;
   onClearAll: () => void;
 }
@@ -67,7 +67,7 @@ export const VariableDisplay: React.FC<VariableDisplayProps> = ({
                       {key}
                     </Badge>
                     <Badge variant="secondary" className="text-xs">
-                      {data.scope}
+                      端口内
                     </Badge>
                   </div>
                   <span className="text-sm font-mono truncate">

@@ -87,15 +87,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   });
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   
-  // 参数存储系统 - 用于URC解析的参数
-  const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; scope: string; timestamp: number } }>({});
+  // 参数存储系统 - 用于URC解析的参数（端口内作用域）
+  const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
   
   // URC解析和变量替换系统
-  const parseUrcData = (data: string, command: TestCommand): { [key: string]: { value: string; scope: string; timestamp: number } } => {
-    if (!command.dataParseConfig) return {};
+  const parseUrcData = (data: string, command: TestCommand): { [key: string]: { value: string; timestamp: number } } => {
+    if (!command.dataParseConfig || !command.dataParseConfig.enabled) return {};
     
-    const { parseType, parsePattern, parameterMap, scope = 'global' } = command.dataParseConfig;
-    const extractedParams: { [key: string]: { value: string; scope: string; timestamp: number } } = {};
+    const { parseType, parsePattern, parameterMap } = command.dataParseConfig;
+    const extractedParams: { [key: string]: { value: string; timestamp: number } } = {};
     const timestamp = Date.now();
     
     switch (parseType) {
@@ -111,7 +111,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   ? match.groups?.[groupKey] 
                   : match[Number(groupKey)];
                 if (value) {
-                  extractedParams[varName] = { value, scope, timestamp };
+                  extractedParams[varName] = { value, timestamp };
                 }
               }
             });
@@ -126,7 +126,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           if (typeof varName === 'string') {
             const index = Number(indexKey);
             if (!isNaN(index) && parts[index] !== undefined) {
-              extractedParams[varName] = { value: parts[index].trim(), scope, timestamp };
+              extractedParams[varName] = { value: parts[index].trim(), timestamp };
             }
           }
         });
@@ -240,22 +240,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               if (matches) {
                 const extractedParams = parseUrcData(event.data, command);
                 if (Object.keys(extractedParams).length > 0) {
-                  // 根据清理策略处理现有参数
+                  // 更新存储的参数，同名变量使用最新值
                   setStoredParameters(prev => {
-                    const clearPolicy = command.dataParseConfig?.clearPolicy || 'onCaseStart';
-                    let newParams = { ...prev };
-                    
-                    if (clearPolicy === 'onMatch') {
-                      // 清理相同作用域的现有参数
-                      const scope = command.dataParseConfig?.scope || 'global';
-                      Object.keys(newParams).forEach(key => {
-                        if (newParams[key].scope === scope) {
-                          delete newParams[key];
-                        }
-                      });
-                    }
-                    
-                    return { ...newParams, ...extractedParams };
+                    return { ...prev, ...extractedParams };
                   });
                   
                   eventBus.emit(EVENTS.PARAMETER_EXTRACTED, { 
@@ -406,6 +393,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 运行测试用例
   const runTestCase = (caseId: string) => {
+    // 每次运行测试用例时清空存储的变量
+    setStoredParameters({});
+    
     toast({
       title: "开始执行",
       description: `正在执行测试用例: ${currentTestCase?.name}`,

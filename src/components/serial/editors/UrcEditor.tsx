@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown, Radio } from "lucide-react";
 import { TestCommand } from '../types';
@@ -265,37 +266,55 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
           <CardTitle className="text-sm">变量提取配置</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="parseType">提取方式</Label>
-            <Select
-              value={command.dataParseConfig?.parseType || 'regex'}
-              onValueChange={(value) => {
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="extractionEnabled"
+              checked={command.dataParseConfig?.enabled || false}
+              onCheckedChange={(checked) => {
                 const newConfig = { 
-                  ...command.dataParseConfig, 
-                  parseType: value as any,
+                  enabled: checked,
+                  parseType: 'regex' as const,
                   parsePattern: '',
                   parameterMap: {},
-                  scope: 'global',
-                  clearPolicy: 'onCaseStart'
+                  ...command.dataParseConfig
                 };
                 updateCommand('dataParseConfig', newConfig);
               }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="regex">正则表达式提取</SelectItem>
-                <SelectItem value="split">分割字符串提取</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              {command.dataParseConfig?.parseType === 'regex' 
-                ? '使用正则表达式捕获组提取变量，支持命名捕获组'
-                : '按指定分隔符分割字符串，按索引提取变量'
-              }
-            </p>
+            />
+            <Label htmlFor="extractionEnabled">启用变量提取</Label>
           </div>
+          
+          {command.dataParseConfig?.enabled && (
+            <>
+              <div>
+                <Label htmlFor="parseType">提取方式</Label>
+                <Select
+                  value={command.dataParseConfig?.parseType || 'regex'}
+                  onValueChange={(value) => {
+                    const newConfig = { 
+                      ...command.dataParseConfig, 
+                      parseType: value as any,
+                      parsePattern: '',
+                      parameterMap: {}
+                    };
+                    updateCommand('dataParseConfig', newConfig);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regex">正则表达式提取</SelectItem>
+                    <SelectItem value="split">分割字符串提取</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {command.dataParseConfig?.parseType === 'regex' 
+                    ? '使用正则表达式捕获组提取变量，支持命名捕获组'
+                    : '按指定分隔符分割字符串，按索引提取变量'
+                  }
+                </p>
+              </div>
 
           <div>
             <Label htmlFor="parsePattern">
@@ -372,59 +391,19 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="scope">作用域</Label>
-              <Select
-                value={command.dataParseConfig?.scope || 'global'}
-                onValueChange={(value) => {
-                  const newConfig = { 
-                    ...command.dataParseConfig, 
-                    scope: value as any
-                  };
-                  updateCommand('dataParseConfig', newConfig);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="global">全局</SelectItem>
-                  <SelectItem value="case">用例内</SelectItem>
-                  <SelectItem value="port">端口内</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="clearPolicy">清理策略</Label>
-              <Select
-                value={command.dataParseConfig?.clearPolicy || 'onCaseStart'}
-                onValueChange={(value) => {
-                  const newConfig = { 
-                    ...command.dataParseConfig, 
-                    clearPolicy: value as any
-                  };
-                  updateCommand('dataParseConfig', newConfig);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="never">不清理</SelectItem>
-                  <SelectItem value="onCaseStart">用例开始时</SelectItem>
-                  <SelectItem value="onCaseEnd">用例结束时</SelectItem>
-                  <SelectItem value="onMatch">每次匹配时</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <p className="text-xs text-muted-foreground mt-1 bg-blue-50 border border-blue-200 rounded-md p-2">
+                <strong>说明：</strong><br/>
+                • 变量作用域固定为端口内，多个端口的变量独立存储<br/>
+                • 每次运行测试用例时自动清空已存储的变量<br/>
+                • 同名变量会被最新提取的值覆盖
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* 实时预览 */}
-      <UrcPreview command={command} />
+      {command.dataParseConfig?.enabled && <UrcPreview command={command} />}
 
       {/* 跳转配置 */}
       <Card>

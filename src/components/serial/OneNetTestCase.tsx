@@ -155,9 +155,10 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcListenMode: 'permanent',
         urcFailureHandling: 'continue',
         dataParseConfig: {
+          enabled: true,
           parseType: 'regex',
           parsePattern: '\\+MIPLOBSERVE:0,(\\d+),1,3303,\\d+,-1',
-          parameterMap: { 'msgid': '$1' }
+          parameterMap: { '1': 'msgid' }
         },
         jumpConfig: {
           onReceived: 'continue'
@@ -194,9 +195,10 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcListenMode: 'permanent',
         urcFailureHandling: 'continue',
         dataParseConfig: {
+          enabled: true,
           parseType: 'regex',
           parsePattern: '\\+MIPLDISCOVER:0,(\\d+),3303',
-          parameterMap: { 'discoverId': '$1' }
+          parameterMap: { '1': 'discoverId' }
         }
       },
         {
@@ -258,9 +260,10 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcListenMode: 'permanent',
         urcFailureHandling: 'continue',
         dataParseConfig: {
+          enabled: true,
           parseType: 'regex',
           parsePattern: '\\+MIPLWRITE:0,(\\d+),3303,2,5602,1,"([^"]+)"',
-          parameterMap: { 'writeId': '$1', 'value': '$2' }
+          parameterMap: { '1': 'writeId', '2': 'value' }
         }
       },
         {
@@ -292,9 +295,10 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcListenMode: 'permanent',
         urcFailureHandling: 'continue',
         dataParseConfig: {
+          enabled: true,
           parseType: 'regex',
           parsePattern: '\\+MIPLREAD:0,(\\d+),3303,2,5605',
-          parameterMap: { 'readId': '$1' }
+          parameterMap: { '1': 'readId' }
         }
       },
         {

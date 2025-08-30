@@ -213,6 +213,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   const currentTestCase = getCurrentTestCase();
 
+  console.log('TestCaseManager rendered with modular layout', { currentTestCase, testCases });
+
   // 运行测试用例
   const runTestCase = (caseId: string) => {
     toast({
@@ -265,8 +267,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
+      {/* ========== 模块化测试页面布局 - 2024年版本 ========== */}
+      
       {/* 1. 当前测试用例信息显示 */}
       <div className="flex-shrink-0 p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
+        {/* 🎯 新模块化布局已激活 - 2024版本 */}
         <div className="flex items-center justify-between mb-4">
           <TestCaseHeader currentTestCase={currentTestCase} />
         </div>

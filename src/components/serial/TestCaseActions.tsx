@@ -75,6 +75,37 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     setShowAddMenu(false);
   };
 
+  const addSubcase = () => {
+    if (!currentTestCase) return;
+    
+    const newSubcase: TestCommand = {
+      id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'subcase',
+      command: '新建子用例',
+      validationMethod: 'none',
+      waitTime: 0,
+      stopOnFailure: false,
+      lineEnding: 'none',
+      selected: false,
+      status: 'pending',
+      referencedCaseId: '',
+      isExpanded: false,
+      subCommands: []
+    };
+
+    const updatedCommands = [...currentTestCase.commands, newSubcase];
+    const updatedCase = { ...currentTestCase, commands: updatedCommands };
+    const updatedTestCases = testCases.map(tc => 
+      tc.id === currentTestCase.id ? updatedCase : tc
+    );
+    setTestCases(updatedTestCases);
+
+    toast({
+      title: "追加子用例",
+      description: `已添加新子用例: ${newSubcase.command}`,
+    });
+    setShowAddMenu(false);
+  };
 
   const handleUpload = () => {
     const input = document.createElement('input');
@@ -191,6 +222,15 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
             >
               <Play className="w-3 h-3 mr-2" />
               新增命令
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-8 px-2 text-sm"
+              onClick={addSubcase}
+            >
+              <TestTube2 className="w-3 h-3 mr-2" />
+              追加子用例
             </Button>
           </div>
         </PopoverContent>

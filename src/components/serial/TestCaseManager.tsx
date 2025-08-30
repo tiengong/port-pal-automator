@@ -187,7 +187,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           },
           {
             id: 'subcmd1',
-            type: 'execution',
+            type: 'subcase',
             command: '网络连接测试',
             referencedCaseId: 'case2',
             validationMethod: 'none',
@@ -360,6 +360,21 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           {formatCommandIndex(index)}
                         </div>
                         
+                        {/* 展开/收起图标（仅子用例显示） */}
+                        {command.type === 'subcase' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 flex-shrink-0"
+                            onClick={() => toggleSubcaseExpansion(command.id)}
+                          >
+                            {expandedSubcases.has(command.id) ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
                         
                         {/* 命令内容 */}
                         <div className="flex-1 min-w-0">
@@ -370,10 +385,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                             
                             {/* 命令类型标识 */}
                             <Badge 
-                              variant={command.type === 'urc' ? 'secondary' : 'outline'} 
+                              variant={command.type === 'subcase' ? 'secondary' : 'outline'} 
                               className="text-xs flex-shrink-0"
                             >
-                              {command.type === 'execution' ? 'AT' : 'URC'}
+                              {command.type === 'execution' ? 'AT' : 
+                               command.type === 'urc' ? 'URC' : '子用例'}
                             </Badge>
                           </div>
                           
@@ -434,7 +450,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     </div>
                     
                     {/* 子用例展开内容 */}
-                    {false && (
+                    {command.type === 'subcase' && expandedSubcases.has(command.id) && command.referencedCaseId && (
                       <div className="bg-muted/30 border-l-2 border-primary/30 ml-8">
                         {(() => {
                           const referencedCase = getReferencedCase(command.referencedCaseId);
@@ -697,6 +713,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   );
                   setTestCases(updatedTestCases);
                 }}
+                allTestCases={testCases.map(tc => ({
+                  id: tc.id,
+                  name: tc.name,
+                  uniqueId: tc.uniqueId
+                }))}
               />
               
               <div className="flex justify-end gap-2 pt-4 border-t">

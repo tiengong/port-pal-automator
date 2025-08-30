@@ -7,105 +7,25 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Lightbulb, Copy } from "lucide-react";
 import { TestCommand } from './types';
-import { useToast } from "@/hooks/use-toast";
 
 interface CommandEditorProps {
   command: TestCommand;
   onUpdate: (updates: Partial<TestCommand>) => void;
+  allTestCases?: Array<{ id: string; name: string; uniqueId: string }>;
 }
 
 export const CommandEditor: React.FC<CommandEditorProps> = ({
   command,
-  onUpdate
+  onUpdate,
+  allTestCases = []
 }) => {
-  const { toast } = useToast();
-  
   const updateCommand = (field: keyof TestCommand, value: any) => {
     onUpdate({ [field]: value });
   };
 
-  // 示例配置
-  const executionExamples = [
-    { name: "查询模块信息", command: "ATI", expectedResponse: "OK", validationMethod: "contains" },
-    { name: "查询信号强度", command: "AT+CSQ", expectedResponse: "+CSQ:", validationMethod: "contains" },
-    { name: "设置回显", command: "ATE1", expectedResponse: "OK", validationMethod: "equals" },
-    { name: "十六进制数据", command: "414548", dataFormat: "hex", expectedResponse: "OK", validationMethod: "contains" }
-  ];
-
-  const urcExamples = [
-    { name: "监听网络注册", urcPattern: "+CREG:", urcMatchMode: "startsWith", urcListenMode: "permanent" },
-    { name: "监听短信接收", urcPattern: "+CMTI:", urcMatchMode: "contains", urcListenMode: "once", urcListenTimeout: 30000 },
-    { name: "监听信号质量", urcPattern: "+CSQ:", urcMatchMode: "regex", urcListenMode: "permanent" }
-  ];
-
-  const insertExample = (example: any) => {
-    if (command.type === 'execution') {
-      onUpdate({
-        command: example.command,
-        expectedResponse: example.expectedResponse,
-        validationMethod: example.validationMethod,
-        dataFormat: example.dataFormat || 'string'
-      });
-    } else if (command.type === 'urc') {
-      onUpdate({
-        command: example.name,
-        urcPattern: example.urcPattern,
-        urcMatchMode: example.urcMatchMode,
-        urcListenMode: example.urcListenMode,
-        urcListenTimeout: example.urcListenTimeout
-      });
-    }
-    toast({
-      title: "示例已应用",
-      description: `已应用示例配置: ${example.name}`,
-    });
-  };
-
-  const validateHexInput = (value: string) => {
-    return /^[0-9A-Fa-f]*$/.test(value);
-  };
-
-  const getLineEndingPreview = (ending: string) => {
-    switch (ending) {
-      case 'lf': return ' + \\n';
-      case 'cr': return ' + \\r';
-      case 'crlf': return ' + \\r\\n';
-      default: return '';
-    }
-  };
-
   const renderExecutionSettings = () => (
     <div className="space-y-4">
-      {/* 快速示例 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Lightbulb className="w-4 h-4" />
-            快速示例
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {executionExamples.map((example, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                onClick={() => insertExample(example)}
-                className="text-xs h-7"
-              >
-                <Copy className="w-3 h-3 mr-1" />
-                {example.name}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* 基础设置 */}
       <Card>
         <CardHeader>
@@ -114,31 +34,12 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="command">命令内容</Label>
-            <div className="flex gap-2">
-              <Input
-                id="command"
-                value={command.command}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (command.dataFormat === 'hex' && !validateHexInput(value)) {
-                    toast({
-                      title: "输入错误",
-                      description: "十六进制格式只能包含0-9和A-F字符",
-                      variant: "destructive"
-                    });
-                    return;
-                  }
-                  updateCommand('command', value);
-                }}
-                placeholder={command.dataFormat === 'hex' ? "输入十六进制数据 (如: 41544948)" : "输入AT命令 (如: ATI)"}
-                className="flex-1"
-              />
-              {command.lineEnding !== 'none' && (
-                <Badge variant="outline" className="text-xs px-2">
-                  {command.command}{getLineEndingPreview(command.lineEnding)}
-                </Badge>
-              )}
-            </div>
+            <Input
+              id="command"
+              value={command.command}
+              onChange={(e) => updateCommand('command', e.target.value)}
+              placeholder="输入AT命令"
+            />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -146,12 +47,7 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
               <Label htmlFor="dataFormat">数据格式</Label>
               <Select
                 value={command.dataFormat || 'string'}
-                onValueChange={(value) => {
-                  updateCommand('dataFormat', value);
-                  if (value === 'hex' && command.command && !validateHexInput(command.command)) {
-                    updateCommand('command', '');
-                  }
-                }}
+                onValueChange={(value) => updateCommand('dataFormat', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -326,32 +222,6 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
 
   const renderUrcSettings = () => (
     <div className="space-y-4">
-      {/* 快速示例 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Lightbulb className="w-4 h-4" />
-            快速示例
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {urcExamples.map((example, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                onClick={() => insertExample(example)}
-                className="text-xs h-7"
-              >
-                <Copy className="w-3 h-3 mr-1" />
-                {example.name}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* URC匹配设置 */}
       <Card>
         <CardHeader>
@@ -359,22 +229,12 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="command">监听名称</Label>
-            <Input
-              id="command"
-              value={command.command}
-              onChange={(e) => updateCommand('command', e.target.value)}
-              placeholder="为这个URC监听命名"
-            />
-          </div>
-          
-          <div>
             <Label htmlFor="urcPattern">URC匹配内容</Label>
             <Input
               id="urcPattern"
               value={command.urcPattern || ''}
               onChange={(e) => updateCommand('urcPattern', e.target.value)}
-              placeholder="输入URC匹配模式 (如: +CREG:)"
+              placeholder="输入URC匹配模式"
             />
           </div>
           
@@ -530,6 +390,62 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
     </div>
   );
 
+  const renderSubcaseSettings = () => (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">子用例设置</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="subcaseName">子用例名称</Label>
+            <Input
+              id="subcaseName"
+              value={command.command}
+              onChange={(e) => updateCommand('command', e.target.value)}
+              placeholder="输入子用例名称"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="referencedCaseId">引用用例</Label>
+            <Select
+              value={command.referencedCaseId || ''}
+              onValueChange={(value) => updateCommand('referencedCaseId', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="选择要引用的测试用例" />
+              </SelectTrigger>
+              <SelectContent>
+                {allTestCases.map((testCase) => (
+                  <SelectItem key={testCase.id} value={testCase.id}>
+                    {testCase.uniqueId} - {testCase.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="subcaseFailureHandling">失败处理方式</Label>
+            <Select
+              value={command.failureHandling || 'stop'}
+              onValueChange={(value) => updateCommand('failureHandling', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stop">停止执行</SelectItem>
+                <SelectItem value="continue">继续执行</SelectItem>
+                <SelectItem value="prompt">提示用户</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -537,7 +453,7 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
         <Label>命令类型</Label>
         <Select
           value={command.type}
-          onValueChange={(value: 'execution' | 'urc') => updateCommand('type', value)}
+          onValueChange={(value: 'execution' | 'urc' | 'subcase') => updateCommand('type', value)}
         >
           <SelectTrigger>
             <SelectValue />
@@ -545,6 +461,7 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
           <SelectContent>
             <SelectItem value="execution">执行命令</SelectItem>
             <SelectItem value="urc">URC监听</SelectItem>
+            <SelectItem value="subcase">子用例</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -552,9 +469,10 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
       <Separator />
 
       <Tabs value={command.type} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="execution">执行命令</TabsTrigger>
           <TabsTrigger value="urc">URC监听</TabsTrigger>
+          <TabsTrigger value="subcase">子用例</TabsTrigger>
         </TabsList>
         
         <TabsContent value="execution" className="mt-4">
@@ -563,6 +481,10 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
         
         <TabsContent value="urc" className="mt-4">
           {renderUrcSettings()}
+        </TabsContent>
+        
+        <TabsContent value="subcase" className="mt-4">
+          {renderSubcaseSettings()}
         </TabsContent>
       </Tabs>
     </div>

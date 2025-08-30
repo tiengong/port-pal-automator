@@ -1,6 +1,6 @@
 export interface TestCommand {
   id: string;
-  type: 'execution' | 'urc';
+  type: 'execution' | 'urc' | 'subcase';
   command: string;
   expectedResponse?: string;
   validationMethod: 'none' | 'contains' | 'equals' | 'regex';

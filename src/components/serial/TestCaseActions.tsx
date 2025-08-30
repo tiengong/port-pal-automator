@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Plus, 
   Play, 
@@ -15,10 +16,12 @@ import {
   Trash2,
   FilePlus,
   Radio,
-  FileCode
+  FileCode,
+  Package
 } from "lucide-react";
 import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { OneNetTestCase } from "./OneNetTestCase";
 
 interface TestCaseActionsProps {
   currentTestCase: TestCase | null;
@@ -47,6 +50,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   
   const { toast } = useToast();
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showPresetDialog, setShowPresetDialog] = useState(false);
 
   const addCommand = () => {
     if (!currentTestCase) return;
@@ -277,6 +281,18 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               <TestTube2 className="w-3 h-3 mr-2" />
               追加子用例
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-8 px-2 text-sm"
+              onClick={() => {
+                setShowAddMenu(false);
+                setShowPresetDialog(true);
+              }}
+            >
+              <Package className="w-3 h-3 mr-2" />
+              预设用例
+            </Button>
           </div>
         </PopoverContent>
       </Popover>
@@ -363,6 +379,20 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
           </Tooltip>
         </TooltipProvider>
       )}
+
+      {/* 预设用例对话框 */}
+      <Dialog open={showPresetDialog} onOpenChange={setShowPresetDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>选择预设测试用例</DialogTitle>
+          </DialogHeader>
+          <OneNetTestCase
+            testCases={testCases}
+            setTestCases={setTestCases}
+            onClose={() => setShowPresetDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

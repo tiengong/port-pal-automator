@@ -129,6 +129,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [selectedCase, setSelectedCase] = useState<TestCase | null>(null);
   const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingSubcaseIndex, setEditingSubcaseIndex] = useState<number | null>(null);
   const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
@@ -452,7 +453,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
-                          onClick={() => setEditingCase(currentTestCase)} 
+                          onClick={() => {
+                            setEditingCase(currentTestCase);
+                            setIsEditDialogOpen(true);
+                          }} 
                           variant="outline" 
                           size="sm" 
                           className="h-8 w-8 p-0"
@@ -953,6 +957,68 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
         )}
       </div>
+
+      {/* 测试用例编辑弹窗 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>编辑测试用例</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="case-name">用例名称</Label>
+              <Input
+                id="case-name"
+                value={editingCase?.name || ''}
+                onChange={(e) => {
+                  if (editingCase) {
+                    const updatedCase = { ...editingCase, name: e.target.value };
+                    setEditingCase(updatedCase);
+                  }
+                }}
+                placeholder="输入用例名称"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="case-description">用例描述</Label>
+              <Textarea
+                id="case-description"
+                value={editingCase?.description || ''}
+                onChange={(e) => {
+                  if (editingCase) {
+                    const updatedCase = { ...editingCase, description: e.target.value };
+                    setEditingCase(updatedCase);
+                  }
+                }}
+                placeholder="输入用例描述"
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingCase) {
+                  const updatedTestCases = testCases.map(tc => 
+                    tc.id === editingCase.id ? editingCase : tc
+                  );
+                  setTestCases(updatedTestCases);
+                  setSelectedCase(editingCase);
+                }
+                setIsEditDialogOpen(false);
+              }}
+            >
+              保存
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* 子用例编辑弹窗 */}
       <Dialog open={editingSubcaseIndex !== null} onOpenChange={(open) => !open && setEditingSubcaseIndex(null)}>

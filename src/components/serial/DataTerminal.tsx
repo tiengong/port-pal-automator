@@ -24,13 +24,10 @@ import {
   Copy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSerialManager } from "@/hooks/useSerialManager";
 
 interface DataTerminalProps {
-  connectedPorts: Array<{
-    port: any;
-    params: any;
-  }>;
-  onDisconnect: (port: any) => void;
+  serialManager: ReturnType<typeof useSerialManager>;
 }
 
 interface LogEntry {
@@ -42,8 +39,7 @@ interface LogEntry {
 }
 
 export const DataTerminal: React.FC<DataTerminalProps> = ({
-  connectedPorts,
-  onDisconnect
+  serialManager
 }) => {
   const { toast } = useToast();
   const [logs, setLogs] = useState<{ [portIndex: number]: LogEntry[] }>({});
@@ -55,6 +51,10 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   const [autoSendInterval, setAutoSendInterval] = useState(1000);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [showTimestamp, setShowTimestamp] = useState(true);
+  const [selectedSendPort, setSelectedSendPort] = useState<'ALL' | 'P1' | 'P2'>('ALL');
+  
+  const connectedPorts = serialManager.getConnectedPorts();
+  const connectedPortLabels = serialManager.ports.filter(p => p.connected);
   
   const terminalRefs = useRef<(HTMLDivElement | null)[]>([]);
   const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -136,7 +136,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         } catch (error) {
           if ((error as any).name === 'NetworkError') {
             addLog('error', '设备连接已断开', displayFormat, portIndex);
-            onDisconnect(port);
+            // Find the port label and disconnect
+            const portLabel = connectedPortLabels[portIndex]?.label;
+            if (portLabel) {
+              serialManager.disconnectPort(portLabel);
+            }
             break;
           }
           console.error('读取数据错误:', error);
@@ -221,31 +225,55 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       uint8Array = encoder.encode(dataToSend);
     }
 
-    // 同时发送到所有连接的端口
-    const sendPromises = connectedPorts.map(async (portInfo, index) => {
+    // 根据选择发送到指定端口
+    const portsToSend = selectedSendPort === 'ALL' 
+      ? connectedPorts.map((portInfo, index) => ({ portInfo, index }))
+      : connectedPorts
+          .map((portInfo, index) => ({ portInfo, index }))
+          .filter((_, index) => {
+            const portLabel = connectedPortLabels[index]?.label;
+            return portLabel === selectedSendPort;
+          });
+
+    const sendPromises = portsToSend.map(async ({ portInfo, index }) => {
       try {
         const writer = portInfo.port.writable.getWriter();
         await writer.write(uint8Array);
         await writer.releaseLock();
         
         // 记录发送的数据到对应端口
+        const portLabel = connectedPortLabels[index]?.label || `端口 ${index + 1}`;
         addLog('sent', dataToSend, sendFormat, index);
-        return true;
+        return { success: true, portLabel };
       } catch (error) {
-        console.error(`发送数据到端口 ${index + 1} 失败:`, error);
+        const portLabel = connectedPortLabels[index]?.label || `端口 ${index + 1}`;
+        console.error(`发送数据到 ${portLabel} 失败:`, error);
         addLog('error', `发送失败: ${(error as Error).message}`, displayFormat, index);
-        return false;
+        return { success: false, portLabel };
       }
     });
 
     try {
       const results = await Promise.all(sendPromises);
-      const successCount = results.filter(Boolean).length;
+      const successResults = results.filter(r => r.success);
+      const successCount = successResults.length;
 
-      toast({
-        title: "数据已发送",
-        description: `发送了 ${uint8Array.length} 字节数据到 ${successCount}/${connectedPorts.length} 个端口`,
-      });
+      if (successCount > 0) {
+        const targetDesc = selectedSendPort === 'ALL' 
+          ? `${successCount}/${portsToSend.length} 个端口`
+          : selectedSendPort;
+        
+        toast({
+          title: "数据已发送",
+          description: `发送了 ${uint8Array.length} 字节数据到 ${targetDesc}`,
+        });
+      } else {
+        toast({
+          title: "发送失败",
+          description: "所有端口发送失败",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       toast({
         title: "发送失败",
@@ -360,7 +388,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       }
     });
 
-    // 清理断开连接的端口
+      // 清理断开连接的端口
     const connectedPortSet = new Set(connectedPorts.map(p => p.port));
     for (const [port, reader] of readersRef.current.entries()) {
       if (!connectedPortSet.has(port)) {
@@ -504,11 +532,13 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         ) : (
           // 双端口分栏模式
           <div className="flex-1 flex gap-2">
-            {connectedPorts.map((_, index) => (
-              <div key={index} className="flex-1 flex flex-col">
-                <div className="p-2 bg-muted/50 border-b border-border">
-                  <h4 className="text-sm font-medium">端口 {index + 1}</h4>
-                </div>
+            {connectedPorts.map((_, index) => {
+              const portLabel = connectedPortLabels[index]?.label || `端口 ${index + 1}`;
+              return (
+                <div key={index} className="flex-1 flex flex-col">
+                  <div className="p-2 bg-muted/50 border-b border-border">
+                    <h4 className="text-sm font-medium">{portLabel}</h4>
+                  </div>
                 <div 
                   ref={(el) => terminalRefs.current[index] = el}
                   className="flex-1 terminal-output p-4 overflow-y-auto custom-scrollbar font-mono text-sm"
@@ -547,13 +577,34 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* 发送区域 */}
       <div className="p-4 border-t border-border bg-secondary/5">
+        {/* Port Selection for Sending */}
+        {connectedPortLabels.length > 1 && (
+          <div className="flex items-center gap-3 mb-3">
+            <Label className="text-sm">发送到:</Label>
+            <Select value={selectedSendPort} onValueChange={setSelectedSendPort as any}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">全部端口</SelectItem>
+                {connectedPortLabels.map((port) => (
+                  <SelectItem key={port.label} value={port.label}>
+                    {port.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        
         <div className="flex items-center gap-3 mb-3">
           <div className="flex-1 relative">
             <Input

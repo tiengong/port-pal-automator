@@ -8,44 +8,23 @@ import { DataTerminal } from "@/components/serial/DataTerminal";
 import { TestCaseManager } from "@/components/serial/TestCaseManager";
 import { SettingsPanel } from "@/components/serial/SettingsPanel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
-interface SerialPort {
-  port: any;
-  params: {
-    baudRate: number;
-    dataBits: number;
-    parity: string;
-    stopBits: number;
-  };
-}
+import { useSerialManager } from "@/hooks/useSerialManager";
 
 const Index = () => {
-  const [connectedPorts, setConnectedPorts] = useState<SerialPort[]>([]);
+  const serialManager = useSerialManager();
   const [leftPanelTab, setLeftPanelTab] = useState("connection");
-  const [showConnectionPanel, setShowConnectionPanel] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [receivedData, setReceivedData] = useState<string[]>([]);
 
   // Web Serial API availability check
   const isSerialSupported = 'serial' in navigator;
-
-  const handlePortConnect = (port: any, params: any) => {
-    const newPort: SerialPort = { port, params };
-    setConnectedPorts(prev => [...prev, newPort]);
-  };
-
-  const handlePortDisconnect = (port: any) => {
-    setConnectedPorts(prev => prev.filter(p => p.port !== port));
-  };
+  const connectionStatus = serialManager.getConnectionStatus();
 
   // 快速连接/断开
-  const handleQuickToggleConnection = () => {
-    if (connectedPorts.length > 0) {
-      // 断开所有连接
-      connectedPorts.forEach(({ port }) => handlePortDisconnect(port));
-    } else {
-      // 显示连接面板
-      setShowConnectionPanel(true);
+  const handleQuickToggleConnection = async () => {
+    const result = await serialManager.quickConnect();
+    if (result?.showPanel) {
+      setLeftPanelTab("connection");
     }
   };
 
@@ -66,13 +45,13 @@ const Index = () => {
         <div className="flex items-center gap-4">
           {/* Enhanced Connection Status */}
           <div className="flex items-center gap-3">
-            {connectedPorts.length > 0 ? (
+            {connectionStatus.count > 0 ? (
               <Badge 
                 variant="outline" 
                 className="text-xs border-success/50 bg-success/10 text-success hover:bg-success/20 transition-smooth"
               >
                 <Wifi className="w-3 h-3 mr-1.5" />
-                {connectedPorts.length} 端口已连接
+                {connectionStatus.label}
               </Badge>
             ) : (
               <Badge 
@@ -85,12 +64,12 @@ const Index = () => {
             )}
             
             <Button
-              variant={connectedPorts.length > 0 ? "destructive" : "default"}
+              variant={serialManager.isConnected() ? "destructive" : "default"}
               size="sm"
               className="h-8 px-3 transition-spring"
               onClick={handleQuickToggleConnection}
             >
-              {connectedPorts.length > 0 ? (
+              {serialManager.isConnected() ? (
                 <>
                   <PowerOff className="w-3 h-3 mr-1.5" />
                   断开
@@ -158,16 +137,14 @@ const Index = () => {
 
             <TabsContent value="connection" className="flex-1 m-0 p-6 animate-slide-up">
               <SerialConnection
-                onConnect={handlePortConnect}
-                onDisconnect={handlePortDisconnect}
+                serialManager={serialManager}
                 isSupported={isSerialSupported}
-                connectedPorts={connectedPorts}
               />
             </TabsContent>
 
             <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up">
               <TestCaseManager 
-                connectedPorts={connectedPorts}
+                connectedPorts={serialManager.getConnectedPorts()}
                 receivedData={receivedData}
               />
             </TabsContent>
@@ -177,8 +154,7 @@ const Index = () => {
         {/* Enhanced Right Panel - Data Terminal */}
         <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30">
           <DataTerminal 
-            connectedPorts={connectedPorts}
-            onDisconnect={handlePortDisconnect}
+            serialManager={serialManager}
           />
         </div>
       </div>
@@ -200,13 +176,13 @@ const Index = () => {
           )}
         </div>
         <div className="flex items-center gap-6">
-          {connectedPorts.length > 0 && (
+          {connectionStatus.count > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">活跃连接:</span>
-              {connectedPorts.map((p, i) => (
+              {serialManager.ports.filter(p => p.connected).map((p, i) => (
                 <span key={i} className="text-success font-medium">
-                  {p.params.baudRate}bps
-                  {i < connectedPorts.length - 1 && <span className="text-muted-foreground mx-1">,</span>}
+                  {p.label}({p.params.baudRate}bps)
+                  {i < connectionStatus.count - 1 && <span className="text-muted-foreground mx-1">,</span>}
                 </span>
               ))}
             </div>

@@ -162,9 +162,27 @@ export const useSerialManager = () => {
       return;
     }
 
-    // Show connection panel - this should be handled by the calling component
+    // Try to auto-connect to recently used ports if available
+    try {
+      if ('serial' in navigator) {
+        const availablePorts = await (navigator as any).serial.getPorts();
+        if (availablePorts.length >= 1) {
+          // Auto-connect to first available port as P1
+          const success = await connectPort(availablePorts[0], strategy.p1Config, 'P1');
+          if (success && availablePorts.length >= 2 && strategy.mode === 'P1_P2') {
+            // Auto-connect second port as P2 if strategy supports it
+            await connectPort(availablePorts[1], strategy.p2Config, 'P2');
+          }
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('Auto-connect failed, showing panel');
+    }
+
+    // Show connection panel if auto-connect fails
     return { showPanel: true };
-  }, [isConnected, disconnectAll]);
+  }, [isConnected, disconnectAll, connectPort, strategy]);
 
   const updateStrategy = useCallback((newStrategy: Partial<ConnectionStrategy>) => {
     setStrategy(prev => ({ ...prev, ...newStrategy }));

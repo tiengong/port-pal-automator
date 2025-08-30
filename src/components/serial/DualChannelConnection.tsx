@@ -336,36 +336,31 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Additional Serial Port */}
-      {!strategy.p2Enabled && (
-        <Collapsible>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
-              <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                添加第二路串口
-              </div>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3">
-            <div className="p-3 border rounded-md bg-muted/30">
-              <p className="text-sm text-muted-foreground mb-3">
-                启用第二路串口连接，用于同时监控多个设备或进行串口转发。
-              </p>
-              <Button
-                onClick={() => updateStrategy({ 
-                  p2Enabled: true,
-                  mode: 'P1_P2'
-                })}
-                size="sm"
-                className="w-full"
-              >
-                启用第二路串口
-              </Button>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+      {/* Add Secondary Serial Port - Simplified */}
+      {!p2Port?.connected && !strategy.p2Enabled && (
+        <Button 
+          variant="outline" 
+          className="w-full justify-center"
+          onClick={async () => {
+            // Enable P2 and sync config with P1
+            updateStrategy({ 
+              p2Enabled: true,
+              mode: 'P1_P2',
+              p2Config: { ...strategy.p1Config } // Sync with P1 config
+            });
+            
+            // Auto-refresh ports for immediate selection
+            await requestPortAndRefresh();
+            
+            toast({
+              title: "第二路串口已启用",
+              description: "配置已与主串口同步，请选择设备连接",
+            });
+          }}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          添加第二路串口
+        </Button>
       )}
 
       {/* Secondary Serial Port */}

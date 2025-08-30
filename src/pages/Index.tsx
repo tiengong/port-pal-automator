@@ -63,24 +63,36 @@ const Index = () => {
               </Badge>
             )}
             
-            <Button
-              variant={serialManager.isConnected() ? "destructive" : "default"}
-              size="sm"
-              className="h-8 px-3 transition-spring"
-              onClick={handleQuickToggleConnection}
-            >
-              {serialManager.isConnected() ? (
-                <>
-                  <PowerOff className="w-3 h-3 mr-1.5" />
-                  断开
-                </>
-              ) : (
-                <>
-                  <Power className="w-3 h-3 mr-1.5" />
-                  连接
-                </>
+            <div className="flex items-center">
+              <Button
+                variant={serialManager.isConnected() ? "destructive" : "default"}
+                size="sm"
+                className="h-8 px-3 transition-spring rounded-r-none"
+                onClick={handleQuickToggleConnection}
+              >
+                {serialManager.isConnected() ? (
+                  <>
+                    <PowerOff className="w-3 h-3 mr-1.5" />
+                    断开全部
+                  </>
+                ) : (
+                  <>
+                    <Power className="w-3 h-3 mr-1.5" />
+                    快速连接
+                  </>
+                )}
+              </Button>
+              {!serialManager.isConnected() && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 rounded-l-none border-l-0"
+                  onClick={() => setLeftPanelTab("connection")}
+                >
+                  <Plug className="w-3 h-3" />
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
 
           {/* Settings Dialog */}

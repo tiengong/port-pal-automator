@@ -39,7 +39,9 @@ import { SubcaseEditor } from './SubcaseEditor';
 import { TestCaseHeader } from './TestCaseHeader';
 import { TestCaseActions } from './TestCaseActions';
 import { TestCaseSwitcher } from './TestCaseSwitcher';
-import { CommandEditor } from './CommandEditor';
+import { ExecutionEditor } from './editors/ExecutionEditor';
+import { UrcEditor } from './editors/UrcEditor';
+import { SubcaseRefEditor } from './editors/SubcaseRefEditor';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
 
 interface TestCaseManagerProps {
@@ -699,26 +701,62 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           
           {editingCommandIndex !== null && currentTestCase && (
             <div className="space-y-4">
-              <CommandEditor
-                command={currentTestCase.commands[editingCommandIndex]}
-                onUpdate={(updates) => {
-                  const updatedCommands = [...currentTestCase.commands];
-                  updatedCommands[editingCommandIndex] = {
-                    ...updatedCommands[editingCommandIndex],
-                    ...updates
-                  };
-                  const updatedCase = { ...currentTestCase, commands: updatedCommands };
-                  const updatedTestCases = testCases.map(tc => 
-                    tc.id === currentTestCase.id ? updatedCase : tc
-                  );
-                  setTestCases(updatedTestCases);
-                }}
-                allTestCases={testCases.map(tc => ({
-                  id: tc.id,
-                  name: tc.name,
-                  uniqueId: tc.uniqueId
-                }))}
-              />
+              {currentTestCase.commands[editingCommandIndex].type === 'execution' && (
+                <ExecutionEditor
+                  command={currentTestCase.commands[editingCommandIndex]}
+                  onUpdate={(updates) => {
+                    const updatedCommands = [...currentTestCase.commands];
+                    updatedCommands[editingCommandIndex] = {
+                      ...updatedCommands[editingCommandIndex],
+                      ...updates
+                    };
+                    const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                    const updatedTestCases = testCases.map(tc => 
+                      tc.id === currentTestCase.id ? updatedCase : tc
+                    );
+                    setTestCases(updatedTestCases);
+                  }}
+                />
+              )}
+              {currentTestCase.commands[editingCommandIndex].type === 'urc' && (
+                <UrcEditor
+                  command={currentTestCase.commands[editingCommandIndex]}
+                  onUpdate={(updates) => {
+                    const updatedCommands = [...currentTestCase.commands];
+                    updatedCommands[editingCommandIndex] = {
+                      ...updatedCommands[editingCommandIndex],
+                      ...updates
+                    };
+                    const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                    const updatedTestCases = testCases.map(tc => 
+                      tc.id === currentTestCase.id ? updatedCase : tc
+                    );
+                    setTestCases(updatedTestCases);
+                  }}
+                />
+              )}
+              {currentTestCase.commands[editingCommandIndex].type === 'subcase' && (
+                <SubcaseRefEditor
+                  command={currentTestCase.commands[editingCommandIndex]}
+                  onUpdate={(updates) => {
+                    const updatedCommands = [...currentTestCase.commands];
+                    updatedCommands[editingCommandIndex] = {
+                      ...updatedCommands[editingCommandIndex],
+                      ...updates
+                    };
+                    const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                    const updatedTestCases = testCases.map(tc => 
+                      tc.id === currentTestCase.id ? updatedCase : tc
+                    );
+                    setTestCases(updatedTestCases);
+                  }}
+                  allTestCases={testCases.map(tc => ({
+                    id: tc.id,
+                    name: tc.name,
+                    uniqueId: tc.uniqueId
+                  }))}
+                />
+              )}
               
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setEditingCommandIndex(null)}>

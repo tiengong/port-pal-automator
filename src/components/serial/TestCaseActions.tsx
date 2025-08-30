@@ -85,16 +85,16 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       type: 'urc',
       command: 'URC监听',
       validationMethod: 'none',
-      waitTime: 1000,
+      waitTime: 0,
       stopOnFailure: false,
-      lineEnding: 'crlf',
-      selected: false,
+      lineEnding: 'none',
+      selected: true,
       status: 'pending',
-      urcPattern: '+',
+      urcPattern: '+CREG:',
       urcMatchMode: 'startsWith',
       urcListenMode: 'once',
       urcListenTimeout: 10000,
-      urcFailureHandling: 'continue'
+      urcFailureHandling: 'stop'
     };
 
     const updatedCommands = [...currentTestCase.commands, newUrc];

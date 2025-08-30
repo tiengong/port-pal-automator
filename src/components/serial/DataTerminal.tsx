@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { 
   Send, 
   Trash2, 
@@ -21,7 +22,8 @@ import {
   FileText,
   ArrowUp,
   ArrowDown,
-  Copy
+  Copy,
+  Link
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSerialManager } from "@/hooks/useSerialManager";
@@ -52,6 +54,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [showTimestamp, setShowTimestamp] = useState(true);
   const [selectedSendPort, setSelectedSendPort] = useState<'ALL' | 'P1' | 'P2'>('ALL');
+  const [synchronizedScrolling, setSynchronizedScrolling] = useState(true);
   
   const connectedPorts = serialManager.getConnectedPorts();
   const connectedPortLabels = serialManager.ports.filter(p => p.connected);
@@ -100,14 +103,23 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     // 自动滚动到底部
     if (autoScrollEnabled) {
       setTimeout(() => {
-        terminalRefs.current.forEach(ref => {
-          if (ref) {
-            ref.scrollTo({
-              top: ref.scrollHeight,
-              behavior: 'smooth'
-            });
-          }
-        });
+        if (synchronizedScrolling && connectedPorts.length > 1) {
+          // 同步滚动所有终端
+          terminalRefs.current.forEach(ref => {
+            if (ref) {
+              ref.scrollTo({
+                top: ref.scrollHeight,
+                behavior: 'smooth'
+              });
+            }
+          });
+        } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
+          // 只滚动特定终端
+          terminalRefs.current[portIndex]!.scrollTo({
+            top: terminalRefs.current[portIndex]!.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
       }, 50);
     }
   };
@@ -312,10 +324,18 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   };
 
   // 清空日志
-  const clearLogs = () => {
-    setLogs({});
-    setStats({});
-    addLog('system', '日志已清空');
+  const clearLogs = (portIndex?: number) => {
+    if (portIndex !== undefined) {
+      // 清空特定端口的日志
+      setLogs(prev => ({ ...prev, [portIndex]: [] }));
+      setStats(prev => ({ ...prev, [portIndex]: { sentBytes: 0, receivedBytes: 0, totalLogs: 0 } }));
+      addLog('system', `端口 ${portIndex + 1} 日志已清空`, displayFormat, portIndex);
+    } else {
+      // 清空所有日志
+      setLogs({});
+      setStats({});
+      addLog('system', '日志已清空');
+    }
   };
 
   // 导出日志
@@ -439,6 +459,24 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               >
                 <Clock className="w-4 h-4" />
               </Button>
+
+              {connectedPorts.length > 1 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant={synchronizedScrolling ? "default" : "outline"}
+                      size="sm" 
+                      onClick={() => setSynchronizedScrolling(!synchronizedScrolling)}
+                      className="w-8 h-8 p-0"
+                    >
+                      <Link className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Synchronized Scrolling</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
 
@@ -460,13 +498,13 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="sm" onClick={clearLogs} className="hover:bg-destructive hover:text-destructive-foreground">
+                  <Button variant="ghost" size="sm" onClick={() => clearLogs()} className="hover:bg-destructive hover:text-destructive-foreground">
                     <Trash2 className="w-4 h-4" />
-                    <span className="sr-only">Clear Logs</span>
+                    <span className="sr-only">Clear All Logs</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Clear Logs</p>
+                  <p>Clear All Logs</p>
                 </TooltipContent>
               </Tooltip>
               
@@ -531,55 +569,111 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           </div>
         ) : (
           // 双端口分栏模式
-          <div className="flex-1 flex gap-2">
+          <ResizablePanelGroup direction="horizontal" className="w-full">
             {connectedPorts.map((_, index) => {
               const portLabel = connectedPortLabels[index]?.label || `端口 ${index + 1}`;
+              const portStats = stats[index] || { sentBytes: 0, receivedBytes: 0, totalLogs: 0 };
+              
               return (
-                <div key={index} className="flex-1 flex flex-col">
-                  <div className="p-2 bg-muted/50 border-b border-border">
-                    <h4 className="text-sm font-medium">{portLabel}</h4>
-                  </div>
-                <div 
-                  ref={(el) => terminalRefs.current[index] = el}
-                  className="flex-1 terminal-output p-4 overflow-y-auto custom-scrollbar font-mono text-sm"
-                >
-                  {!logs[index] || logs[index].length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
-                      <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs">等待数据...</p>
-                    </div>
-                  ) : (
-                    logs[index].map((log) => (
-                      <div key={log.id} className="mb-1 flex items-start gap-2">
-                        {showTimestamp && (
-                          <span className="text-muted-foreground text-xs min-w-16">
-                            {log.timestamp.toLocaleTimeString().slice(-8)}
-                          </span>
-                        )}
-                        
-                        <span className={`
-                          text-xs px-1 py-0.5 rounded min-w-8 text-center
-                          ${log.type === 'sent' ? 'bg-primary/20 text-primary' : ''}
-                          ${log.type === 'received' ? 'bg-success/20 text-success' : ''}
-                          ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
-                          ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
-                        `}>
-                          {log.type === 'sent' ? '发' : 
-                           log.type === 'received' ? '收' : 
-                           log.type === 'system' ? '系' : '错'}
-                        </span>
-                        
-                        <span className="font-mono break-all text-xs">
-                          {formatData(log.data, displayFormat, log.format)}
-                        </span>
+                <React.Fragment key={index}>
+                  <ResizablePanel defaultSize={50} minSize={25}>
+                    <div className="h-full flex flex-col">
+                      {/* 端口头部 */}
+                      <div className="p-3 bg-muted/30 border-b border-border">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {portLabel}
+                            </Badge>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <span>↑{portStats.sentBytes}B</span>
+                              <span>↓{portStats.receivedBytes}B</span>
+                              <span>{portStats.totalLogs}条</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => clearLogs(index)}
+                                  className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>清空此端口日志</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </div>
                       </div>
-                    ))
+
+                      {/* 终端显示区域 */}
+                      <div 
+                        ref={(el) => terminalRefs.current[index] = el}
+                        className="flex-1 terminal-output p-4 overflow-y-auto custom-scrollbar font-mono text-sm"
+                        onScroll={(e) => {
+                          // 同步滚动处理
+                          if (synchronizedScrolling && connectedPorts.length > 1) {
+                            const target = e.currentTarget;
+                            const scrollPercentage = target.scrollTop / (target.scrollHeight - target.clientHeight);
+                            
+                            terminalRefs.current.forEach((ref, refIndex) => {
+                              if (ref && refIndex !== index) {
+                                const maxScroll = ref.scrollHeight - ref.clientHeight;
+                                ref.scrollTop = maxScroll * scrollPercentage;
+                              }
+                            });
+                          }
+                        }}
+                      >
+                        {!logs[index] || logs[index].length === 0 ? (
+                          <div className="text-center text-muted-foreground py-8">
+                            <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                            <p className="text-xs">等待数据...</p>
+                          </div>
+                        ) : (
+                          logs[index].map((log) => (
+                            <div key={log.id} className="mb-1 flex items-start gap-2">
+                              {showTimestamp && (
+                                <span className="text-muted-foreground text-xs min-w-16">
+                                  {log.timestamp.toLocaleTimeString().slice(-8)}
+                                </span>
+                              )}
+                              
+                              <span className={`
+                                text-xs px-1 py-0.5 rounded min-w-8 text-center
+                                ${log.type === 'sent' ? 'bg-primary/20 text-primary' : ''}
+                                ${log.type === 'received' ? 'bg-success/20 text-success' : ''}
+                                ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
+                                ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
+                              `}>
+                                {log.type === 'sent' ? '发' : 
+                                 log.type === 'received' ? '收' : 
+                                 log.type === 'system' ? '系' : '错'}
+                              </span>
+                              
+                              <span className="font-mono break-all text-xs">
+                                {formatData(log.data, displayFormat, log.format)}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                  
+                  {index < connectedPorts.length - 1 && (
+                    <ResizableHandle withHandle className="w-1 hover:bg-primary/20 transition-colors" />
                   )}
-                </div>
-              </div>
+                </React.Fragment>
               );
             })}
-          </div>
+          </ResizablePanelGroup>
         )}
       </div>
 

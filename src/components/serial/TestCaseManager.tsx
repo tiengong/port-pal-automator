@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Plus, 
   Play, 
@@ -38,6 +39,7 @@ import { SubcaseEditor } from './SubcaseEditor';
 import { TestCaseHeader } from './TestCaseHeader';
 import { TestCaseActions } from './TestCaseActions';
 import { TestCaseSwitcher } from './TestCaseSwitcher';
+import { CommandEditor } from './CommandEditor';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
 
 interface TestCaseManagerProps {
@@ -622,6 +624,45 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 />
               </div>
               
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="case-failure-handling">失败处理方式</Label>
+                  <Select
+                    value={editingCase.failureHandling || 'stop'}
+                    onValueChange={(value) => setEditingCase({ ...editingCase, failureHandling: value as 'stop' | 'continue' | 'prompt' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="stop">停止执行</SelectItem>
+                      <SelectItem value="continue">继续执行</SelectItem>
+                      <SelectItem value="prompt">提示用户</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="case-referenced">引用用例</Label>
+                  <Select
+                    value={editingCase.referencedCaseId || ''}
+                    onValueChange={(value) => setEditingCase({ ...editingCase, referencedCaseId: value || undefined })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择引用的用例（可选）" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">无引用</SelectItem>
+                      {testCases.filter(tc => tc.id !== editingCase.id).map((testCase) => (
+                        <SelectItem key={testCase.id} value={testCase.id}>
+                          {testCase.uniqueId} - {testCase.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                   取消
@@ -648,65 +689,48 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       {/* 编辑命令对话框 */}
       <Dialog open={editingCommandIndex !== null} onOpenChange={() => setEditingCommandIndex(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>编辑步骤</DialogTitle>
+            <DialogTitle>编辑步骤配置</DialogTitle>
+            <DialogDescription>
+              配置命令的详细属性，包括执行参数、验证规则、错误处理等
+            </DialogDescription>
           </DialogHeader>
           
           {editingCommandIndex !== null && currentTestCase && (
             <div className="space-y-4">
-              <div>
-                <Label>命令类型</Label>
-                <Select 
-                  value={currentTestCase.commands[editingCommandIndex].type}
-                  onValueChange={(value: 'execution' | 'urc' | 'subcase') => {
-                    const updatedCommands = [...currentTestCase.commands];
-                    updatedCommands[editingCommandIndex] = {
-                      ...updatedCommands[editingCommandIndex],
-                      type: value
-                    };
-                    const updatedCase = { ...currentTestCase, commands: updatedCommands };
-                    const updatedTestCases = testCases.map(tc => 
-                      tc.id === currentTestCase.id ? updatedCase : tc
-                    );
-                    setTestCases(updatedTestCases);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="execution">执行命令</SelectItem>
-                    <SelectItem value="urc">URC监听</SelectItem>
-                    <SelectItem value="subcase">子用例</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <CommandEditor
+                command={currentTestCase.commands[editingCommandIndex]}
+                onUpdate={(updates) => {
+                  const updatedCommands = [...currentTestCase.commands];
+                  updatedCommands[editingCommandIndex] = {
+                    ...updatedCommands[editingCommandIndex],
+                    ...updates
+                  };
+                  const updatedCase = { ...currentTestCase, commands: updatedCommands };
+                  const updatedTestCases = testCases.map(tc => 
+                    tc.id === currentTestCase.id ? updatedCase : tc
+                  );
+                  setTestCases(updatedTestCases);
+                }}
+                allTestCases={testCases.map(tc => ({
+                  id: tc.id,
+                  name: tc.name,
+                  uniqueId: tc.uniqueId
+                }))}
+              />
               
-              <div>
-                <Label>命令内容</Label>
-                <Input
-                  value={currentTestCase.commands[editingCommandIndex].command}
-                  onChange={(e) => {
-                    const updatedCommands = [...currentTestCase.commands];
-                    updatedCommands[editingCommandIndex] = {
-                      ...updatedCommands[editingCommandIndex],
-                      command: e.target.value
-                    };
-                    const updatedCase = { ...currentTestCase, commands: updatedCommands };
-                    const updatedTestCases = testCases.map(tc => 
-                      tc.id === currentTestCase.id ? updatedCase : tc
-                    );
-                    setTestCases(updatedTestCases);
-                  }}
-                />
-              </div>
-              
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setEditingCommandIndex(null)}>
                   取消
                 </Button>
-                <Button onClick={() => setEditingCommandIndex(null)}>
+                <Button onClick={() => {
+                  setEditingCommandIndex(null);
+                  toast({
+                    title: "保存成功",
+                    description: "命令配置已更新",
+                  });
+                }}>
                   保存
                 </Button>
               </div>

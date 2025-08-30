@@ -32,6 +32,10 @@ interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
 }
 
+interface MergedLogEntry extends LogEntry {
+  portLabel: string;
+}
+
 interface LogEntry {
   id: string;
   timestamp: Date;
@@ -45,6 +49,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 }) => {
   const { toast } = useToast();
   const [logs, setLogs] = useState<{ [portIndex: number]: LogEntry[] }>({});
+  const [mergedLogs, setMergedLogs] = useState<MergedLogEntry[]>([]);
   const [sendData, setSendData] = useState("");
   const [sendFormat, setSendFormat] = useState<'ascii' | 'hex'>('ascii');
   const [displayFormat, setDisplayFormat] = useState<'ascii' | 'hex'>('ascii');
@@ -58,6 +63,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   
   const connectedPorts = serialManager.getConnectedPorts();
   const connectedPortLabels = serialManager.ports.filter(p => p.connected);
+  const { strategy } = serialManager;
   
   const terminalRefs = useRef<(HTMLDivElement | null)[]>([]);
   const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,10 +83,20 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     };
     
     if (portIndex !== undefined) {
+      // 更新分端口日志
       setLogs(prev => ({
         ...prev,
         [portIndex]: [...(prev[portIndex] || []), entry]
       }));
+      
+      // 更新合并日志（用于 MERGED_TXRX 模式）
+      const portLabel = connectedPortLabels[portIndex]?.label || `端口 ${portIndex + 1}`;
+      const mergedEntry: MergedLogEntry = {
+        ...entry,
+        portLabel
+      };
+      setMergedLogs(prev => [...prev, mergedEntry]);
+      
       setStats(prev => ({
         ...prev,
         [portIndex]: {
@@ -98,6 +114,13 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         });
         return newLogs;
       });
+      
+      // 系统日志也添加到合并日志
+      const mergedEntry: MergedLogEntry = {
+        ...entry,
+        portLabel: 'SYSTEM'
+      };
+      setMergedLogs(prev => [...prev, mergedEntry]);
     }
 
     // 自动滚动到底部
@@ -237,15 +260,22 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       uint8Array = encoder.encode(dataToSend);
     }
 
-    // 根据选择发送到指定端口
-    const portsToSend = selectedSendPort === 'ALL' 
-      ? connectedPorts.map((portInfo, index) => ({ portInfo, index }))
-      : connectedPorts
+    // 根据通信模式和选择发送到指定端口
+    const portsToSend = (() => {
+      // 在 MERGED_TXRX 模式下，使用 strategy.txPort 而不是 selectedSendPort
+      const targetPort = strategy.communicationMode === 'MERGED_TXRX' ? strategy.txPort : selectedSendPort;
+      
+      if (targetPort === 'ALL') {
+        return connectedPorts.map((portInfo, index) => ({ portInfo, index }));
+      } else {
+        return connectedPorts
           .map((portInfo, index) => ({ portInfo, index }))
           .filter((_, index) => {
             const portLabel = connectedPortLabels[index]?.label;
-            return portLabel === selectedSendPort;
+            return portLabel === targetPort;
           });
+      }
+    })();
 
     const sendPromises = portsToSend.map(async ({ portInfo, index }) => {
       try {
@@ -271,9 +301,10 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       const successCount = successResults.length;
 
       if (successCount > 0) {
-        const targetDesc = selectedSendPort === 'ALL' 
+        const targetPort = strategy.communicationMode === 'MERGED_TXRX' ? strategy.txPort : selectedSendPort;
+        const targetDesc = targetPort === 'ALL' 
           ? `${successCount}/${portsToSend.length} 个端口`
-          : selectedSendPort;
+          : targetPort;
         
         toast({
           title: "数据已发送",
@@ -333,6 +364,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     } else {
       // 清空所有日志
       setLogs({});
+      setMergedLogs([]);
       setStats({});
       addLog('system', '日志已清空');
     }
@@ -460,7 +492,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 <Clock className="w-4 h-4" />
               </Button>
 
-              {connectedPorts.length > 1 && (
+              {connectedPorts.length > 1 && strategy.communicationMode === 'COMPARE' && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
@@ -526,46 +558,86 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
       {/* 数据显示区域 */}
       <div className="flex-1 flex">
-        {connectedPorts.length === 1 ? (
-          // 单端口模式
-          <div className="flex-1 flex flex-col">
-            <div 
-              ref={(el) => terminalRefs.current[0] = el}
-              className="flex-1 terminal-output p-4 overflow-y-auto custom-scrollbar font-mono text-sm"
-            >
-              {!logs[0] || logs[0].length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>暂无数据，等待接收...</p>
+        {strategy.communicationMode === 'MERGED_TXRX' ? (
+          // 合并 TX/RX 模式 - 单列显示所有数据
+          <div className="flex-1 terminal-output p-4 overflow-y-auto custom-scrollbar font-mono text-sm">
+            {mergedLogs.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <p className="text-xs">等待数据...</p>
+              </div>
+            ) : (
+              mergedLogs.map((log) => (
+                <div key={log.id} className="mb-1 flex items-start gap-2">
+                  {showTimestamp && (
+                    <span className="text-muted-foreground text-xs min-w-16">
+                      {log.timestamp.toLocaleTimeString().slice(-8)}
+                    </span>
+                  )}
+                  
+                  <span className={`
+                    text-xs px-1 py-0.5 rounded min-w-8 text-center border
+                    ${log.portLabel === 'P1' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800' : ''}
+                    ${log.portLabel === 'P2' ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-800' : ''}
+                    ${log.portLabel === 'SYSTEM' ? 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700' : ''}
+                  `}>
+                    [{log.portLabel}]
+                  </span>
+                  
+                  <span className={`
+                    text-xs px-2 py-0.5 rounded min-w-12 text-center
+                    ${log.type === 'sent' ? 'bg-primary/20 text-primary' : ''}
+                    ${log.type === 'received' ? 'bg-success/20 text-success' : ''}
+                    ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
+                    ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
+                  `}>
+                    {log.type === 'sent' ? '发送' : 
+                     log.type === 'received' ? '接收' : 
+                     log.type === 'system' ? '系统' : '错误'}
+                  </span>
+                  
+                  <span className="font-mono break-all">
+                    {formatData(log.data, displayFormat, log.format)}
+                  </span>
                 </div>
-              ) : (
-                logs[0].map((log) => (
-                  <div key={log.id} className="mb-1 flex items-start gap-2">
-                    {showTimestamp && (
-                      <span className="text-muted-foreground text-xs min-w-20">
-                        {log.timestamp.toLocaleTimeString()}
-                      </span>
-                    )}
-                    
-                    <span className={`
-                      text-xs px-2 py-0.5 rounded min-w-12 text-center
-                      ${log.type === 'sent' ? 'bg-primary/20 text-primary' : ''}
-                      ${log.type === 'received' ? 'bg-success/20 text-success' : ''}
-                      ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
-                      ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
-                    `}>
-                      {log.type === 'sent' ? '发送' : 
-                       log.type === 'received' ? '接收' : 
-                       log.type === 'system' ? '系统' : '错误'}
+              ))
+            )}
+          </div>
+        ) : connectedPorts.length === 1 ? (
+          // 单端口模式
+          <div className="flex-1 terminal-output p-4 overflow-y-auto custom-scrollbar font-mono text-sm">
+            {!logs[0] || logs[0].length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <p className="text-xs">等待数据...</p>
+              </div>
+            ) : (
+              logs[0].map((log) => (
+                <div key={log.id} className="mb-1 flex items-start gap-2">
+                  {showTimestamp && (
+                    <span className="text-muted-foreground text-xs min-w-16">
+                      {log.timestamp.toLocaleTimeString().slice(-8)}
                     </span>
-                    
-                    <span className="font-mono break-all">
-                      {formatData(log.data, displayFormat, log.format)}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
+                  )}
+                  
+                  <span className={`
+                    text-xs px-2 py-0.5 rounded min-w-12 text-center
+                    ${log.type === 'sent' ? 'bg-primary/20 text-primary' : ''}
+                    ${log.type === 'received' ? 'bg-success/20 text-success' : ''}
+                    ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
+                    ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
+                  `}>
+                    {log.type === 'sent' ? '发送' : 
+                     log.type === 'received' ? '接收' : 
+                     log.type === 'system' ? '系统' : '错误'}
+                  </span>
+                  
+                  <span className="font-mono break-all">
+                    {formatData(log.data, displayFormat, log.format)}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         ) : (
           // 双端口分栏模式
@@ -680,7 +752,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       {/* 发送区域 */}
       <div className="p-4 border-t border-border bg-secondary/5">
         {/* Port Selection for Sending */}
-        {connectedPortLabels.length > 1 && (
+        {connectedPortLabels.length > 1 && strategy.communicationMode === 'COMPARE' && (
           <div className="flex items-center gap-3 mb-3">
             <Label className="text-sm">发送到:</Label>
             <Select value={selectedSendPort} onValueChange={setSelectedSendPort as any}>
@@ -696,6 +768,19 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        )}
+        
+        {/* TX Port Display for MERGED_TXRX Mode */}
+        {connectedPortLabels.length > 1 && strategy.communicationMode === 'MERGED_TXRX' && (
+          <div className="flex items-center gap-3 mb-3">
+            <Label className="text-sm">当前发送模式:</Label>
+            <Badge variant="outline" className="text-xs">
+              {strategy.txPort === 'ALL' ? '全部端口' : `仅 ${strategy.txPort} 端口`}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              (在连接面板中调整发送端口设置)
+            </span>
           </div>
         )}
         

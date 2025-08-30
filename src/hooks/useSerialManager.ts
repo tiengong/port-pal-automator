@@ -16,6 +16,8 @@ export interface SerialPortInfo {
 
 export interface ConnectionStrategy {
   mode: 'P1_ONLY' | 'P1_P2';
+  communicationMode: 'COMPARE' | 'MERGED_TXRX';
+  txPort: 'ALL' | 'P1' | 'P2';
   p1Config: SerialPortInfo['params'];
   p2Config: SerialPortInfo['params'];
   p2Enabled: boolean;
@@ -26,6 +28,8 @@ export const useSerialManager = () => {
   const [ports, setPorts] = useState<SerialPortInfo[]>([]);
   const [strategy, setStrategy] = useState<ConnectionStrategy>({
     mode: 'P1_ONLY',
+    communicationMode: 'COMPARE',
+    txPort: 'ALL',
     p1Config: {
       baudRate: 115200,
       dataBits: 8,

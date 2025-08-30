@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { RefreshCw, Plug, PlugZap, AlertTriangle, Settings2, Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RefreshCw, Plug, PlugZap, AlertTriangle, Settings2, Plus, ChevronDown, ChevronRight, ArrowLeftRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSerialManager, type SerialPortInfo } from "@/hooks/useSerialManager";
 
@@ -152,6 +153,88 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Communication Mode Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings2 className="w-5 h-5" />
+            通信模式
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Label>工作模式</Label>
+            <RadioGroup
+              value={strategy.communicationMode}
+              onValueChange={(value: 'COMPARE' | 'MERGED_TXRX') => 
+                updateStrategy({ communicationMode: value })
+              }
+              className="grid grid-cols-2 gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="COMPARE" id="compare" />
+                <Label htmlFor="compare" className="text-sm">
+                  设备对比模式
+                  <p className="text-xs text-muted-foreground">分栏显示两设备数据差异</p>
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="MERGED_TXRX" id="merged" />
+                <Label htmlFor="merged" className="text-sm">
+                  TX/RX合并模式
+                  <p className="text-xs text-muted-foreground">单设备双COM口合并显示</p>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {strategy.communicationMode === 'MERGED_TXRX' && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <Label>发送端口选择</Label>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={strategy.txPort}
+                    onValueChange={(value: 'ALL' | 'P1' | 'P2') => 
+                      updateStrategy({ txPort: value })
+                    }
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">全部端口</SelectItem>
+                      <SelectItem value="P1">仅P1发送</SelectItem>
+                      <SelectItem value="P2">仅P2发送</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const swapped = strategy.txPort === 'P1' ? 'P2' : strategy.txPort === 'P2' ? 'P1' : 'P1';
+                      updateStrategy({ txPort: swapped });
+                    }}
+                    disabled={strategy.txPort === 'ALL'}
+                    className="flex items-center gap-1"
+                  >
+                    <ArrowLeftRight className="w-3 h-3" />
+                    交换TX/RX
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {strategy.txPort === 'ALL' 
+                    ? '数据将发送到所有连接的端口' 
+                    : `数据将只发送到 ${strategy.txPort} 端口`}
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Main Serial Port */}
       <Card>
         <CardHeader>

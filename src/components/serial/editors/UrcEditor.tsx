@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown, Radio } from "lucide-react";
 import { TestCommand } from '../types';
+import { UrcPreview } from '../UrcPreview';
 
 interface UrcEditorProps {
   command: TestCommand;
@@ -258,22 +259,24 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
         </CardContent>
       </Card>
 
-      {/* 数据解析（高级功能） */}
+      {/* 变量提取配置 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">数据解析 (高级)</CardTitle>
+          <CardTitle className="text-sm">变量提取配置</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="parseType">解析类型</Label>
+            <Label htmlFor="parseType">提取方式</Label>
             <Select
-              value={command.dataParseConfig?.parseType || 'contains'}
+              value={command.dataParseConfig?.parseType || 'regex'}
               onValueChange={(value) => {
                 const newConfig = { 
                   ...command.dataParseConfig, 
                   parseType: value as any,
                   parsePattern: '',
-                  parameterMap: {}
+                  parameterMap: {},
+                  scope: 'global',
+                  clearPolicy: 'onCaseStart'
                 };
                 updateCommand('dataParseConfig', newConfig);
               }}
@@ -282,38 +285,146 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="contains">简单包含</SelectItem>
-                <SelectItem value="regex">正则表达式</SelectItem>
-                <SelectItem value="split">分割字符串</SelectItem>
-                <SelectItem value="json">JSON解析</SelectItem>
+                <SelectItem value="regex">正则表达式提取</SelectItem>
+                <SelectItem value="split">分割字符串提取</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              {command.dataParseConfig?.parseType === 'regex' 
+                ? '使用正则表达式捕获组提取变量，支持命名捕获组'
+                : '按指定分隔符分割字符串，按索引提取变量'
+              }
+            </p>
           </div>
 
-          {command.dataParseConfig?.parseType !== 'contains' && (
-            <div>
-              <Label htmlFor="parsePattern">解析模式</Label>
-              <Input
-                id="parsePattern"
-                value={command.dataParseConfig?.parsePattern || ''}
-                onChange={(e) => {
+          <div>
+            <Label htmlFor="parsePattern">
+              {command.dataParseConfig?.parseType === 'regex' ? '正则表达式' : '分隔符'}
+            </Label>
+            <Input
+              id="parsePattern"
+              value={command.dataParseConfig?.parsePattern || ''}
+              onChange={(e) => {
+                const newConfig = { 
+                  ...command.dataParseConfig, 
+                  parsePattern: e.target.value 
+                };
+                updateCommand('dataParseConfig', newConfig);
+              }}
+              placeholder={
+                command.dataParseConfig?.parseType === 'regex' 
+                  ? '如: \\+MIPLOBSERVE:0,(\\d+),.*' 
+                  : '如: ,'
+              }
+              className="font-mono"
+            />
+            {command.dataParseConfig?.parseType === 'regex' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mt-2">
+                <p className="text-xs text-blue-800">
+                  <strong>提取示例：</strong><br/>
+                  • <code className="bg-blue-100 px-1 rounded">\\+MIPLOBSERVE:0,(\\d+),.*</code> → 捕获组1为msgid<br/>
+                  • <code className="bg-blue-100 px-1 rounded">\\+STATUS:(?&lt;code&gt;\\d+),(?&lt;msg&gt;.*)</code> → 命名捕获组code和msg<br/>
+                  • <code className="bg-blue-100 px-1 rounded">OK\\s+(\\w+)\\s+(\\d+)</code> → 捕获组1和2
+                </p>
+              </div>
+            )}
+            {command.dataParseConfig?.parseType === 'split' && (
+              <div className="bg-green-50 border border-green-200 rounded-md p-3 mt-2">
+                <p className="text-xs text-green-800">
+                  <strong>分割示例：</strong><br/>
+                  输入: <code className="bg-green-100 px-1 rounded">+RESPONSE:0,123,OK</code><br/>
+                  分隔符: <code className="bg-green-100 px-1 rounded">,</code><br/>
+                  结果: ["+RESPONSE:0", "123", "OK"] → 索引0,1,2
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="parameterMap">变量映射 (JSON格式)</Label>
+            <Textarea
+              id="parameterMap"
+              value={JSON.stringify(command.dataParseConfig?.parameterMap || {}, null, 2)}
+              onChange={(e) => {
+                try {
+                  const parameterMap = JSON.parse(e.target.value);
                   const newConfig = { 
                     ...command.dataParseConfig, 
-                    parsePattern: e.target.value 
+                    parameterMap 
+                  };
+                  updateCommand('dataParseConfig', newConfig);
+                } catch (err) {
+                  // 忽略JSON解析错误，让用户继续编辑
+                }
+              }}
+              placeholder={command.dataParseConfig?.parseType === 'regex' 
+                ? '{\n  "1": "msgid",\n  "code": "statusCode"\n}'
+                : '{\n  "1": "msgid",\n  "2": "status"\n}'
+              }
+              rows={4}
+              className="font-mono text-xs"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {command.dataParseConfig?.parseType === 'regex' 
+                ? '键为捕获组号(1,2,...)或命名捕获组名，值为变量名'
+                : '键为分割后的索引(0,1,2,...)，值为变量名'
+              }
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="scope">作用域</Label>
+              <Select
+                value={command.dataParseConfig?.scope || 'global'}
+                onValueChange={(value) => {
+                  const newConfig = { 
+                    ...command.dataParseConfig, 
+                    scope: value as any
                   };
                   updateCommand('dataParseConfig', newConfig);
                 }}
-                placeholder={
-                  command.dataParseConfig?.parseType === 'regex' ? '输入正则表达式' :
-                  command.dataParseConfig?.parseType === 'split' ? '输入分割符' :
-                  '输入JSON路径'
-                }
-                className="font-mono"
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="global">全局</SelectItem>
+                  <SelectItem value="case">用例内</SelectItem>
+                  <SelectItem value="port">端口内</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
+
+            <div>
+              <Label htmlFor="clearPolicy">清理策略</Label>
+              <Select
+                value={command.dataParseConfig?.clearPolicy || 'onCaseStart'}
+                onValueChange={(value) => {
+                  const newConfig = { 
+                    ...command.dataParseConfig, 
+                    clearPolicy: value as any
+                  };
+                  updateCommand('dataParseConfig', newConfig);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="never">不清理</SelectItem>
+                  <SelectItem value="onCaseStart">用例开始时</SelectItem>
+                  <SelectItem value="onCaseEnd">用例结束时</SelectItem>
+                  <SelectItem value="onMatch">每次匹配时</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      {/* 实时预览 */}
+      <UrcPreview command={command} />
 
       {/* 跳转配置 */}
       <Card>

@@ -88,44 +88,45 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   
   // 参数存储系统 - 用于URC解析的参数
-  const [storedParameters, setStoredParameters] = useState<{ [key: string]: string }>({});
+  const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; scope: string; timestamp: number } }>({});
   
   // URC解析和变量替换系统
-  const parseUrcData = (data: string, command: TestCommand): { [key: string]: string } => {
+  const parseUrcData = (data: string, command: TestCommand): { [key: string]: { value: string; scope: string; timestamp: number } } => {
     if (!command.dataParseConfig) return {};
     
-    const { parseType, parsePattern, parameterMap } = command.dataParseConfig;
-    const extractedParams: { [key: string]: string } = {};
+    const { parseType, parsePattern, parameterMap, scope = 'global' } = command.dataParseConfig;
+    const extractedParams: { [key: string]: { value: string; scope: string; timestamp: number } } = {};
+    const timestamp = Date.now();
     
     switch (parseType) {
       case 'regex':
-        const regex = new RegExp(parsePattern);
-        const match = data.match(regex);
-        if (match) {
-          Object.entries(parameterMap).forEach(([paramName, paramValue]) => {
-            if (typeof paramValue === 'string' && paramValue.startsWith('$')) {
-              const groupIndex = parseInt(paramValue.substring(1));
-              if (match[groupIndex]) {
-                extractedParams[paramName] = match[groupIndex];
+        try {
+          const regex = new RegExp(parsePattern);
+          const match = data.match(regex);
+          if (match) {
+            Object.entries(parameterMap).forEach(([groupKey, varName]) => {
+              if (typeof varName === 'string') {
+                // 支持捕获组索引和命名捕获组
+                const value = isNaN(Number(groupKey)) 
+                  ? match.groups?.[groupKey] 
+                  : match[Number(groupKey)];
+                if (value) {
+                  extractedParams[varName] = { value, scope, timestamp };
+                }
               }
-            }
-          });
-        }
-        break;
-      case 'contains':
-        if (data.includes(parsePattern)) {
-          Object.entries(parameterMap).forEach(([paramName, paramValue]) => {
-            extractedParams[paramName] = typeof paramValue === 'string' ? paramValue : '';
-          });
+            });
+          }
+        } catch (error) {
+          console.error('Regex parsing error:', error);
         }
         break;
       case 'split':
         const parts = data.split(parsePattern);
-        Object.entries(parameterMap).forEach(([paramName, paramValue]) => {
-          if (typeof paramValue === 'string' && paramValue.startsWith('$')) {
-            const index = parseInt(paramValue.substring(1));
-            if (parts[index]) {
-              extractedParams[paramName] = parts[index];
+        Object.entries(parameterMap).forEach(([indexKey, varName]) => {
+          if (typeof varName === 'string') {
+            const index = Number(indexKey);
+            if (!isNaN(index) && parts[index] !== undefined) {
+              extractedParams[varName] = { value: parts[index].trim(), scope, timestamp };
             }
           }
         });
@@ -139,9 +140,19 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const substituteVariables = (command: string): string => {
     let substituted = command;
     
-    Object.entries(storedParameters).forEach(([varName, varValue]) => {
-      const placeholder = `{${varName}}`;
-      substituted = substituted.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), varValue);
+    Object.entries(storedParameters).forEach(([varName, varData]) => {
+      // 支持多种变量格式: {var}, {var|default}, {P1.var}, {P2.var}
+      const patterns = [
+        `{${varName}}`,
+        `{${varName}\\|[^}]*}`, // 带默认值
+        `{P1\\.${varName}}`,
+        `{P2\\.${varName}}`
+      ];
+      
+      patterns.forEach(pattern => {
+        const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        substituted = substituted.replace(regex, varData.value);
+      });
     });
     
     return substituted;
@@ -229,7 +240,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               if (matches) {
                 const extractedParams = parseUrcData(event.data, command);
                 if (Object.keys(extractedParams).length > 0) {
-                  setStoredParameters(prev => ({ ...prev, ...extractedParams }));
+                  // 根据清理策略处理现有参数
+                  setStoredParameters(prev => {
+                    const clearPolicy = command.dataParseConfig?.clearPolicy || 'onCaseStart';
+                    let newParams = { ...prev };
+                    
+                    if (clearPolicy === 'onMatch') {
+                      // 清理相同作用域的现有参数
+                      const scope = command.dataParseConfig?.scope || 'global';
+                      Object.keys(newParams).forEach(key => {
+                        if (newParams[key].scope === scope) {
+                          delete newParams[key];
+                        }
+                      });
+                    }
+                    
+                    return { ...newParams, ...extractedParams };
+                  });
+                  
                   eventBus.emit(EVENTS.PARAMETER_EXTRACTED, { 
                     commandId: command.id, 
                     parameters: extractedParams 
@@ -237,7 +265,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   
                   toast({
                     title: "参数解析成功",
-                    description: `提取参数: ${Object.entries(extractedParams).map(([k, v]) => `${k}=${v}`).join(', ')}`,
+                    description: `提取参数: ${Object.entries(extractedParams).map(([k, v]) => `${k}=${v.value}`).join(', ')}`,
                   });
                 }
               }

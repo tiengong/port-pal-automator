@@ -107,13 +107,21 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
               id="command"
               value={command.command}
               onChange={(e) => updateCommand('command', e.target.value)}
-              placeholder={command.dataFormat === 'hex' ? "输入十六进制数据 (如: 1A 2B 3C)" : "输入AT命令"}
-              className={command.dataFormat === 'hex' ? "font-mono" : ""}
+              placeholder={command.dataFormat === 'hex' ? "输入十六进制数据 (如: 1A 2B 3C)" : "输入AT命令，支持变量如: AT+MIPLOBSERVERSP=0,{msgid},1"}
+              className={command.dataFormat === 'hex' ? "font-mono" : "font-mono"}
             />
-            {command.dataFormat === 'hex' && (
+            {command.dataFormat === 'hex' ? (
               <p className="text-xs text-muted-foreground mt-1">
                 示例: 1A2B3C 或 1A 2B 3C (空格会被自动移除)
               </p>
+            ) : (
+              <div className="text-xs text-muted-foreground mt-1">
+                <strong>变量使用格式：</strong>
+                <code className="bg-muted px-1 rounded ml-1">{'{变量名}'}</code>
+                <code className="bg-muted px-1 rounded ml-1">{'{变量名|默认值}'}</code>
+                <code className="bg-muted px-1 rounded ml-1">{'{P1.变量名}'}</code>
+                <code className="bg-muted px-1 rounded ml-1">{'{P2.变量名}'}</code>
+              </div>
             )}
           </div>
           
@@ -215,7 +223,8 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 id="expectedResponse"
                 value={command.expectedResponse || ''}
                 onChange={(e) => updateCommand('expectedResponse', e.target.value)}
-                placeholder="输入期望的响应内容"
+                placeholder="输入期望的响应内容，或点击自动填充"
+                className="font-mono"
               />
               {!command.expectedResponse && (
                 <p className="text-xs text-amber-600 mt-1">

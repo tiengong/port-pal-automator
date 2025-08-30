@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Hash } from 'lucide-react';
 
 interface VariableDisplayProps {
-  storedParameters: { [key: string]: string };
+  storedParameters: { [key: string]: { value: string; scope: string; timestamp: number } };
   onClearParameter: (key: string) => void;
   onClearAll: () => void;
 }
@@ -58,15 +58,25 @@ export const VariableDisplay: React.FC<VariableDisplayProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {parameterEntries.map(([key, value]) => (
+          {parameterEntries.map(([key, data]) => (
             <div key={key} className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded">
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <Badge variant="outline" className="text-xs font-mono">
-                  {key}
-                </Badge>
-                <span className="text-sm font-mono truncate">
-                  {value}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs font-mono">
+                      {key}
+                    </Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {data.scope}
+                    </Badge>
+                  </div>
+                  <span className="text-sm font-mono truncate">
+                    {data.value}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(data.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
               </div>
               <Button
                 variant="ghost"

@@ -35,9 +35,11 @@ export interface TestCommand {
   
   // URC参数提取配置
   dataParseConfig?: {
-    parseType: 'contains' | 'exact' | 'regex' | 'split' | 'json';
+    parseType: 'regex' | 'split';
     parsePattern: string;
-    parameterMap: { [key: string]: string }; // 参数映射 
+    parameterMap: { [key: string]: string }; // 参数映射：group1->varName, index0->varName
+    scope?: 'global' | 'case' | 'port'; // 变量作用域
+    clearPolicy?: 'never' | 'onCaseStart' | 'onCaseEnd' | 'onMatch'; // 清理策略
   };
   jumpConfig?: {
     onReceived: 'continue' | 'jump';

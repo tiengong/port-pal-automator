@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSerialManager } from "@/hooks/useSerialManager";
+import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from "@/lib/eventBus";
 
 interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -170,6 +171,17 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             const text = decoder.decode(value);
             
             addLog('received', text, displayFormat, portIndex);
+            
+            // 发送数据到事件总线
+            const portLabel = connectedPortLabels[portIndex]?.label || `端口 ${portIndex + 1}`;
+            const serialEvent: SerialDataEvent = {
+              portIndex,
+              portLabel,
+              data: text,
+              timestamp: new Date(),
+              type: 'received'
+            };
+            eventBus.emit(EVENTS.SERIAL_DATA_RECEIVED, serialEvent);
           }
         } catch (error) {
           if ((error as any).name === 'NetworkError') {
@@ -432,6 +444,26 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
     return data;
   };
+
+  // 监听发送命令事件
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe(EVENTS.SEND_COMMAND, (event: SendCommandEvent) => {
+      // 临时设置发送数据并执行发送
+      setSendData(event.command);
+      setSendFormat(event.format);
+      setNewlineMode(event.lineEnding);
+      if (event.targetPort) {
+        setSelectedSendPort(event.targetPort);
+      }
+      
+      // 延迟执行发送以确保状态更新
+      setTimeout(() => {
+        sendSerialData();
+      }, 50);
+    });
+    
+    return unsubscribe;
+  }, [sendSerialData]);
 
   // 监听端口连接变化
   useEffect(() => {

@@ -157,28 +157,26 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         dataParseConfig: {
           parseType: 'regex',
           parsePattern: '\\+MIPLOBSERVE:0,(\\d+),1,3303,\\d+,-1',
-          parameterMap: { 'observeId': '$1' }
+          parameterMap: { 'msgid': '$1' }
         },
         jumpConfig: {
           onReceived: 'continue'
         }
       },
 
-      // 观察响应命令（需要手动触发或通过URC触发）
-      {
-        id: `${caseId}_cmd_6`,
-        type: 'execution',
-        command: 'AT+MIPLOBSERVERSP=0,{observeId},1',
-        expectedResponse: 'OK',
-        validationMethod: 'contains',
-        waitTime: 1000,
-        stopOnFailure: false,
-        lineEnding: 'crlf',
-        selected: false,
-        status: 'pending',
-        requiresUserAction: true,
-        userPrompt: '请根据观察请求ID手动执行响应命令'
-      },
+        // 观察响应命令（使用msgid）
+        {
+          id: `${caseId}_cmd_6`,
+          type: 'execution',
+          command: 'AT+MIPLOBSERVERSP=0,{msgid},1',
+          expectedResponse: 'OK',
+          validationMethod: 'contains',
+          waitTime: 1000,
+          stopOnFailure: false,
+          lineEnding: 'crlf',
+          selected: false,
+          status: 'pending'
+        },
 
       // 5. 处理服务器发现请求
       {
@@ -201,34 +199,32 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           parameterMap: { 'discoverId': '$1' }
         }
       },
-      {
-        id: `${caseId}_cmd_7`,
-        type: 'execution',
-        command: 'AT+MIPLDISCOVERRSP=0,{discoverId},1,34,"5700;5701;5601;5602;5603;5604;5605"',
-        expectedResponse: 'OK',
-        validationMethod: 'contains',
-        waitTime: 1000,
-        stopOnFailure: false,
-        lineEnding: 'crlf',
-        selected: false,
-        status: 'pending',
-        requiresUserAction: true,
-        userPrompt: '请根据发现请求ID手动执行响应命令'
-      },
+        {
+          id: `${caseId}_cmd_7`,
+          type: 'execution',
+          command: 'AT+MIPLDISCOVERRSP=0,{discoverId},1,34,"5700;5701;5601;5602;5603;5604;5605"',
+          expectedResponse: 'OK',
+          validationMethod: 'contains',
+          waitTime: 1000,
+          stopOnFailure: false,
+          lineEnding: 'crlf',
+          selected: false,
+          status: 'pending'
+        },
 
-      // 6. 设备主动上报数据
-      {
-        id: `${caseId}_cmd_8`,
-        type: 'execution',
-        command: 'AT+MIPLNOTIFY=0,3303,2,5700,1,"25.6"',
-        expectedResponse: 'OK',
-        validationMethod: 'contains',
-        waitTime: 1000,
-        stopOnFailure: false,
-        lineEnding: 'crlf',
-        selected: false,
-        status: 'pending'
-      },
+        // 6. 设备主动上报数据（使用msgid）
+        {
+          id: `${caseId}_cmd_8`,
+          type: 'execution',
+          command: 'AT+MIPLNOTIFY={msgid},3303,2,5700,1,"25.6"',
+          expectedResponse: 'OK',
+          validationMethod: 'contains',
+          waitTime: 1000,
+          stopOnFailure: false,
+          lineEnding: 'crlf',
+          selected: false,
+          status: 'pending'
+        },
       {
         id: `${caseId}_urc_6`,
         type: 'urc',
@@ -267,20 +263,18 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           parameterMap: { 'writeId': '$1', 'value': '$2' }
         }
       },
-      {
-        id: `${caseId}_cmd_9`,
-        type: 'execution',
-        command: 'AT+MIPLWRITERSP=0,{writeId},1',
-        expectedResponse: 'OK',
-        validationMethod: 'contains',
-        waitTime: 1000,
-        stopOnFailure: false,
-        lineEnding: 'crlf',
-        selected: false,
-        status: 'pending',
-        requiresUserAction: true,
-        userPrompt: '请根据写请求ID手动执行响应命令'
-      },
+        {
+          id: `${caseId}_cmd_9`,
+          type: 'execution',
+          command: 'AT+MIPLWRITERSP=0,{writeId},1',
+          expectedResponse: 'OK',
+          validationMethod: 'contains',
+          waitTime: 1000,
+          stopOnFailure: false,
+          lineEnding: 'crlf',
+          selected: false,
+          status: 'pending'
+        },
 
       // 8. 处理服务器读请求
       {
@@ -303,20 +297,18 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           parameterMap: { 'readId': '$1' }
         }
       },
-      {
-        id: `${caseId}_cmd_10`,
-        type: 'execution',
-        command: 'AT+MIPLREADRSP=0,{readId},1,20,"24.5;25.1;24.8"',
-        expectedResponse: 'OK',
-        validationMethod: 'contains',
-        waitTime: 1000,
-        stopOnFailure: false,
-        lineEnding: 'crlf',
-        selected: false,
-        status: 'pending',
-        requiresUserAction: true,
-        userPrompt: '请根据读请求ID手动执行响应命令'
-      },
+        {
+          id: `${caseId}_cmd_10`,
+          type: 'execution',
+          command: 'AT+MIPLREADRSP=0,{readId},1,20,"24.5;25.1;24.8"',
+          expectedResponse: 'OK',
+          validationMethod: 'contains',
+          waitTime: 1000,
+          stopOnFailure: false,
+          lineEnding: 'crlf',
+          selected: false,
+          status: 'pending'
+        },
 
       // 9. 主动关闭MIPL连接
       {

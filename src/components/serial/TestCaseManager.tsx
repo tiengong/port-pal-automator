@@ -42,7 +42,9 @@ import { TestCaseSwitcher } from './TestCaseSwitcher';
 import { ExecutionEditor } from './editors/ExecutionEditor';
 import { UrcEditor } from './editors/UrcEditor';
 import { SubcaseRefEditor } from './editors/SubcaseRefEditor';
+import { VariableDisplay } from '../VariableDisplay';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
+import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from '@/lib/eventBus';
 
 interface TestCaseManagerProps {
   connectedPorts: Array<{
@@ -87,6 +89,63 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 参数存储系统 - 用于URC解析的参数
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: string }>({});
+  
+  // URC解析和变量替换系统
+  const parseUrcData = (data: string, command: TestCommand): { [key: string]: string } => {
+    if (!command.dataParseConfig) return {};
+    
+    const { parseType, parsePattern, parameterMap } = command.dataParseConfig;
+    const extractedParams: { [key: string]: string } = {};
+    
+    switch (parseType) {
+      case 'regex':
+        const regex = new RegExp(parsePattern);
+        const match = data.match(regex);
+        if (match) {
+          Object.entries(parameterMap).forEach(([paramName, paramValue]) => {
+            if (typeof paramValue === 'string' && paramValue.startsWith('$')) {
+              const groupIndex = parseInt(paramValue.substring(1));
+              if (match[groupIndex]) {
+                extractedParams[paramName] = match[groupIndex];
+              }
+            }
+          });
+        }
+        break;
+      case 'contains':
+        if (data.includes(parsePattern)) {
+          Object.entries(parameterMap).forEach(([paramName, paramValue]) => {
+            extractedParams[paramName] = typeof paramValue === 'string' ? paramValue : '';
+          });
+        }
+        break;
+      case 'split':
+        const parts = data.split(parsePattern);
+        Object.entries(parameterMap).forEach(([paramName, paramValue]) => {
+          if (typeof paramValue === 'string' && paramValue.startsWith('$')) {
+            const index = parseInt(paramValue.substring(1));
+            if (parts[index]) {
+              extractedParams[paramName] = parts[index];
+            }
+          }
+        });
+        break;
+    }
+    
+    return extractedParams;
+  };
+  
+  // 变量替换函数
+  const substituteVariables = (command: string): string => {
+    let substituted = command;
+    
+    Object.entries(storedParameters).forEach(([varName, varValue]) => {
+      const placeholder = `{${varName}}`;
+      substituted = substituted.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), varValue);
+    });
+    
+    return substituted;
+  };
   
   // 子用例展开状态管理
   const [expandedSubcases, setExpandedSubcases] = useState<Set<string>>(new Set());
@@ -146,6 +205,74 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       if (found) return found;
     }
     return null;
+  };
+
+  // 获取当前选中的测试用例
+  const getCurrentTestCase = () => {
+    if (selectedTestCaseId) {
+      return testCases.find(tc => tc.id === selectedTestCaseId);
+    }
+    return testCases[0];
+  };
+  
+  const currentTestCase = getCurrentTestCase();
+
+  // 监听串口数据接收事件
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe(EVENTS.SERIAL_DATA_RECEIVED, (event: SerialDataEvent) => {
+      if (event.type === 'received') {
+        // 检查是否有活跃的URC监听器
+        if (currentTestCase) {
+          currentTestCase.commands.forEach((command) => {
+            if (command.type === 'urc' && command.selected && command.urcPattern) {
+              const matches = checkUrcMatch(event.data, command);
+              if (matches) {
+                const extractedParams = parseUrcData(event.data, command);
+                if (Object.keys(extractedParams).length > 0) {
+                  setStoredParameters(prev => ({ ...prev, ...extractedParams }));
+                  eventBus.emit(EVENTS.PARAMETER_EXTRACTED, { 
+                    commandId: command.id, 
+                    parameters: extractedParams 
+                  });
+                  
+                  toast({
+                    title: "参数解析成功",
+                    description: `提取参数: ${Object.entries(extractedParams).map(([k, v]) => `${k}=${v}`).join(', ')}`,
+                  });
+                }
+              }
+            }
+          });
+        }
+      }
+    });
+    
+    return unsubscribe;
+  }, [currentTestCase]);
+  
+  // URC匹配检查
+  const checkUrcMatch = (data: string, command: TestCommand): boolean => {
+    if (!command.urcPattern) return false;
+    
+    switch (command.urcMatchMode) {
+      case 'contains':
+        return data.includes(command.urcPattern);
+      case 'exact':
+        return data.trim() === command.urcPattern;
+      case 'startsWith':
+        return data.startsWith(command.urcPattern);
+      case 'endsWith':
+        return data.endsWith(command.urcPattern);
+      case 'regex':
+        try {
+          const regex = new RegExp(command.urcPattern);
+          return regex.test(data);
+        } catch {
+          return false;
+        }
+      default:
+        return false;
+    }
   };
 
   // 初始化示例数据
@@ -246,15 +373,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setSelectedTestCaseId('case1'); // 自动选择第一个测试用例
   }, []);
 
-  // 获取当前选中的测试用例
-  const getCurrentTestCase = () => {
-    if (selectedTestCaseId) {
-      return testCases.find(tc => tc.id === selectedTestCaseId);
-    }
-    return testCases[0];
-  };
-  
-  const currentTestCase = getCurrentTestCase();
 
   console.log('TestCaseManager rendered with modular layout', { currentTestCase, testCases });
 
@@ -271,10 +389,41 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     if (!currentTestCase) return;
     
     const command = currentTestCase.commands[commandIndex];
-    toast({
-      title: "开始执行",
-      description: `正在执行步骤 ${commandIndex + 1}: ${command.command}`,
-    });
+    
+    if (command.type === 'execution') {
+      // 执行命令前进行变量替换
+      const substitutedCommand = substituteVariables(command.command);
+      
+      const sendEvent: SendCommandEvent = {
+        command: substitutedCommand,
+        format: command.dataFormat === 'hex' ? 'hex' : 'ascii',
+        lineEnding: command.lineEnding,
+        targetPort: connectedPorts.length > 1 ? 'ALL' : undefined
+      };
+      
+      eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
+      
+      toast({
+        title: "命令已发送",
+        description: `执行步骤 ${commandIndex + 1}: ${substitutedCommand}`,
+      });
+    } else if (command.type === 'urc') {
+      // 激活URC监听
+      const updatedCommands = currentTestCase.commands.map((cmd, idx) =>
+        idx === commandIndex ? { ...cmd, selected: true, status: 'running' as const } : cmd
+      );
+      
+      const updatedCase = { ...currentTestCase, commands: updatedCommands };
+      const updatedTestCases = testCases.map(tc => 
+        tc.id === currentTestCase.id ? updatedCase : tc
+      );
+      setTestCases(updatedTestCases);
+      
+      toast({
+        title: "URC监听已激活",
+        description: `监听模式: ${command.urcPattern}`,
+      });
+    }
   };
 
   // 删除测试用例
@@ -341,6 +490,31 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
         ) : (
           <div className="space-y-2">
+            {/* 参数显示面板 */}
+            {Object.keys(storedParameters).length > 0 && (
+              <VariableDisplay
+                storedParameters={storedParameters}
+                onClearParameter={(key) => {
+                  setStoredParameters(prev => {
+                    const newParams = { ...prev };
+                    delete newParams[key];
+                    return newParams;
+                  });
+                  toast({
+                    title: "参数已清除",
+                    description: `已清除参数: ${key}`,
+                  });
+                }}
+                onClearAll={() => {
+                  setStoredParameters({});
+                  toast({
+                    title: "全部参数已清除",
+                    description: "所有解析的参数已被清空",
+                  });
+                }}
+              />
+            )}
+            
             {/* 当前测试用例的命令列表 */}
             <div className="border border-border rounded-lg bg-card">
               {/* 命令列表 */}

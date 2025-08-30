@@ -189,13 +189,39 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
           
           {command.validationMethod !== 'none' && (
             <div>
-              <Label htmlFor="expectedResponse">期望响应</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="expectedResponse">期望响应</Label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={() => {
+                    if (command.command && !command.expectedResponse) {
+                      // Auto-suggest validation based on command
+                      if (command.command.includes('AT+')) {
+                        updateCommand('expectedResponse', 'OK');
+                      } else if (command.command.includes('CSQ')) {
+                        updateCommand('expectedResponse', '+CSQ:');
+                      } else if (command.command.includes('CREG')) {
+                        updateCommand('expectedResponse', '+CREG:');
+                      }
+                    }
+                  }}
+                >
+                  自动填充
+                </Button>
+              </div>
               <Input
                 id="expectedResponse"
                 value={command.expectedResponse || ''}
                 onChange={(e) => updateCommand('expectedResponse', e.target.value)}
                 placeholder="输入期望的响应内容"
               />
+              {!command.expectedResponse && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ 建议填写期望响应以确保命令执行正确
+                </p>
+              )}
             </div>
           )}
           

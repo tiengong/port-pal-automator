@@ -839,14 +839,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 <div>
                   <Label htmlFor="case-referenced">引用用例</Label>
                   <Select
-                    value={editingCase.referencedCaseId || ''}
-                    onValueChange={(value) => setEditingCase({ ...editingCase, referencedCaseId: value || undefined })}
+                    value={editingCase.referencedCaseId || 'none'}
+                    onValueChange={(value) => setEditingCase({ ...editingCase, referencedCaseId: value === 'none' ? undefined : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="选择引用的用例（可选）" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">无引用</SelectItem>
+                      <SelectItem value="none">无引用</SelectItem>
                       {testCases.filter(tc => tc.id !== editingCase.id).map((testCase) => (
                         <SelectItem key={testCase.id} value={testCase.id}>
                           {testCase.uniqueId} - {testCase.name}

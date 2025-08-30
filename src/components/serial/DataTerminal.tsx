@@ -23,7 +23,10 @@ import {
   ArrowUp,
   ArrowDown,
   Copy,
-  Link
+  Link,
+  Columns,
+  Merge,
+  ArrowLeftRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSerialManager } from "@/hooks/useSerialManager";
@@ -492,12 +495,86 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 <Clock className="w-4 h-4" />
               </Button>
 
+              {/* Display Mode Toggle - Only when P2 is connected */}
+              {connectedPorts.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant={strategy.communicationMode === 'COMPARE' ? "default" : "outline"}
+                        size="sm" 
+                        onClick={() => serialManager.updateStrategy({ 
+                          communicationMode: strategy.communicationMode === 'COMPARE' ? 'MERGED_TXRX' : 'COMPARE' 
+                        })}
+                        className="flex items-center gap-1"
+                      >
+                        {strategy.communicationMode === 'COMPARE' ? (
+                          <>
+                            <Columns className="w-3 h-3" />
+                            分栏
+                          </>
+                        ) : (
+                          <>
+                            <Merge className="w-3 h-3" />
+                            合并
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{strategy.communicationMode === 'COMPARE' ? '切换到合并模式' : '切换到分栏模式'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* TX Port Controls for MERGED_TXRX mode */}
+                  {strategy.communicationMode === 'MERGED_TXRX' && (
+                    <>
+                      <Select
+                        value={strategy.txPort}
+                        onValueChange={(value: 'ALL' | 'P1' | 'P2') => 
+                          serialManager.updateStrategy({ txPort: value })
+                        }
+                      >
+                        <SelectTrigger className="w-20 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">全部</SelectItem>
+                          <SelectItem value="P1">P1</SelectItem>
+                          <SelectItem value="P2">P2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const swapped = strategy.txPort === 'P1' ? 'P2' : strategy.txPort === 'P2' ? 'P1' : 'P1';
+                              serialManager.updateStrategy({ txPort: swapped });
+                            }}
+                            disabled={strategy.txPort === 'ALL'}
+                            className="w-8 h-8 p-0"
+                          >
+                            <ArrowLeftRight className="w-3 h-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>交换TX/RX</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </>
+                  )}
+                </div>
+              )}
+
               {connectedPorts.length > 1 && strategy.communicationMode === 'COMPARE' && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
                       variant={synchronizedScrolling ? "default" : "outline"}
-                      size="sm" 
+                      size="sm"
                       onClick={() => setSynchronizedScrolling(!synchronizedScrolling)}
                       className="w-8 h-8 p-0"
                     >
@@ -771,18 +848,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           </div>
         )}
         
-        {/* TX Port Display for MERGED_TXRX Mode */}
-        {connectedPortLabels.length > 1 && strategy.communicationMode === 'MERGED_TXRX' && (
-          <div className="flex items-center gap-3 mb-3">
-            <Label className="text-sm">当前发送模式:</Label>
-            <Badge variant="outline" className="text-xs">
-              {strategy.txPort === 'ALL' ? '全部端口' : `仅 ${strategy.txPort} 端口`}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              (在连接面板中调整发送端口设置)
-            </span>
-          </div>
-        )}
         
         <div className="flex items-center gap-3 mb-3">
           <div className="flex-1 relative">

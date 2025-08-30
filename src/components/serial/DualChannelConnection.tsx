@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { RefreshCw, Plug, PlugZap, AlertTriangle, Settings2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RefreshCw, Plug, PlugZap, AlertTriangle, Settings2, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSerialManager, type SerialPortInfo } from "@/hooks/useSerialManager";
 
@@ -150,46 +151,21 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
   const p2Port = ports.find(p => p.label === 'P2');
 
   return (
-    <div className="space-y-6">
-      {/* Connection Strategy */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Settings2 className="w-4 h-4" />
-            连接策略
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="text-sm">启用双通道模式</Label>
-              <p className="text-xs text-muted-foreground">同时使用主通道(P1)和辅助通道(P2)</p>
-            </div>
-            <Switch
-              checked={strategy.p2Enabled}
-              onCheckedChange={(enabled) => updateStrategy({ 
-                p2Enabled: enabled,
-                mode: enabled ? 'P1_P2' : 'P1_ONLY'
-              })}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Primary Channel (P1) */}
+    <div className="space-y-4">
+      {/* Main Serial Port */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {p1Port?.connected ? (
               <>
                 <PlugZap className="w-5 h-5 text-success" />
-                <span>主通道 (P1)</span>
+                <span>串口连接</span>
                 <Badge variant="secondary" className="ml-auto">已连接</Badge>
               </>
             ) : (
               <>
                 <Plug className="w-5 h-5" />
-                <span>主通道 (P1)</span>
+                <span>串口连接</span>
                 <Badge variant="outline" className="ml-auto">未连接</Badge>
               </>
             )}
@@ -216,7 +192,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="选择主通道串口设备" />
+                    <SelectValue placeholder="选择串口设备" />
                   </SelectTrigger>
                   <SelectContent>
                     {availablePorts.map((port, index) => (
@@ -228,7 +204,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 </Select>
               </div>
 
-              {/* Connection Parameters */}
+              {/* Basic Configuration */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>波特率</Label>
@@ -246,7 +222,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     <SelectContent>
                       {[9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600].map(rate => (
                         <SelectItem key={rate} value={rate.toString()}>
-                          {rate}
+                          {rate} bps
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -259,7 +235,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     value={strategy.p1Config.dataBits.toString()}
                     onValueChange={(value) => 
                       updateStrategy({ 
-                        p1Config: { ...strategy.p1Config, dataBits: parseInt(value) }
+                        p1Config: { ...strategy.p1Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
                       })
                     }
                   >
@@ -269,9 +245,52 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     <SelectContent>
                       {[5, 6, 7, 8].map(bits => (
                         <SelectItem key={bits} value={bits.toString()}>
-                          {bits}
+                          {bits} 位
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>校验位</Label>
+                  <Select
+                    value={strategy.p1Config.parity}
+                    onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
+                      updateStrategy({ 
+                        p1Config: { ...strategy.p1Config, parity: value }
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">无校验</SelectItem>
+                      <SelectItem value="even">偶校验</SelectItem>
+                      <SelectItem value="odd">奇校验</SelectItem>
+                      <SelectItem value="mark">标记校验</SelectItem>
+                      <SelectItem value="space">空格校验</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>停止位</Label>
+                  <Select
+                    value={strategy.p1Config.stopBits.toString()}
+                    onValueChange={(value) => 
+                      updateStrategy({ 
+                        p1Config: { ...strategy.p1Config, stopBits: parseInt(value) as 1 | 2 }
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 位</SelectItem>
+                      <SelectItem value="2">2 位</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -288,7 +307,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     连接中...
                   </>
                 ) : (
-                  "连接主通道"
+                  "连接串口"
                 )}
               </Button>
             </>
@@ -298,7 +317,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 <div className="flex items-center gap-2 text-success">
                   <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium">
-                    P1 - {p1Port.params.baudRate} bps
+                    已连接 - {p1Port.params.baudRate} bps
                   </span>
                 </div>
                 <Button
@@ -317,7 +336,39 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Secondary Channel (P2) */}
+      {/* Additional Serial Port */}
+      {!strategy.p2Enabled && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <div className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                添加第二路串口
+              </div>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <div className="p-3 border rounded-md bg-muted/30">
+              <p className="text-sm text-muted-foreground mb-3">
+                启用第二路串口连接，用于同时监控多个设备或进行串口转发。
+              </p>
+              <Button
+                onClick={() => updateStrategy({ 
+                  p2Enabled: true,
+                  mode: 'P1_P2'
+                })}
+                size="sm"
+                className="w-full"
+              >
+                启用第二路串口
+              </Button>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Secondary Serial Port */}
       {strategy.p2Enabled && (
         <Card>
           <CardHeader>
@@ -325,16 +376,27 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
               {p2Port?.connected ? (
                 <>
                   <PlugZap className="w-5 h-5 text-success" />
-                  <span>辅助通道 (P2)</span>
+                  <span>第二路串口</span>
                   <Badge variant="secondary" className="ml-auto">已连接</Badge>
                 </>
               ) : (
                 <>
                   <Plug className="w-5 h-5" />
-                  <span>辅助通道 (P2)</span>
+                  <span>第二路串口</span>
                   <Badge variant="outline" className="ml-auto">未连接</Badge>
                 </>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => updateStrategy({ 
+                  p2Enabled: false,
+                  mode: 'P1_ONLY'
+                })}
+                className="ml-auto p-1 h-6 w-6"
+              >
+                ×
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -358,7 +420,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择辅助通道串口设备" />
+                      <SelectValue placeholder="选择第二路串口设备" />
                     </SelectTrigger>
                     <SelectContent>
                       {availablePorts.map((port, index) => (
@@ -370,7 +432,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   </Select>
                 </div>
 
-                {/* Connection Parameters */}
+                {/* Detailed Configuration */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>波特率</Label>
@@ -388,7 +450,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       <SelectContent>
                         {[9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600].map(rate => (
                           <SelectItem key={rate} value={rate.toString()}>
-                            {rate}
+                            {rate} bps
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -401,7 +463,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       value={strategy.p2Config.dataBits.toString()}
                       onValueChange={(value) => 
                         updateStrategy({ 
-                          p2Config: { ...strategy.p2Config, dataBits: parseInt(value) }
+                          p2Config: { ...strategy.p2Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
                         })
                       }
                     >
@@ -411,9 +473,52 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       <SelectContent>
                         {[5, 6, 7, 8].map(bits => (
                           <SelectItem key={bits} value={bits.toString()}>
-                            {bits}
+                            {bits} 位
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>校验位</Label>
+                    <Select
+                      value={strategy.p2Config.parity}
+                      onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
+                        updateStrategy({ 
+                          p2Config: { ...strategy.p2Config, parity: value }
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">无校验</SelectItem>
+                        <SelectItem value="even">偶校验</SelectItem>
+                        <SelectItem value="odd">奇校验</SelectItem>
+                        <SelectItem value="mark">标记校验</SelectItem>
+                        <SelectItem value="space">空格校验</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>停止位</Label>
+                    <Select
+                      value={strategy.p2Config.stopBits.toString()}
+                      onValueChange={(value) => 
+                        updateStrategy({ 
+                          p2Config: { ...strategy.p2Config, stopBits: parseInt(value) as 1 | 2 }
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 位</SelectItem>
+                        <SelectItem value="2">2 位</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -430,7 +535,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       连接中...
                     </>
                   ) : (
-                    "连接辅助通道"
+                    "连接第二路串口"
                   )}
                 </Button>
               </>

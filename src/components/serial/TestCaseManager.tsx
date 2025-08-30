@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Plus, 
   Play, 
@@ -85,6 +86,44 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 子用例展开状态管理
   const [expandedSubcases, setExpandedSubcases] = useState<Set<string>>(new Set());
+
+  // 切换子用例展开状态
+  const toggleSubcaseExpansion = (commandId: string) => {
+    setExpandedSubcases(prev => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(commandId)) {
+        newExpanded.delete(commandId);
+      } else {
+        newExpanded.add(commandId);
+      }
+      return newExpanded;
+    });
+  };
+
+  // 获取引用的测试用例
+  const getReferencedCase = (referencedCaseId: string): TestCase | null => {
+    return findTestCaseById(referencedCaseId);
+  };
+
+  // 更新命令选中状态
+  const updateCommandSelection = (commandId: string, selected: boolean) => {
+    if (!currentTestCase) return;
+    
+    const updatedCommands = currentTestCase.commands.map(cmd =>
+      cmd.id === commandId ? { ...cmd, selected } : cmd
+    );
+    
+    const updatedCase = { ...currentTestCase, commands: updatedCommands };
+    const updatedTestCases = testCases.map(tc => 
+      tc.id === currentTestCase.id ? updatedCase : tc
+    );
+    setTestCases(updatedTestCases);
+  };
+
+  // 格式化命令索引（支持子用例嵌套）
+  const formatCommandIndex = (index: number, subIndex?: number): string => {
+    return subIndex !== undefined ? `${index + 1}.${subIndex + 1}` : `${index + 1}`;
+  };
 
   // 生成唯一编号
   const generateUniqueId = () => {
@@ -302,79 +341,156 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               {/* 命令列表 */}
               <div className="divide-y divide-border">
                 {currentTestCase.commands.map((command, index) => (
-                  <div key={command.id} className="p-3 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className="text-xs text-muted-foreground w-8 text-center">
-                          {index + 1}
-                        </span>
+                  <div key={command.id}>
+                    {/* 主命令行 */}
+                    <div className="p-3 hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        {/* 复选框 */}
+                        <Checkbox
+                          checked={command.selected}
+                          onCheckedChange={(checked) => updateCommandSelection(command.id, checked as boolean)}
+                          className="flex-shrink-0"
+                        />
                         
-                        <Badge 
-                          variant={
-                            command.status === 'success' ? 'default' :
-                            command.status === 'failed' ? 'destructive' :
-                            command.status === 'running' ? 'secondary' :
-                            'outline'
-                          }
-                          className="w-12 justify-center text-xs"
-                        >
-                          {command.status === 'pending' ? '待执行' :
-                           command.status === 'running' ? '执行中' :
-                           command.status === 'success' ? '成功' :
-                           command.status === 'failed' ? '失败' : '跳过'}
-                        </Badge>
+                        {/* 命令编号 */}
+                        <div className="flex items-center justify-center w-8 h-6 bg-primary/10 text-primary rounded-full text-xs font-medium flex-shrink-0">
+                          {formatCommandIndex(index)}
+                        </div>
                         
+                        {/* 展开/收起图标（仅子用例显示） */}
+                        {command.type === 'subcase' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 flex-shrink-0"
+                            onClick={() => toggleSubcaseExpansion(command.id)}
+                          >
+                            {expandedSubcases.has(command.id) ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
+                        
+                        {/* 命令内容 */}
                         <div className="flex-1 min-w-0">
-                          <div className="font-mono text-sm truncate">
-                            {command.command}
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm truncate">
+                              {command.command}
+                            </span>
+                            
+                            {/* 命令类型标识 */}
+                            <Badge 
+                              variant={command.type === 'subcase' ? 'secondary' : 'outline'} 
+                              className="text-xs flex-shrink-0"
+                            >
+                              {command.type === 'execution' ? 'AT' : 
+                               command.type === 'urc' ? 'URC' : '子用例'}
+                            </Badge>
                           </div>
+                          
                           {command.expectedResponse && (
-                            <div className="text-xs text-muted-foreground truncate">
+                            <div className="text-xs text-muted-foreground truncate mt-1">
                               期望: {command.expectedResponse}
                             </div>
                           )}
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => runCommand(currentTestCase.id, index)}
-                                disabled={connectedPorts.length === 0}
-                              >
-                                <Play className="w-3 h-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>运行此步骤</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
                         
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                                onClick={() => setEditingCommandIndex(index)}
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>编辑步骤</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        {/* 状态指示器 */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {command.status === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
+                          {command.status === 'failed' && <XCircle className="w-4 h-4 text-red-500" />}
+                          {command.status === 'running' && <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />}
+                          
+                          {/* 操作按钮 */}
+                          <div className="flex items-center gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => runCommand(currentTestCase.id, index)}
+                                    disabled={connectedPorts.length === 0}
+                                  >
+                                    <PlayCircle className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>单步执行</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    onClick={() => setEditingCommandIndex(index)}
+                                  >
+                                    <Settings className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>设置</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* 子用例展开内容 */}
+                    {command.type === 'subcase' && expandedSubcases.has(command.id) && command.referencedCaseId && (
+                      <div className="bg-muted/30 border-l-2 border-primary/30 ml-8">
+                        {(() => {
+                          const referencedCase = getReferencedCase(command.referencedCaseId);
+                          if (!referencedCase) {
+                            return (
+                              <div className="p-3 text-sm text-muted-foreground">
+                                找不到引用的测试用例: {command.referencedCaseId}
+                              </div>
+                            );
+                          }
+                          
+                          return referencedCase.commands.map((subCmd, subIndex) => (
+                            <div key={`${command.id}-${subCmd.id}`} className="p-2 border-b border-border/30 last:border-b-0">
+                              <div className="flex items-center gap-3">
+                                {/* 子命令编号 */}
+                                <div className="flex items-center justify-center w-6 h-5 bg-primary/5 text-primary rounded text-xs font-medium flex-shrink-0">
+                                  {formatCommandIndex(index, subIndex)}
+                                </div>
+                                
+                                {/* 子命令内容 */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-mono text-xs truncate">
+                                    {subCmd.command}
+                                  </div>
+                                  {subCmd.expectedResponse && (
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      期望: {subCmd.expectedResponse}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* 子命令状态 */}
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  {subCmd.status === 'success' && <CheckCircle className="w-3 h-3 text-green-500" />}
+                                  {subCmd.status === 'failed' && <XCircle className="w-3 h-3 text-red-500" />}
+                                  {subCmd.status === 'running' && <AlertCircle className="w-3 h-3 text-yellow-500 animate-pulse" />}
+                                </div>
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

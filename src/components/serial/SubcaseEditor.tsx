@@ -138,7 +138,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                   </Badge>
                   <Select
                     value={command.type}
-                    onValueChange={(value: 'execution' | 'urc' | 'subcase') => 
+                    onValueChange={(value: 'execution' | 'urc') => 
                       updateSubCommand(index, { type: value })
                     }
                   >
@@ -192,7 +192,7 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                 </div>
               </div>
 
-              {command.type === 'subcase' ? (
+              {false ? (
                 <div className="relative">
                   <Input
                     value={command.command}

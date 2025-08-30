@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown, FileCode, Radio } from "lucide-react";
 import { TestCommand } from './types';
 
 interface CommandEditorProps {
@@ -20,12 +24,83 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
   onUpdate,
   allTestCases = []
 }) => {
+  const [showExamples, setShowExamples] = useState(false);
+  
   const updateCommand = (field: keyof TestCommand, value: any) => {
     onUpdate({ [field]: value });
   };
 
+  // 执行命令示例
+  const executionExamples = [
+    { name: "基础AT测试", command: "AT", expectedResponse: "OK", validationMethod: "contains" },
+    { name: "获取SIM卡状态", command: "AT+CPIN?", expectedResponse: "+CPIN: READY", validationMethod: "contains" },
+    { name: "获取信号强度", command: "AT+CSQ", expectedResponse: "+CSQ:", validationMethod: "contains" },
+    { name: "获取网络注册状态", command: "AT+CREG?", expectedResponse: "+CREG:", validationMethod: "contains" },
+    { name: "十六进制数据发送", command: "AT+CMGS=\"13800000000\"", dataFormat: "hex", expectedResponse: ">", validationMethod: "contains" }
+  ];
+
+  // URC监听示例
+  const urcExamples = [
+    { name: "网络注册URC", urcPattern: "+CREG:", urcMatchMode: "startsWith", description: "监听网络注册状态变化" },
+    { name: "短信接收URC", urcPattern: "+CMTI:", urcMatchMode: "startsWith", description: "监听短信接收通知" },
+    { name: "来电URC", urcPattern: "RING", urcMatchMode: "exact", description: "监听来电通知" },
+    { name: "信号质量URC", urcPattern: "+CSQ:", urcMatchMode: "startsWith", description: "监听信号质量变化" },
+    { name: "正则匹配URC", urcPattern: "\\+C[A-Z]+:", urcMatchMode: "regex", description: "使用正则表达式匹配多种URC" }
+  ];
+
+  const insertExample = (example: any, type: 'execution' | 'urc') => {
+    if (type === 'execution') {
+      updateCommand('command', example.command);
+      updateCommand('expectedResponse', example.expectedResponse);
+      updateCommand('validationMethod', example.validationMethod);
+      if (example.dataFormat) {
+        updateCommand('dataFormat', example.dataFormat);
+      }
+    } else if (type === 'urc') {
+      updateCommand('urcPattern', example.urcPattern);
+      updateCommand('urcMatchMode', example.urcMatchMode);
+    }
+    setShowExamples(false);
+  };
+
   const renderExecutionSettings = () => (
     <div className="space-y-4">
+      {/* 快速示例 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">快速示例</CardTitle>
+            <Popover open={showExamples} onOpenChange={setShowExamples}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  <FileCode className="w-3 h-3 mr-1" />
+                  插入示例
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-2" align="end">
+                <div className="space-y-1">
+                  {executionExamples.map((example, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-auto p-2"
+                      onClick={() => insertExample(example, 'execution')}
+                    >
+                      <div className="text-left">
+                        <div className="font-medium text-xs">{example.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{example.command}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* 基础设置 */}
       <Card>
         <CardHeader>
@@ -33,13 +108,24 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="command">命令内容</Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="command">命令内容</Label>
+              {command.dataFormat === 'hex' && (
+                <Badge variant="secondary" className="text-xs">十六进制格式</Badge>
+              )}
+            </div>
             <Input
               id="command"
               value={command.command}
               onChange={(e) => updateCommand('command', e.target.value)}
-              placeholder="输入AT命令"
+              placeholder={command.dataFormat === 'hex' ? "输入十六进制数据 (如: 1A 2B 3C)" : "输入AT命令"}
+              className={command.dataFormat === 'hex' ? "font-mono" : ""}
             />
+            {command.dataFormat === 'hex' && (
+              <p className="text-xs text-muted-foreground mt-1">
+                示例: 1A2B3C 或 1A 2B 3C (空格会被自动移除)
+              </p>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -60,7 +146,15 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="lineEnding">换行符</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="lineEnding">换行符</Label>
+                <Badge variant="outline" className="text-xs">
+                  {command.lineEnding === 'none' && '无'}
+                  {command.lineEnding === 'lf' && '\\n'}
+                  {command.lineEnding === 'cr' && '\\r'}
+                  {command.lineEnding === 'crlf' && '\\r\\n'}
+                </Badge>
+              </div>
               <Select
                 value={command.lineEnding}
                 onValueChange={(value) => updateCommand('lineEnding', value)}
@@ -222,6 +316,43 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
 
   const renderUrcSettings = () => (
     <div className="space-y-4">
+      {/* 快速示例 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">快速示例</CardTitle>
+            <Popover open={showExamples} onOpenChange={setShowExamples}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs">
+                  <Radio className="w-3 h-3 mr-1" />
+                  插入示例
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-2" align="end">
+                <div className="space-y-1">
+                  {urcExamples.map((example, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-auto p-2"
+                      onClick={() => insertExample(example, 'urc')}
+                    >
+                      <div className="text-left">
+                        <div className="font-medium text-xs">{example.name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{example.urcPattern}</div>
+                        <div className="text-xs text-muted-foreground">{example.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardHeader>
+      </Card>
+
       {/* URC匹配设置 */}
       <Card>
         <CardHeader>
@@ -234,8 +365,12 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
               id="urcPattern"
               value={command.urcPattern || ''}
               onChange={(e) => updateCommand('urcPattern', e.target.value)}
-              placeholder="输入URC匹配模式"
+              placeholder="输入URC匹配模式，如: +CREG:"
+              className="font-mono"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              URC (Unsolicited Result Code) 是设备主动上报的消息
+            </p>
           </div>
           
           <div>
@@ -451,28 +586,42 @@ export const CommandEditor: React.FC<CommandEditorProps> = ({
     <div className="space-y-4">
       <div>
         <Label>命令类型</Label>
-        <Select
-          value={command.type}
-          onValueChange={(value: 'execution' | 'urc' | 'subcase') => updateCommand('type', value)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="execution">执行命令</SelectItem>
-            <SelectItem value="urc">URC监听</SelectItem>
-            <SelectItem value="subcase">子用例</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="mt-2">
+          <Badge 
+            variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'secondary' : 'outline'}
+            className="text-sm px-3 py-1"
+          >
+            {command.type === 'execution' && (
+              <>
+                <FileCode className="w-3 h-3 mr-1" />
+                执行命令
+              </>
+            )}
+            {command.type === 'urc' && (
+              <>
+                <Radio className="w-3 h-3 mr-1" />
+                URC监听
+              </>
+            )}
+            {command.type === 'subcase' && (
+              <>
+                子用例
+              </>
+            )}
+          </Badge>
+          <p className="text-xs text-muted-foreground mt-1">
+            命令类型创建后不可更改
+          </p>
+        </div>
       </div>
 
       <Separator />
 
       <Tabs value={command.type} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="execution">执行命令</TabsTrigger>
-          <TabsTrigger value="urc">URC监听</TabsTrigger>
-          <TabsTrigger value="subcase">子用例</TabsTrigger>
+          <TabsTrigger value="execution">执行命令配置</TabsTrigger>
+          <TabsTrigger value="urc">URC监听配置</TabsTrigger>
+          <TabsTrigger value="subcase">子用例配置</TabsTrigger>
         </TabsList>
         
         <TabsContent value="execution" className="mt-4">

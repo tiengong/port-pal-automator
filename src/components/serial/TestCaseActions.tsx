@@ -13,7 +13,9 @@ import {
   Square,
   Pause,
   Trash2,
-  FilePlus
+  FilePlus,
+  Radio,
+  FileCode
 } from "lucide-react";
 import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +73,40 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     toast({
       title: "新增命令",
       description: `已添加新命令: ${newCommand.command}`,
+    });
+    setShowAddMenu(false);
+  };
+
+  const addUrc = () => {
+    if (!currentTestCase) return;
+    
+    const newUrc: TestCommand = {
+      id: `urc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'urc',
+      command: 'URC监听',
+      validationMethod: 'none',
+      waitTime: 1000,
+      stopOnFailure: false,
+      lineEnding: 'crlf',
+      selected: false,
+      status: 'pending',
+      urcPattern: '+',
+      urcMatchMode: 'startsWith',
+      urcListenMode: 'once',
+      urcListenTimeout: 10000,
+      urcFailureHandling: 'continue'
+    };
+
+    const updatedCommands = [...currentTestCase.commands, newUrc];
+    const updatedCase = { ...currentTestCase, commands: updatedCommands };
+    const updatedTestCases = testCases.map(tc => 
+      tc.id === currentTestCase.id ? updatedCase : tc
+    );
+    setTestCases(updatedTestCases);
+
+    toast({
+      title: "新增URC",
+      description: `已添加URC监听: ${newUrc.urcPattern}`,
     });
     setShowAddMenu(false);
   };
@@ -220,8 +256,17 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               className="w-full justify-start h-8 px-2 text-sm"
               onClick={addCommand}
             >
-              <Play className="w-3 h-3 mr-2" />
+              <FileCode className="w-3 h-3 mr-2" />
               新增命令
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-8 px-2 text-sm"
+              onClick={addUrc}
+            >
+              <Radio className="w-3 h-3 mr-2" />
+              新增URC
             </Button>
             <Button
               variant="ghost"

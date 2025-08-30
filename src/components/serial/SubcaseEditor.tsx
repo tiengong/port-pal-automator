@@ -136,21 +136,14 @@ export const SubcaseEditor: React.FC<SubcaseEditorProps> = ({
                   <Badge variant="outline" className="text-xs px-1 flex-shrink-0">
                     {index + 1}
                   </Badge>
-                  <Select
-                    value={command.type}
-                    onValueChange={(value: 'execution' | 'urc' | 'subcase') => 
-                      updateSubCommand(index, { type: value })
-                    }
+                  <Badge 
+                    variant={command.type === 'execution' ? 'default' : command.type === 'urc' ? 'secondary' : 'outline'}
+                    className="text-xs px-2 py-1"
                   >
-                    <SelectTrigger className="w-20 h-6 bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-md z-50">
-                      <SelectItem value="execution">命令</SelectItem>
-                      <SelectItem value="urc">URC</SelectItem>
-                      <SelectItem value="subcase">子用例</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    {command.type === 'execution' && '命令'}
+                    {command.type === 'urc' && 'URC'}
+                    {command.type === 'subcase' && '子用例'}
+                  </Badge>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {index > 0 && (

@@ -463,6 +463,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                           return referencedCase.commands.map((subCmd, subIndex) => (
                             <div key={`${command.id}-${subCmd.id}`} className="p-2 border-b border-border/30 last:border-b-0">
                               <div className="flex items-center gap-3">
+                                {/* 子命令复选框 */}
+                                <Checkbox
+                                  checked={subCmd.selected}
+                                  onCheckedChange={(checked) => {
+                                    const updatedReferencedCase = {
+                                      ...referencedCase,
+                                      commands: referencedCase.commands.map(cmd =>
+                                        cmd.id === subCmd.id ? { ...cmd, selected: checked as boolean } : cmd
+                                      )
+                                    };
+                                    const updatedTestCases = testCases.map(tc => 
+                                      tc.id === referencedCase.id ? updatedReferencedCase : tc
+                                    );
+                                    setTestCases(updatedTestCases);
+                                  }}
+                                  className="flex-shrink-0"
+                                />
+                                
                                 {/* 子命令编号 */}
                                 <div className="flex items-center justify-center w-6 h-5 bg-primary/5 text-primary rounded text-xs font-medium flex-shrink-0">
                                   {formatCommandIndex(index, subIndex)}
@@ -485,6 +503,59 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                   {subCmd.status === 'success' && <CheckCircle className="w-3 h-3 text-green-500" />}
                                   {subCmd.status === 'failed' && <XCircle className="w-3 h-3 text-red-500" />}
                                   {subCmd.status === 'running' && <AlertCircle className="w-3 h-3 text-yellow-500 animate-pulse" />}
+                                  
+                                  {/* 子命令操作按钮 */}
+                                  <div className="flex items-center gap-1 ml-2">
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0"
+                                            onClick={() => runCommand(referencedCase.id, subIndex)}
+                                            disabled={connectedPorts.length === 0}
+                                          >
+                                            <PlayCircle className="w-3 h-3" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>运行此子命令</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                    
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                            onClick={() => {
+                                              const updatedReferencedCase = {
+                                                ...referencedCase,
+                                                commands: referencedCase.commands.filter(cmd => cmd.id !== subCmd.id)
+                                              };
+                                              const updatedTestCases = testCases.map(tc => 
+                                                tc.id === referencedCase.id ? updatedReferencedCase : tc
+                                              );
+                                              setTestCases(updatedTestCases);
+                                              toast({
+                                                title: "删除成功",
+                                                description: "子命令已删除",
+                                              });
+                                            }}
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>删除此子命令</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </div>
                               </div>
                             </div>

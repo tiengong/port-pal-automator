@@ -505,6 +505,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         testCases={testCases}
         currentTestCase={currentTestCase}
         onSelectTestCase={handleSelectTestCase}
+        setTestCases={setTestCases}
+        onDeleteTestCase={deleteTestCase}
+        onSync={handleSync}
       />
 
       {/* 编辑测试用例对话框 */}

@@ -71,15 +71,15 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     try {
       await refreshPorts();
       const ports = await (navigator as any).serial.getPorts();
-      if (ports.length === 0) {
-        const port = await (navigator as any).serial.requestPort();
-        await refreshPorts();
-        
-        toast({
-          title: "设备已添加",
-          description: "串口设备已成功添加到列表",
-        });
-      }
+      
+      // 自动请求新设备访问权限
+      const port = await (navigator as any).serial.requestPort();
+      await refreshPorts();
+      
+      toast({
+        title: "设备已添加",
+        description: "串口设备已成功添加到列表",
+      });
     } catch (error) {
       if ((error as any).name !== 'NotFoundError') {
         console.error('请求串口访问失败:', error);
@@ -185,21 +185,31 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       setSelectedPorts(prev => ({ ...prev, P1: port }));
                     }
                   }}
-                  onOpenChange={(isOpen) => {
+                  onOpenChange={async (isOpen) => {
                     if (isOpen) {
-                      requestPortAndRefresh();
+                      await refreshPorts();
+                      // 如果没有可用端口，自动请求新设备
+                      if (availablePorts.length === 0) {
+                        await requestPortAndRefresh();
+                      }
                     }
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="选择串口设备" />
+                    <SelectValue placeholder="点击选择设备（自动请求新设备）" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availablePorts.map((port, index) => (
-                      <SelectItem key={index} value={index.toString()}>
-                        串口设备 #{index + 1}
+                    {availablePorts.length === 0 ? (
+                      <SelectItem value="no-ports" disabled>
+                        正在请求设备访问权限...
                       </SelectItem>
-                    ))}
+                    ) : (
+                      availablePorts.map((port, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          串口设备 #{index + 1}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -408,21 +418,31 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         setSelectedPorts(prev => ({ ...prev, P2: port }));
                       }
                     }}
-                    onOpenChange={(isOpen) => {
+                    onOpenChange={async (isOpen) => {
                       if (isOpen) {
-                        requestPortAndRefresh();
+                        await refreshPorts();
+                        // 如果没有可用端口，自动请求新设备
+                        if (availablePorts.length === 0) {
+                          await requestPortAndRefresh();
+                        }
                       }
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="选择第二路串口设备" />
+                      <SelectValue placeholder="点击选择设备（自动请求新设备）" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availablePorts.map((port, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          串口设备 #{index + 1}
+                      {availablePorts.length === 0 ? (
+                        <SelectItem value="no-ports" disabled>
+                          正在请求设备访问权限...
                         </SelectItem>
-                      ))}
+                      ) : (
+                        availablePorts.map((port, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            串口设备 #{index + 1}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

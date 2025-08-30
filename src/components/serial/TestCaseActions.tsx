@@ -35,8 +35,6 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onRunTestCase,
   onSync
 }) => {
-  console.log('TestCaseActions rendered', { currentTestCase });
-  
   const { toast } = useToast();
   const [showAddMenu, setShowAddMenu] = useState(false);
 

@@ -21,8 +21,6 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   const [showCaseSelector, setShowCaseSelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  console.log('TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE', { testCases, currentTestCase });
-
   const filteredTestCases = testCases.filter(tc =>
     tc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tc.uniqueId.includes(searchQuery) ||

@@ -324,6 +324,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           onEditCase={handleEditCase}
           onRunTestCase={runTestCase}
           onSync={handleSync}
+          onDeleteTestCase={deleteTestCase}
         />
       </div>
 

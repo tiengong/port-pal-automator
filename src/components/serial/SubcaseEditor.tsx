@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Plus, Settings, Trash2 } from "lucide-react";
-import { TestCommand } from './types';
+import { TestCommand } from './TestCaseManager';
 
 interface SubcaseEditorProps {
   parentCaseName: string;

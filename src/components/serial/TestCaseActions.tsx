@@ -33,6 +33,7 @@ interface TestCaseActionsProps {
   onSync: () => void;
   onDeleteTestCase?: (caseId: string) => void;
   onCreateTestCase?: () => void;
+  onDeleteSelectedCommands?: () => void;
 }
 
 export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
@@ -44,7 +45,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onRunTestCase,
   onSync,
   onDeleteTestCase,
-  onCreateTestCase
+  onCreateTestCase,
+  onDeleteSelectedCommands
 }) => {
   console.log('TestCaseActions rendered', { currentTestCase });
   
@@ -236,6 +238,35 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     }
   };
 
+  const handleDeleteSelectedCommands = () => {
+    if (!currentTestCase) return;
+    
+    // 获取所有选中的命令
+    const selectedCommands = currentTestCase.commands.filter(cmd => cmd.selected);
+    
+    if (selectedCommands.length === 0) {
+      toast({
+        title: "提示",
+        description: "请先勾选要删除的命令或子用例",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // 删除选中的命令
+    const updatedCommands = currentTestCase.commands.filter(cmd => !cmd.selected);
+    const updatedCase = { ...currentTestCase, commands: updatedCommands };
+    const updatedTestCases = testCases.map(tc => 
+      tc.id === currentTestCase.id ? updatedCase : tc
+    );
+    setTestCases(updatedTestCases);
+    
+    toast({
+      title: "删除成功",
+      description: `已删除 ${selectedCommands.length} 个选中的项目`,
+    });
+  };
+
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
       {/* 新增按钮 */}
@@ -296,6 +327,27 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
           </div>
         </PopoverContent>
       </Popover>
+      
+      {/* 删除选中命令按钮 */}
+      {currentTestCase && currentTestCase.commands.some(cmd => cmd.selected) && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                onClick={onDeleteSelectedCommands || handleDeleteSelectedCommands} 
+                variant="destructive" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>删除选中的命令</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
       
       {/* 编辑按钮 */}
       {currentTestCase && (

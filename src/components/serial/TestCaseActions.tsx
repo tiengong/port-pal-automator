@@ -16,7 +16,8 @@ import {
   FilePlus,
   Radio,
   FileCode,
-  Package
+  Package,
+  FolderPlus
 } from "lucide-react";
 import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
@@ -114,6 +115,37 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     toast({
       title: "新增URC",
       description: `已添加URC监听: ${newUrc.urcPattern}`,
+    });
+    setShowAddMenu(false);
+  };
+
+  const addSubCase = () => {
+    if (!currentTestCase) return;
+    
+    const newSubCase: TestCase = {
+      id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
+      name: '新建子用例',
+      description: '',
+      commands: [],
+      subCases: [],
+      isExpanded: false,
+      isRunning: false,
+      currentCommand: -1,
+      selected: false,
+      status: 'pending'
+    };
+
+    const updatedSubCases = [...currentTestCase.subCases, newSubCase];
+    const updatedCase = { ...currentTestCase, subCases: updatedSubCases };
+    const updatedTestCases = testCases.map(tc => 
+      tc.id === currentTestCase.id ? updatedCase : tc
+    );
+    setTestCases(updatedTestCases);
+
+    toast({
+      title: "新增子用例",
+      description: `已添加子用例: ${newSubCase.name}`,
     });
     setShowAddMenu(false);
   };
@@ -298,6 +330,15 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
             >
               <Radio className="w-3 h-3 mr-2" />
               新增URC
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start h-8 px-2 text-sm"
+              onClick={addSubCase}
+            >
+              <FolderPlus className="w-3 h-3 mr-2" />
+              新增子用例
             </Button>
             {testCases.some(tc => tc.isPreset) && (
               <Button

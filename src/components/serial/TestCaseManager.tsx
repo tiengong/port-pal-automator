@@ -45,7 +45,7 @@ import { UrcEditor } from './editors/UrcEditor';
 import { VariableDisplay } from '../VariableDisplay';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from '@/lib/eventBus';
-import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace } from './workspace';
+import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace, fromPersistedCase } from './workspace';
 
 interface TestCaseManagerProps {
   connectedPorts: Array<{
@@ -1075,6 +1075,105 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  // 深拷贝用例作为子用例
+  const cloneCaseForSubcase = (src: TestCase): TestCase => {
+    const cloneCmd = (cmd: TestCommand): TestCommand => ({
+      ...cmd,
+      id: `cmd_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      status: 'pending',
+      selected: false
+    });
+    
+    const cloneCase = (tc: TestCase): TestCase => ({
+      ...tc,
+      id: `case_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      uniqueId: '', // 子用例不需要唯一编号
+      commands: tc.commands.map(cloneCmd),
+      subCases: tc.subCases.map(cloneCase),
+      isExpanded: false,
+      isRunning: false,
+      currentCommand: -1,
+      selected: false,
+      status: 'pending'
+    });
+    
+    const cloned = cloneCase(src);
+    cloned.uniqueId = generateUniqueId();
+    return cloned;
+  };
+
+  // 以子用例方式载入到当前用例
+  const loadTestCaseAsSubCaseToCurrentCase = (sourceCase: TestCase) => {
+    if (!currentTestCase) {
+      toast({
+        title: "无法载入",
+        description: "请先选择当前用例",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newSubCase = cloneCaseForSubcase(sourceCase);
+    const updated = addSubCaseById(testCases, currentTestCase.id, newSubCase);
+    setTestCases(updated);
+    
+    toast({
+      title: "载入成功",
+      description: `已以子用例方式载入：${sourceCase.name}`,
+    });
+  };
+
+  // 从文件导入
+  const importFromFile = (variant: 'merge' | 'subcase') => {
+    if (!currentTestCase) {
+      toast({
+        title: "无法载入",
+        description: "请先选择当前用例",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const jsonData = JSON.parse(event.target?.result as string);
+          let testCase: TestCase;
+
+          // 检查是否为 PersistedTestCase 格式
+          if (!jsonData.isRunning && !jsonData.currentCommand) {
+            // 使用 fromPersistedCase 转换
+            testCase = fromPersistedCase(jsonData);
+          } else {
+            // 假设是完整的 TestCase
+            testCase = jsonData as TestCase;
+          }
+
+          if (variant === 'merge') {
+            loadTestCaseToCurrentCase(testCase);
+          } else {
+            loadTestCaseAsSubCaseToCurrentCase(testCase);
+          }
+        } catch (error) {
+          toast({
+            title: "导入失败",
+            description: "文件格式错误或不支持",
+            variant: "destructive"
+          });
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
 
   const deleteSelectedCommands = () => {
     if (!currentTestCase) return;
@@ -1180,101 +1279,150 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       </div>
 
       {/* 3. 中间测试用例展示区 */}
-      <div className="flex-1 overflow-y-auto p-3">
-        {testCases.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
-            <p className="text-sm">暂无测试用例，点击新建用例开始</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* 参数显示面板 */}
-            {Object.keys(storedParameters).length > 0 && (
-              <VariableDisplay
-                storedParameters={storedParameters}
-                onClearParameter={(key) => {
-                  setStoredParameters(prev => {
-                    const newParams = { ...prev };
-                    delete newParams[key];
-                    return newParams;
-                  });
-                  toast({
-                    title: "参数已清除",
-                    description: `已清除参数: ${key}`,
-                  });
-                }}
-                onClearAll={() => {
-                  setStoredParameters({});
-                  toast({
-                    title: "全部参数已清除",
-                    description: "所有解析的参数已被清空",
-                  });
-                }}
-              />
-            )}
-            
-            {/* 统一层级树 */}
-            <ContextMenu>
-              <ContextMenuTrigger asChild>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div className="flex-1 overflow-y-auto p-3">
+            {testCases.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
+                <p className="text-sm">暂无测试用例，点击新建用例开始</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 参数显示面板 */}
+                {Object.keys(storedParameters).length > 0 && (
+                  <VariableDisplay
+                    storedParameters={storedParameters}
+                    onClearParameter={(key) => {
+                      setStoredParameters(prev => {
+                        const newParams = { ...prev };
+                        delete newParams[key];
+                        return newParams;
+                      });
+                      toast({
+                        title: "参数已清除",
+                        description: `已清除参数: ${key}`,
+                      });
+                    }}
+                    onClearAll={() => {
+                      setStoredParameters({});
+                      toast({
+                        title: "全部参数已清除",
+                        description: "所有解析的参数已被清空",
+                      });
+                    }}
+                  />
+                )}
+                
+                {/* 统一层级树 */}
                 <div className="border border-border rounded-lg bg-card">
                   <div className="divide-y divide-border">
                     {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
                   </div>
                 </div>
-              </ContextMenuTrigger>
-              <ContextMenuContent className="w-64">
-                <ContextMenuSub>
-                  <ContextMenuSubTrigger className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    新建
-                  </ContextMenuSubTrigger>
-                  <ContextMenuSubContent className="w-48">
-                    <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
-                      <Hash className="w-4 h-4" />
-                      新建命令
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
-                      <Search className="w-4 h-4" />
-                      新建URC
-                    </ContextMenuItem>
-                  </ContextMenuSubContent>
-                </ContextMenuSub>
-                
-                <ContextMenuSeparator />
-                
-                <ContextMenuSub>
-                  <ContextMenuSubTrigger className="flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    载入
-                  </ContextMenuSubTrigger>
-                  <ContextMenuSubContent className="w-64">
-                    {testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
-                      <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseToCurrentCase(testCase)} className="flex items-center justify-between">
-                        <span className="truncate mr-2">{testCase.name}</span>
-                        <span className="text-xs text-muted-foreground">载入到当前用例</span>
-                      </ContextMenuItem>
-                    ))}
-                  </ContextMenuSubContent>
-                </ContextMenuSub>
-                
-                <ContextMenuSeparator />
-                
-                <ContextMenuItem onClick={deleteSelectedCommands} className="flex items-center gap-2 text-destructive">
-                  <Trash2 className="w-4 h-4" />
-                  删除勾选的命令
-                </ContextMenuItem>
-                
-                <ContextMenuSeparator />
-                
-                <ContextMenuItem onClick={exportTestCase} className="flex items-center gap-2">
-                  <Download className="w-4 h-4" />
-                  导出用例到...
-                </ContextMenuItem>
-              </ContextMenuContent>
-            </ContextMenu>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-64">
+          <ContextMenuSub>
+            <ContextMenuSubTrigger className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              新建
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48">
+              <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
+                <Hash className="w-4 h-4" />
+                新建命令
+              </ContextMenuItem>
+              <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                新建URC
+              </ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+          
+          <ContextMenuSeparator />
+          
+          <ContextMenuSub>
+            <ContextMenuSubTrigger className="flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              载入
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-64">
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>载入到当前用例</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
+                      {testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
+                        testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
+                          <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseToCurrentCase(testCase)} className="flex items-center justify-between">
+                            <span className="truncate mr-2">{testCase.name}</span>
+                            <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
+                          </ContextMenuItem>
+                        ))
+                      ) : (
+                        <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
+                      )}
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+                  <ContextMenuItem onClick={() => importFromFile('merge')}>
+                    自现有文件
+                  </ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>以子用例方式载入到当前用例</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
+                      {testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
+                        testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
+                          <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseAsSubCaseToCurrentCase(testCase)} className="flex items-center justify-between">
+                            <span className="truncate mr-2">{testCase.name}</span>
+                            <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
+                          </ContextMenuItem>
+                        ))
+                      ) : (
+                        <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
+                      )}
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+                  <ContextMenuItem onClick={() => importFromFile('subcase')}>
+                    自现有文件
+                  </ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+          
+          <ContextMenuSeparator />
+          
+          <ContextMenuItem 
+            onClick={deleteSelectedCommands} 
+            className="flex items-center gap-2 text-destructive"
+            disabled={!currentTestCase}
+          >
+            <Trash2 className="w-4 h-4" />
+            删除勾选的命令
+          </ContextMenuItem>
+          
+          <ContextMenuSeparator />
+          
+          <ContextMenuItem 
+            onClick={exportTestCase} 
+            className="flex items-center gap-2"
+            disabled={!currentTestCase}
+          >
+            <Download className="w-4 h-4" />
+            导出用例到...
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
 
       {/* 4. 测试用例切换区 */}
       <TestCaseSwitcher 

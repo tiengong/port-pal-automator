@@ -48,7 +48,7 @@ export interface SerialDataEvent {
 
 export interface SendCommandEvent {
   command: string;
-  format: 'ascii' | 'hex';
+  format: 'utf8' | 'hex';
   lineEnding: 'none' | 'lf' | 'cr' | 'crlf';
   targetPort?: 'ALL' | 'P1' | 'P2';
 }

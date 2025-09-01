@@ -20,7 +20,7 @@ export interface AppSettings {
   // 显示设置
   showTimestamp: boolean;
   autoScroll: boolean;
-  displayFormat: 'ascii' | 'hex';
+  displayFormat: 'utf8' | 'hex';
   
   // 快捷键设置
   shortcuts: {
@@ -50,7 +50,7 @@ export const defaultSettings: AppSettings = {
   
   showTimestamp: true,
   autoScroll: true,
-  displayFormat: 'ascii',
+  displayFormat: 'utf8',
   
   shortcuts: {
     saveConfig: 'Ctrl+S',

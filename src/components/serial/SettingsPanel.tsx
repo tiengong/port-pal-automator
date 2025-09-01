@@ -337,7 +337,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ascii">ASCII</SelectItem>
+                    <SelectItem value="utf8">UTF-8</SelectItem>
                     <SelectItem value="hex">十六进制</SelectItem>
                   </SelectContent>
                 </Select>

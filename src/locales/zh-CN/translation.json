@@ -62,7 +62,7 @@
       "showTimestamp": "显示时间戳",
       "autoScroll": "自动滚动",
       "displayFormat": "显示格式",
-      "formatAscii": "ASCII",
+      "formatAscii": "UTF-8",
       "formatHex": "HEX"
     },
     "summary": {

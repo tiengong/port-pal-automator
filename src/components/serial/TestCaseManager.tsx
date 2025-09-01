@@ -1212,7 +1212,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       
       const sendEvent: SendCommandEvent = {
         command: substitutedCommand,
-        format: command.dataFormat === 'hex' ? 'hex' : 'ascii',
+        format: command.dataFormat === 'hex' ? 'hex' : 'utf8',
         lineEnding: command.lineEnding,
         targetPort: 'ALL'
       };

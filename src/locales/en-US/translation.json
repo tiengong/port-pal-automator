@@ -62,7 +62,7 @@
       "showTimestamp": "Show Timestamp",
       "autoScroll": "Auto Scroll",
       "displayFormat": "Display Format",
-      "formatAscii": "ASCII",
+      "formatAscii": "UTF-8",
       "formatHex": "HEX"
     },
     "summary": {

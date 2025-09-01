@@ -50,7 +50,7 @@ interface LogEntry {
   timestamp: Date;
   type: 'sent' | 'received' | 'system' | 'error';
   data: string;
-  format: 'ascii' | 'hex';
+  format: 'utf8' | 'hex';
 }
 
 export const DataTerminal: React.FC<DataTerminalProps> = ({
@@ -63,8 +63,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   const [logs, setLogs] = useState<{ [portIndex: number]: LogEntry[] }>({});
   const [mergedLogs, setMergedLogs] = useState<MergedLogEntry[]>([]);
   const [sendData, setSendData] = useState("");
-  const [sendFormat, setSendFormat] = useState<'ascii' | 'hex'>('ascii');
-  const [displayFormat, setDisplayFormat] = useState<'ascii' | 'hex'>('ascii');
+  const [sendFormat, setSendFormat] = useState<'utf8' | 'hex'>('utf8');
+  const [displayFormat, setDisplayFormat] = useState<'utf8' | 'hex'>('utf8');
   const [newlineMode, setNewlineMode] = useState<'none' | 'lf' | 'cr' | 'crlf'>('crlf');
   const [autoSend, setAutoSend] = useState(false);
   const [autoSendInterval, setAutoSendInterval] = useState(1000);
@@ -91,7 +91,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   }, [settings.displayFormat, settings.showTimestamp, settings.defaultAutoSendInterval]);
 
   // 添加日志条目 - 只记录发送和接收的UART数据
-  const addLog = (type: LogEntry['type'], data: string, format: 'ascii' | 'hex' = displayFormat, portIndex?: number) => {
+  const addLog = (type: LogEntry['type'], data: string, format: 'utf8' | 'hex' = displayFormat, portIndex?: number) => {
     // 只记录发送和接收的数据，不记录系统消息
     if (type !== 'sent' && type !== 'received') return;
     
@@ -265,7 +265,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       }
       uint8Array = new Uint8Array(bytes);
     } else {
-      // ASCII 数据
+      // UTF-8 数据
       const encoder = new TextEncoder();
       uint8Array = encoder.encode(dataToSend);
     }
@@ -400,18 +400,18 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   };
 
   // 格式化显示数据
-  const formatData = (data: string, format: 'ascii' | 'hex', originalFormat: 'ascii' | 'hex') => {
+  const formatData = (data: string, format: 'utf8' | 'hex', originalFormat: 'utf8' | 'hex') => {
     if (format === originalFormat) {
       return data;
     }
 
-    if (format === 'hex' && originalFormat === 'ascii') {
-      // ASCII 转 HEX
+    if (format === 'hex' && originalFormat === 'utf8') {
+      // UTF-8 转 HEX
       return Array.from(data)
         .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
         .join(' ').toUpperCase();
-    } else if (format === 'ascii' && originalFormat === 'hex') {
-      // HEX 转 ASCII
+    } else if (format === 'utf8' && originalFormat === 'hex') {
+      // HEX 转 UTF-8
       try {
         const hexData = data.replace(/\s/g, '');
         let result = '';
@@ -504,10 +504,10 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setDisplayFormat(displayFormat === 'ascii' ? 'hex' : 'ascii')}
+                onClick={() => setDisplayFormat(displayFormat === 'utf8' ? 'hex' : 'utf8')}
                 className="w-16 font-mono"
               >
-                {displayFormat.toUpperCase()}
+                {displayFormat === 'utf8' ? 'UTF-8' : displayFormat.toUpperCase()}
               </Button>
               
               <Button 
@@ -880,7 +880,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ascii">ASCII</SelectItem>
+                  <SelectItem value="utf8">UTF-8</SelectItem>
                   <SelectItem value="hex">HEX</SelectItem>
                 </SelectContent>
               </Select>

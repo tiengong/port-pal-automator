@@ -217,11 +217,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   // 发送数据到所有连接的端口
   const sendSerialData = async () => {
     if (connectedPorts.length === 0) {
-      toast({
-        title: "未连接设备",
-        description: "请先连接串口设备",
-        variant: "destructive"
-      });
+      addLog('system', '未连接设备，无法发送');
       return;
     }
 
@@ -431,9 +427,17 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     return data;
   };
 
-  // 监听发送命令事件
+  // 监听发送命令事件 - 使用 useRef 确保稳定的订阅
+  const sendSerialDataRef = useRef(sendSerialData);
+  
+  // 更新 ref 中的函数引用
+  useEffect(() => {
+    sendSerialDataRef.current = sendSerialData;
+  }, [sendSerialData]);
+  
   useEffect(() => {
     const unsubscribe = eventBus.subscribe(EVENTS.SEND_COMMAND, (event: SendCommandEvent) => {
+      console.log('[SEND_COMMAND] received', event);
       // 临时设置发送数据并执行发送
       setSendData(event.command);
       setSendFormat(event.format);
@@ -444,12 +448,12 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       
       // 延迟执行发送以确保状态更新
       setTimeout(() => {
-        sendSerialData();
+        sendSerialDataRef.current();
       }, 50);
     });
     
     return unsubscribe;
-  }, [sendSerialData]);
+  }, []);
 
   // 监听端口连接变化
   useEffect(() => {

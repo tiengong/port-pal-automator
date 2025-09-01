@@ -1087,19 +1087,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           });
         }
 
-        // 执行所有选中的命令
+        // 执行所有选中的命令，如果没有选中则执行全部命令
         const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
-        if (selectedCommands.length === 0) {
-          toast({
-            title: "没有选中的命令",
-            description: "请先选择要执行的命令",
-            variant: "destructive"
-          });
-          break;
-        }
+        const commandsToRun = selectedCommands.length > 0 ? selectedCommands : testCase.commands;
+        
+        console.log('Run clicked', { caseId, count: commandsToRun.length });
 
-        for (let j = 0; j < selectedCommands.length; j++) {
-          const command = selectedCommands[j];
+        for (let j = 0; j < commandsToRun.length; j++) {
+          const command = commandsToRun[j];
           
           // 检查是否被暂停
           const currentTestCase = findTestCaseById(caseId);
@@ -1167,9 +1162,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         command: substitutedCommand,
         format: command.dataFormat === 'hex' ? 'hex' : 'ascii',
         lineEnding: command.lineEnding,
-        targetPort: connectedPorts.length > 1 ? 'ALL' : undefined
+        targetPort: 'ALL'
       };
       
+      console.log('Emitting SEND_COMMAND', sendEvent);
       eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
       
       toast({

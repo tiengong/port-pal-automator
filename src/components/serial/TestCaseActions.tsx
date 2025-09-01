@@ -35,6 +35,8 @@ interface TestCaseActionsProps {
   onCreateTestCase?: () => void;
   onDeleteSelectedCommands?: () => void;
   onDeletePresetCases?: () => void;
+  onAddSubCase?: (parentId: string) => void;
+  onUpdateCase?: (caseId: string, updater: (c: TestCase) => TestCase) => void;
 }
 
 export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
@@ -48,7 +50,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onDeleteTestCase,
   onCreateTestCase,
   onDeleteSelectedCommands,
-  onDeletePresetCases
+  onDeletePresetCases,
+  onAddSubCase,
+  onUpdateCase
 }) => {
   console.log('TestCaseActions rendered', { currentTestCase });
   
@@ -71,12 +75,21 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       status: 'pending'
     };
 
-    const updatedCommands = [...currentTestCase.commands, newCommand];
-    const updatedCase = { ...currentTestCase, commands: updatedCommands };
-    const updatedTestCases = testCases.map(tc => 
-      tc.id === currentTestCase.id ? updatedCase : tc
-    );
-    setTestCases(updatedTestCases);
+    if (onUpdateCase) {
+      // 使用递归更新回调
+      onUpdateCase(currentTestCase.id, (testCase) => ({
+        ...testCase,
+        commands: [...testCase.commands, newCommand]
+      }));
+    } else {
+      // 回退到顶层更新
+      const updatedCommands = [...currentTestCase.commands, newCommand];
+      const updatedCase = { ...currentTestCase, commands: updatedCommands };
+      const updatedTestCases = testCases.map(tc => 
+        tc.id === currentTestCase.id ? updatedCase : tc
+      );
+      setTestCases(updatedTestCases);
+    }
 
     toast({
       title: "新增命令",
@@ -105,12 +118,21 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       urcFailureHandling: 'stop'
     };
 
-    const updatedCommands = [...currentTestCase.commands, newUrc];
-    const updatedCase = { ...currentTestCase, commands: updatedCommands };
-    const updatedTestCases = testCases.map(tc => 
-      tc.id === currentTestCase.id ? updatedCase : tc
-    );
-    setTestCases(updatedTestCases);
+    if (onUpdateCase) {
+      // 使用递归更新回调
+      onUpdateCase(currentTestCase.id, (testCase) => ({
+        ...testCase,
+        commands: [...testCase.commands, newUrc]
+      }));
+    } else {
+      // 回退到顶层更新
+      const updatedCommands = [...currentTestCase.commands, newUrc];
+      const updatedCase = { ...currentTestCase, commands: updatedCommands };
+      const updatedTestCases = testCases.map(tc => 
+        tc.id === currentTestCase.id ? updatedCase : tc
+      );
+      setTestCases(updatedTestCases);
+    }
 
     toast({
       title: "新增URC",
@@ -122,31 +144,37 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   const addSubCase = () => {
     if (!currentTestCase) return;
     
-    const newSubCase: TestCase = {
-      id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
-      name: '新建子用例',
-      description: '',
-      commands: [],
-      subCases: [],
-      isExpanded: false,
-      isRunning: false,
-      currentCommand: -1,
-      selected: false,
-      status: 'pending'
-    };
+    if (onAddSubCase) {
+      // 使用递归添加回调
+      onAddSubCase(currentTestCase.id);
+    } else {
+      // 回退到顶层更新（仅用于顶层用例）
+      const newSubCase: TestCase = {
+        id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
+        name: '新建子用例',
+        description: '',
+        commands: [],
+        subCases: [],
+        isExpanded: false,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: 'pending'
+      };
 
-    const updatedSubCases = [...currentTestCase.subCases, newSubCase];
-    const updatedCase = { ...currentTestCase, subCases: updatedSubCases };
-    const updatedTestCases = testCases.map(tc => 
-      tc.id === currentTestCase.id ? updatedCase : tc
-    );
-    setTestCases(updatedTestCases);
+      const updatedSubCases = [...currentTestCase.subCases, newSubCase];
+      const updatedCase = { ...currentTestCase, subCases: updatedSubCases };
+      const updatedTestCases = testCases.map(tc => 
+        tc.id === currentTestCase.id ? updatedCase : tc
+      );
+      setTestCases(updatedTestCases);
 
-    toast({
-      title: "新增子用例",
-      description: `已添加子用例: ${newSubCase.name}`,
-    });
+      toast({
+        title: "新增子用例",
+        description: `已添加子用例: ${newSubCase.name}`,
+      });
+    }
     setShowAddMenu(false);
   };
 

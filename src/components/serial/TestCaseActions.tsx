@@ -240,19 +240,46 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   };
 
   const handleDownload = () => {
-    const dataStr = JSON.stringify(testCases, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'test-cases.json';
-    link.click();
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: t("testCase.exportSuccess"),
-      description: t("testCase.exportSuccessDesc"),
-    });
+    // 确保 testCases 是数组且不为空
+    if (!Array.isArray(testCases)) {
+      toast({
+        title: t("testCase.exportFailed"),
+        description: "测试用例数据格式错误",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (testCases.length === 0) {
+      toast({
+        title: t("testCase.exportFailed"),
+        description: "没有可导出的测试用例",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const dataStr = JSON.stringify(testCases, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `test-cases-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: t("testCase.exportSuccess"),
+        description: `已导出 ${testCases.length} 个测试用例`,
+      });
+    } catch (error) {
+      toast({
+        title: t("testCase.exportFailed"),
+        description: "导出过程中发生错误",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCreateTestCase = () => {

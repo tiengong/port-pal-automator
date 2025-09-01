@@ -66,6 +66,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const { toast } = useToast();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   
+  // Track running test cases to prevent race conditions
+  const runningCasesRef = useRef<Set<string>>(new Set());
+  
   // AT命令库
   const atCommands = [
     'AT', 'AT+CGMR', 'AT+CGMI', 'AT+CGSN', 'AT+CSQ', 'AT+CREG', 'AT+COPS',
@@ -1047,16 +1050,20 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     if (!testCase) return;
 
     // 如果正在运行，则暂停
-    if (testCase.isRunning) {
+    if (runningCasesRef.current.has(caseId)) {
+      runningCasesRef.current.delete(caseId);
       const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: false,
         status: 'pending'
       }));
       setTestCases(updatedTestCases);
-    statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
+      statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
       return;
     }
+
+    // 添加到运行中的用例集合
+    runningCasesRef.current.add(caseId);
 
     // 每次运行测试用例时清空存储的变量和触发状态
     setStoredParameters({});
@@ -1078,6 +1085,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     
     try {
       for (let i = 0; i < runCount; i++) {
+        // 检查是否被暂停
+        if (!runningCasesRef.current.has(caseId)) {
+          console.log('Test case execution stopped (paused)');
+          setExecutingCommand({ caseId: null, commandIndex: null });
+          return;
+        }
+
         if (runCount > 1) {
           toast({
             title: `第 ${i + 1} 次执行`,
@@ -1092,16 +1106,17 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         console.log('Run clicked', { caseId, count: commandsToRun.length });
 
         for (let j = 0; j < commandsToRun.length; j++) {
-          const command = commandsToRun[j];
-          
           // 检查是否被暂停
-          const currentTestCase = findTestCaseById(caseId);
-          if (!currentTestCase?.isRunning) {
+          if (!runningCasesRef.current.has(caseId)) {
+            console.log('Test case execution stopped (paused during command loop)');
             setExecutingCommand({ caseId: null, commandIndex: null });
             return;
           }
 
+          const command = commandsToRun[j];
           const commandIndex = testCase.commands.indexOf(command);
+          
+          console.log(`Executing command ${j + 1}/${commandsToRun.length}: ${command.command}`);
           await runCommand(caseId, commandIndex);
           
           // 命令间等待时间
@@ -1111,7 +1126,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         }
       }
 
-      // 执行完成，清除高亮并更新状态
+      // 执行完成，清除运行状态
+      runningCasesRef.current.delete(caseId);
       setExecutingCommand({ caseId: null, commandIndex: null });
       const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
@@ -1122,7 +1138,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, 'success');
     } catch (error) {
-      // 执行出错，清除高亮并更新状态
+      // 执行出错，清除运行状态
+      runningCasesRef.current.delete(caseId);
       setExecutingCommand({ caseId: null, commandIndex: null });
       const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,

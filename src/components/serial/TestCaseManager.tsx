@@ -564,9 +564,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             <div 
               className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded p-1 -m-1 transition-colors"
               onDoubleClick={() => {
-                const currentValue = command.type === 'urc' ? command.urcPattern || '' : command.command;
-                setInlineEdit({ commandId: command.id, value: currentValue });
+                if (command.type === 'urc') {
+                  const currentValue = command.urcPattern || '';
+                  setInlineEdit({ commandId: command.id, value: currentValue });
+                } else {
+                  const currentValue = command.command;
+                  setInlineEdit({ commandId: command.id, value: currentValue });
+                }
               }}
+              title={command.type === 'urc' ? "双击编辑URC校验内容" : "双击编辑命令内容"}
             >
               {inlineEdit.commandId === command.id ? (
                 <Input
@@ -581,11 +587,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     }
                   }}
                   className="font-mono text-sm h-6 px-1"
+                  placeholder={command.type === 'urc' ? "输入URC校验内容" : "输入命令内容"}
                   autoFocus
                 />
               ) : (
                 <span className="font-mono text-sm truncate">
-                  {command.type === 'urc' ? command.urcPattern || 'URC校验内容' : command.command}
+                  {command.type === 'urc' ? (command.urcPattern || '点击编辑URC校验内容') : command.command}
                 </span>
               )}
             </div>

@@ -197,18 +197,45 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
           try {
             const rawData = JSON.parse(e.target?.result as string);
             
-            // 验证数据必须是数组
-            if (!Array.isArray(rawData)) {
+            let rawArray: any[] = [];
+            let isSingleCase = false;
+            
+            // 支持多种输入格式
+            if (Array.isArray(rawData)) {
+              // 格式1: 数组 [TestCase, ...]
+              rawArray = rawData;
+            } else if (rawData && typeof rawData === 'object') {
+              // 检查是否是单个测试用例对象
+              const hasTestCaseStructure = rawData.id && rawData.name && 
+                (Array.isArray(rawData.commands) || !rawData.commands) &&
+                (Array.isArray(rawData.subCases) || !rawData.subCases);
+              
+              if (hasTestCaseStructure) {
+                // 格式2: 单个测试用例对象
+                rawArray = [rawData];
+                isSingleCase = true;
+              } else if (Array.isArray(rawData.testCases)) {
+                // 格式3: 包含testCases属性的对象
+                rawArray = rawData.testCases;
+              } else {
+                toast({
+                  title: t("testCase.importFailed"),
+                  description: "JSON文件必须包含测试用例数组或单个测试用例对象",
+                  variant: "destructive"
+                });
+                return;
+              }
+            } else {
               toast({
                 title: t("testCase.importFailed"),
-                description: "JSON文件必须包含测试用例数组",
+                description: "JSON文件格式不正确",
                 variant: "destructive"
               });
               return;
             }
             
             // 标准化和验证导入的测试用例
-            const normalizedCases = normalizeImportedCases(rawData);
+            const normalizedCases = normalizeImportedCases(rawArray);
             const validatedCases = await ensureUniqueIds(normalizedCases, testCases);
             
             if (validatedCases.length === 0) {
@@ -221,10 +248,19 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
             }
             
             setTestCases([...testCases, ...validatedCases]);
-            toast({
-              title: t("testCase.importSuccess"),
-              description: `已导入 ${validatedCases.length} 个测试用例`,
-            });
+            
+            // 根据导入类型显示不同的成功消息
+            if (isSingleCase) {
+              toast({
+                title: t("testCase.importSuccess"),
+                description: `已自动适配单用例文件，导入 1 个测试用例`
+              });
+            } else {
+              toast({
+                title: t("testCase.importSuccess"),
+                description: `已导入 ${validatedCases.length} 个测试用例`,
+              });
+            }
           } catch (error) {
             toast({
               title: t("testCase.importFailed"),

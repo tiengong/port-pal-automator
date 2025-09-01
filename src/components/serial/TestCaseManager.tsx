@@ -36,13 +36,11 @@ import {
   Hash
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SubcaseEditor } from './SubcaseEditor';
 import { TestCaseHeader } from './TestCaseHeader';
 import { TestCaseActions } from './TestCaseActions';
 import { TestCaseSwitcher } from './TestCaseSwitcher';
 import { ExecutionEditor } from './editors/ExecutionEditor';
 import { UrcEditor } from './editors/UrcEditor';
-import { SubcaseRefEditor } from './editors/SubcaseRefEditor';
 import { VariableDisplay } from '../VariableDisplay';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from '@/lib/eventBus';
@@ -74,7 +72,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingSubcaseIndex, setEditingSubcaseIndex] = useState<number | null>(null);
   const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
   const [waitingForUser, setWaitingForUser] = useState(false);
@@ -159,26 +156,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     return substituted;
   };
   
-  // 子用例展开状态管理
-  const [expandedSubcases, setExpandedSubcases] = useState<Set<string>>(new Set());
-
-  // 切换子用例展开状态
-  const toggleSubcaseExpansion = (commandId: string) => {
-    setExpandedSubcases(prev => {
-      const newExpanded = new Set(prev);
-      if (newExpanded.has(commandId)) {
-        newExpanded.delete(commandId);
-      } else {
-        newExpanded.add(commandId);
-      }
-      return newExpanded;
-    });
-  };
-
-  // 获取引用的测试用例
-  const getReferencedCase = (referencedCaseId: string): TestCase | null => {
-    return findTestCaseById(referencedCaseId);
-  };
 
   // 更新命令选中状态
   const updateCommandSelection = (commandId: string, selected: boolean) => {
@@ -329,19 +306,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
-          },
-          {
-            id: 'subcmd1',
-            type: 'subcase',
-            command: '网络连接测试',
-            referencedCaseId: 'case2',
-            validationMethod: 'none',
-            waitTime: 0,
-            stopOnFailure: false,
-            lineEnding: 'none',
-            selected: false,
-            status: 'pending',
-            isExpanded: false
           }
         ]
       },
@@ -601,36 +565,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
-  const loadTestCaseAsSubcase = (sourceCase: TestCase) => {
-    if (!currentTestCase) return;
-    
-    const newSubcase: TestCommand = {
-      id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: 'subcase',
-      command: sourceCase.name,
-      validationMethod: 'none',
-      waitTime: 0,
-      stopOnFailure: false,
-      lineEnding: 'none',
-      selected: false,
-      status: 'pending',
-      referencedCaseId: sourceCase.id,
-      isExpanded: false,
-      subCommands: []
-    };
-
-    const updatedCommands = [...currentTestCase.commands, newSubcase];
-    const updatedCase = { ...currentTestCase, commands: updatedCommands };
-    const updatedTestCases = testCases.map(tc => 
-      tc.id === currentTestCase.id ? updatedCase : tc
-    );
-    setTestCases(updatedTestCases);
-
-    toast({
-      title: "载入子用例",
-      description: `已载入子用例: ${sourceCase.name}`,
-    });
-  };
 
   const deleteSelectedCommands = () => {
     if (!currentTestCase) return;
@@ -759,21 +693,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                               {formatCommandIndex(index)}
                             </div>
                             
-                            {/* 展开/收起图标（仅子用例显示） */}
-                            {command.type === 'subcase' && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 flex-shrink-0"
-                                onClick={() => toggleSubcaseExpansion(command.id)}
-                              >
-                                {expandedSubcases.has(command.id) ? (
-                                  <ChevronDown className="w-4 h-4" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4" />
-                                )}
-                              </Button>
-                            )}
                             
                             {/* 命令内容 */}
                             <div className="flex-1 min-w-0">
@@ -784,11 +703,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                 
                                 {/* 命令类型标识 */}
                                 <Badge 
-                                  variant={command.type === 'subcase' ? 'secondary' : 'outline'} 
+                                  variant="outline" 
                                   className="text-xs flex-shrink-0"
                                 >
-                                  {command.type === 'execution' ? 'AT' : 
-                                   command.type === 'urc' ? 'URC' : '子用例'}
+                                  {command.type === 'execution' ? 'AT' : 'URC'}
                                 </Badge>
                               </div>
                               
@@ -847,123 +765,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                             </div>
                           </div>
                         </div>
-                        
-                        {/* 子用例展开内容 */}
-                        {command.type === 'subcase' && expandedSubcases.has(command.id) && command.referencedCaseId && (
-                          <div className="bg-muted/30 border-l-2 border-primary/30 ml-8">
-                            {(() => {
-                              const referencedCase = getReferencedCase(command.referencedCaseId);
-                              if (!referencedCase) {
-                                return (
-                                  <div className="p-3 text-sm text-muted-foreground">
-                                    找不到引用的测试用例: {command.referencedCaseId}
-                                  </div>
-                                );
-                              }
-                              
-                              return referencedCase.commands.map((subCmd, subIndex) => (
-                                <div key={`${command.id}-${subCmd.id}`} className="p-2 border-b border-border/30 last:border-b-0">
-                                  <div className="flex items-center gap-3">
-                                    {/* 子命令复选框 */}
-                                    <Checkbox
-                                      checked={subCmd.selected}
-                                      onCheckedChange={(checked) => {
-                                        const updatedReferencedCase = {
-                                          ...referencedCase,
-                                          commands: referencedCase.commands.map(cmd =>
-                                            cmd.id === subCmd.id ? { ...cmd, selected: checked as boolean } : cmd
-                                          )
-                                        };
-                                        const updatedTestCases = testCases.map(tc => 
-                                          tc.id === referencedCase.id ? updatedReferencedCase : tc
-                                        );
-                                        setTestCases(updatedTestCases);
-                                      }}
-                                      className="flex-shrink-0"
-                                    />
-                                    
-                                    {/* 子命令编号 */}
-                                    <div className="flex items-center justify-center w-6 h-5 bg-primary/5 text-primary rounded text-xs font-medium flex-shrink-0">
-                                      {formatCommandIndex(index, subIndex)}
-                                    </div>
-                                    
-                                    {/* 子命令内容 */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="font-mono text-xs truncate">
-                                        {subCmd.command}
-                                      </div>
-                                      {subCmd.expectedResponse && (
-                                        <div className="text-xs text-muted-foreground truncate">
-                                          期望: {subCmd.expectedResponse}
-                                        </div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* 子命令状态 */}
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                      {subCmd.status === 'success' && <CheckCircle className="w-3 h-3 text-green-500" />}
-                                      {subCmd.status === 'failed' && <XCircle className="w-3 h-3 text-red-500" />}
-                                      {subCmd.status === 'running' && <AlertCircle className="w-3 h-3 text-yellow-500 animate-pulse" />}
-                                      
-                                      {/* 子命令操作按钮 */}
-                                      <div className="flex items-center gap-1 ml-2">
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 p-0"
-                                                onClick={() => runCommand(referencedCase.id, subIndex)}
-                                                disabled={connectedPorts.length === 0}
-                                              >
-                                                <PlayCircle className="w-3 h-3" />
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>运行此子命令</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                        
-                                        <TooltipProvider>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                                onClick={() => {
-                                                  const updatedReferencedCase = {
-                                                    ...referencedCase,
-                                                    commands: referencedCase.commands.filter(cmd => cmd.id !== subCmd.id)
-                                                  };
-                                                  const updatedTestCases = testCases.map(tc => 
-                                                    tc.id === referencedCase.id ? updatedReferencedCase : tc
-                                                  );
-                                                  setTestCases(updatedTestCases);
-                                                  toast({
-                                                    title: "删除成功",
-                                                    description: "子命令已删除",
-                                                  });
-                                                }}
-                                              >
-                                                <Trash2 className="w-3 h-3" />
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              <p>删除此子命令</p>
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </TooltipProvider>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              ));
-                            })()}
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -996,17 +797,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   </ContextMenuSubTrigger>
                   <ContextMenuSubContent className="w-64">
                     {testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
-                      <React.Fragment key={testCase.id}>
-                        <ContextMenuItem onClick={() => loadTestCaseToCurrentCase(testCase)} className="flex items-center justify-between">
-                          <span className="truncate mr-2">{testCase.name}</span>
-                          <span className="text-xs text-muted-foreground">载入到当前用例</span>
-                        </ContextMenuItem>
-                        <ContextMenuItem onClick={() => loadTestCaseAsSubcase(testCase)} className="flex items-center justify-between ml-4">
-                          <span className="truncate mr-2">{testCase.name}</span>
-                          <span className="text-xs text-muted-foreground">以子用例载入</span>
-                        </ContextMenuItem>
-                        <ContextMenuSeparator />
-                      </React.Fragment>
+                      <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseToCurrentCase(testCase)} className="flex items-center justify-between">
+                        <span className="truncate mr-2">{testCase.name}</span>
+                        <span className="text-xs text-muted-foreground">载入到当前用例</span>
+                      </ContextMenuItem>
                     ))}
                   </ContextMenuSubContent>
                 </ContextMenuSub>
@@ -1081,7 +875,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="case-failure-handling">失败处理方式</Label>
                   <Select
@@ -1098,27 +891,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div>
-                  <Label htmlFor="case-referenced">引用用例</Label>
-                  <Select
-                    value={editingCase.referencedCaseId || 'none'}
-                    onValueChange={(value) => setEditingCase({ ...editingCase, referencedCaseId: value === 'none' ? undefined : value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择引用的用例（可选）" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">无引用</SelectItem>
-                      {testCases.filter(tc => tc.id !== editingCase.id).map((testCase) => (
-                        <SelectItem key={testCase.id} value={testCase.id}>
-                          {testCase.uniqueId} - {testCase.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
               
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -1153,8 +925,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 currentTestCase.commands[editingCommandIndex].type === 'execution' && '编辑命令配置'}
               {editingCommandIndex !== null && currentTestCase && 
                 currentTestCase.commands[editingCommandIndex].type === 'urc' && '编辑URC配置'}
-              {editingCommandIndex !== null && currentTestCase && 
-                currentTestCase.commands[editingCommandIndex].type === 'subcase' && '编辑子用例配置'}
             </DialogTitle>
             <DialogDescription>
               配置详细属性，包括执行参数、验证规则、错误处理等
@@ -1195,29 +965,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     );
                     setTestCases(updatedTestCases);
                   }}
-                />
-              )}
-              {currentTestCase.commands[editingCommandIndex].type === 'subcase' && (
-                <SubcaseRefEditor
-                  command={currentTestCase.commands[editingCommandIndex]}
-                  onUpdate={(updates) => {
-                    const updatedCommands = [...currentTestCase.commands];
-                    updatedCommands[editingCommandIndex] = {
-                      ...updatedCommands[editingCommandIndex],
-                      ...updates
-                    };
-                    const updatedCase = { ...currentTestCase, commands: updatedCommands };
-                    const updatedTestCases = testCases.map(tc => 
-                      tc.id === currentTestCase.id ? updatedCase : tc
-                    );
-                    setTestCases(updatedTestCases);
-                  }}
-                  allTestCases={testCases.map(tc => ({
-                    id: tc.id,
-                    name: tc.name,
-                    uniqueId: tc.uniqueId
-                  }))}
-                  onEditReferencedCase={handleEditReferencedCase}
                 />
               )}
               

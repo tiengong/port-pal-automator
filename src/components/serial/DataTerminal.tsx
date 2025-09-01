@@ -902,6 +902,18 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 </SelectContent>
               </Select>
 
+              {/* 自动发送开关 - 集成到控制栏 */}
+              <div className="flex items-center gap-1">
+                <Switch
+                  id="autoSendToggle"
+                  checked={autoSend}
+                  onCheckedChange={toggleAutoSend}
+                  disabled={connectedPorts.length === 0}
+                  className="scale-75"
+                />
+                <Label htmlFor="autoSendToggle" className="text-xs text-muted-foreground">自动</Label>
+              </div>
+
               {!autoSend ? (
                 <Button 
                   onClick={sendSerialData} 
@@ -925,42 +937,29 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           </div>
         </div>
         
-        {/* 自动发送设置 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="autoSendToggle"
-                checked={autoSend}
-                onCheckedChange={toggleAutoSend}
-                disabled={connectedPorts.length === 0}
+        {/* 自动发送间隔设置 - 仅在开启时显示，更紧凑 */}
+        {autoSend && (
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="w-3 h-3 text-primary" />
+              <span>自动发送间隔:</span>
+              <Input
+                type="number"
+                min="10"
+                max="3600000"
+                value={autoSendInterval}
+                onChange={(e) => setAutoSendInterval(parseInt(e.target.value) || 1000)}
+                className="w-20 h-6 text-xs"
               />
-              <Label htmlFor="autoSendToggle" className="text-sm">自动发送</Label>
+              <span>ms</span>
             </div>
             
-            {autoSend && (
-              <div className="flex items-center gap-2 text-xs">
-                <Label>间隔:</Label>
-                <Input
-                  type="number"
-                  min="10"
-                  max="3600000"
-                  value={autoSendInterval}
-                  onChange={(e) => setAutoSendInterval(parseInt(e.target.value) || 1000)}
-                  className="w-20 h-6 text-xs"
-                />
-                <span className="text-muted-foreground">ms</span>
-              </div>
-            )}
-          </div>
-          
-          {autoSend && (
             <div className="flex items-center gap-1 text-xs text-primary">
-              <Clock className="w-3 h-3" />
-              <span>正在自动发送</span>
+              <span className="animate-pulse">●</span>
+              <span>正在运行</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

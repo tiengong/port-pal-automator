@@ -18,7 +18,9 @@ import {
   FileCode,
   Package,
   FolderPlus,
-  Edit
+  Edit,
+  CheckSquare,
+  SquareIcon
 } from "lucide-react";
 import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
@@ -351,6 +353,40 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     }
   };
 
+  const handleToggleSelectAll = () => {
+    if (!currentTestCase) return;
+    
+    const allSelected = currentTestCase.commands.length > 0 && 
+      currentTestCase.commands.every(cmd => cmd.selected);
+    
+    if (onUpdateCase) {
+      // 使用递归更新回调
+      onUpdateCase(currentTestCase.id, (testCase) => ({
+        ...testCase,
+        commands: testCase.commands.map(cmd => ({
+          ...cmd,
+          selected: !allSelected
+        }))
+      }));
+    } else {
+      // 回退到顶层更新
+      const updatedCommands = currentTestCase.commands.map(cmd => ({
+        ...cmd,
+        selected: !allSelected
+      }));
+      const updatedCase = { ...currentTestCase, commands: updatedCommands };
+      const updatedTestCases = testCases.map(tc => 
+        tc.id === currentTestCase.id ? updatedCase : tc
+      );
+      setTestCases(updatedTestCases);
+    }
+    
+    toast({
+      title: allSelected ? "取消全选" : "全选命令",
+      description: allSelected ? "已取消选择所有命令" : `已选择所有 ${currentTestCase.commands.length} 个命令`,
+    });
+  };
+
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
       {/* 新增按钮 */}
@@ -413,6 +449,36 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* 全选/取消全选按钮 */}
+      {currentTestCase && currentTestCase.commands.length > 0 && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                onClick={handleToggleSelectAll}
+                variant="outline" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+              >
+                {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected) ? (
+                  <CheckSquare className="w-4 h-4" />
+                ) : (
+                  <SquareIcon className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected)
+                  ? "取消全选"
+                  : "全选命令"
+                }
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
       
       {/* 删除选中命令按钮 */}
       {currentTestCase && currentTestCase.commands.some(cmd => cmd.selected) && (

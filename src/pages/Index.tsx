@@ -7,12 +7,15 @@ import { SerialConnection } from "@/components/serial/SerialConnection";
 import { DataTerminal } from "@/components/serial/DataTerminal";
 import { TestCaseManager } from "@/components/serial/TestCaseManager";
 import { SettingsPanel } from "@/components/serial/SettingsPanel";
+import { StatusFooter } from "@/components/StatusFooter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSerialManager } from "@/hooks/useSerialManager";
+import { useStatusMessages } from "@/hooks/useStatusMessages";
 
 const Index = () => {
   const serialManager = useSerialManager();
+  const statusMessages = useStatusMessages();
   const [leftPanelTab, setLeftPanelTab] = useState("connection");
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [receivedData, setReceivedData] = useState<string[]>([]);
@@ -162,6 +165,7 @@ const Index = () => {
               <TestCaseManager 
                 connectedPorts={serialManager.getConnectedPorts()}
                 receivedData={receivedData}
+                statusMessages={statusMessages}
               />
             </TabsContent>
           </Tabs>
@@ -171,41 +175,17 @@ const Index = () => {
         <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30">
           <DataTerminal 
             serialManager={serialManager}
+            statusMessages={statusMessages}
           />
         </div>
       </div>
 
       {/* Enhanced Status Bar */}
-      <footer className="h-10 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm text-muted-foreground backdrop-blur-sm">
-        <div className="flex items-center gap-6">
-          <span className="font-medium">串口调试工具 v2.2.0</span>
-          {isSerialSupported ? (
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-success animate-pulse-success"></div>
-              <span className="text-success font-medium">Web Serial API 已支持</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-warning animate-pulse-warning"></div>
-              <span className="text-warning font-medium">请使用 Chrome/Edge 浏览器</span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-6">
-          {connectionStatus.count > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">活跃连接:</span>
-              {serialManager.ports.filter(p => p.connected).map((p, i) => (
-                <span key={i} className="text-success font-medium">
-                  {p.label}({p.params.baudRate}bps)
-                  {i < connectionStatus.count - 1 && <span className="text-muted-foreground mx-1">,</span>}
-                </span>
-              ))}
-            </div>
-          )}
-          <span className="text-muted-foreground/70">© 2024</span>
-        </div>
-      </footer>
+      <StatusFooter 
+        currentMessage={statusMessages.currentMessage}
+        onClearMessage={statusMessages.clearMessage}
+        isSerialSupported={isSerialSupported}
+      />
     </div>
   );
 };

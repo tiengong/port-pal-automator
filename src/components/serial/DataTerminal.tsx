@@ -34,6 +34,9 @@ import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from "@/lib/event
 
 interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
+  statusMessages?: {
+    addMessage: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  };
 }
 
 interface MergedLogEntry extends LogEntry {
@@ -49,7 +52,8 @@ interface LogEntry {
 }
 
 export const DataTerminal: React.FC<DataTerminalProps> = ({
-  serialManager
+  serialManager,
+  statusMessages
 }) => {
   const { toast } = useToast();
   const [logs, setLogs] = useState<{ [portIndex: number]: LogEntry[] }>({});
@@ -218,6 +222,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   const sendSerialData = async () => {
     if (connectedPorts.length === 0) {
       addLog('system', '未连接设备，无法发送');
+      statusMessages?.addMessage('未连接设备，无法发送', 'warning');
       return;
     }
 
@@ -303,23 +308,12 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           ? `${successCount}/${portsToSend.length} 个端口`
           : targetPort;
         
-        toast({
-          title: "数据已发送",
-          description: `发送了 ${uint8Array.length} 字节数据到 ${targetDesc}`,
-        });
+        statusMessages?.addMessage(`发送了 ${uint8Array.length} 字节数据到 ${targetDesc}`, 'success');
       } else {
-        toast({
-          title: "发送失败",
-          description: "所有端口发送失败",
-          variant: "destructive"
-        });
+        statusMessages?.addMessage('所有端口发送失败', 'error');
       }
     } catch (error) {
-      toast({
-        title: "发送失败",
-        description: "部分或全部端口发送失败",
-        variant: "destructive"
-      });
+      statusMessages?.addMessage('部分或全部端口发送失败', 'error');
     }
   };
 

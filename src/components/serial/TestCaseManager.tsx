@@ -53,11 +53,15 @@ interface TestCaseManagerProps {
     params: any;
   }>;
   receivedData: string[];
+  statusMessages?: {
+    addMessage: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
+  };
 }
 
 export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   connectedPorts,
-  receivedData
+  receivedData,
+  statusMessages
 }) => {
   const { toast } = useToast();
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -1050,10 +1054,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         status: 'pending'
       }));
       setTestCases(updatedTestCases);
-      toast({
-        title: "执行已暂停",
-        description: `测试用例 "${testCase.name}" 已暂停`,
-      });
+    statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
       return;
     }
 
@@ -1070,10 +1071,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }));
     setTestCases(updatedTestCases);
     
-    toast({
-      title: "开始执行",
-      description: `正在执行测试用例: ${testCase.name}`,
-    });
+    statusMessages?.addMessage(`开始执行测试用例: ${testCase.name}`, 'info');
 
     // 获取运行次数，默认为1
     const runCount = testCase.runCount || 1;
@@ -1122,10 +1120,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       }));
       setTestCases(finalTestCases);
 
-      toast({
-        title: "执行完成",
-        description: `测试用例 "${testCase.name}" 执行完成`,
-      });
+      statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, 'success');
     } catch (error) {
       // 执行出错，清除高亮并更新状态
       setExecutingCommand({ caseId: null, commandIndex: null });
@@ -1136,11 +1131,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       }));
       setTestCases(errorTestCases);
 
-      toast({
-        title: "执行失败",
-        description: `测试用例执行出错: ${error}`,
-        variant: "destructive"
-      });
+      statusMessages?.addMessage(`测试用例执行出错: ${error}`, 'error');
     }
   };
 
@@ -1168,15 +1159,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       console.log('Emitting SEND_COMMAND', sendEvent);
       eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
       
-      toast({
-        title: "执行命令",
-        description: `发送: ${substitutedCommand}`,
-      });
+      statusMessages?.addMessage(`执行命令: ${substitutedCommand}`, 'info');
     } else if (command.type === 'urc') {
-      toast({
-        title: "URC监听",
-        description: `监听: ${command.urcPattern}`,
-      });
+      statusMessages?.addMessage(`URC监听: ${command.urcPattern}`, 'info');
     }
     
     // 模拟执行时间后清除高亮

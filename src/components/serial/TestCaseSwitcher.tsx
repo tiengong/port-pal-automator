@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, TestTube2, FilePlus, Trash2, RotateCcw, Upload, Download } from "lucide-react";
+import { Search, TestTube2, FilePlus, Copy, Layers, RotateCcw, Upload, Download } from "lucide-react";
 import { TestCase } from "./types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,7 +31,9 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
 }) => {
   const { toast } = useToast();
   const [showCaseSelector, setShowCaseSelector] = useState(false);
+  const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentWorkspace, setCurrentWorkspace] = useState('默认工作区');
 
   console.log('TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE', { testCases, currentTestCase });
 
@@ -67,198 +70,107 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
     }
   };
 
-  const handleDeleteCurrentCase = () => {
-    if (!currentTestCase) return;
-    
-    if (onDeleteTestCase) {
-      onDeleteTestCase(currentTestCase.id);
-    } else {
-      // 默认删除逻辑
-      const updatedTestCases = testCases.filter(tc => tc.id !== currentTestCase.id);
-      setTestCases(updatedTestCases);
-      toast({
-        title: "删除成功",
-        description: `已删除测试用例: ${currentTestCase.name}`,
-      });
-    }
-  };
-
-  const handleUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const data = JSON.parse(e.target?.result as string);
-            setTestCases(data);
-            toast({
-              title: "导入成功",
-              description: "测试用例已导入",
-            });
-          } catch (error) {
-            toast({
-              title: "导入失败",
-              description: "文件格式错误",
-              variant: "destructive"
-            });
-          }
-        };
-        reader.readAsText(file);
-      }
+  const handleCloneTestCase = (sourceCase: TestCase) => {
+    const clonedCase: TestCase = {
+      ...sourceCase,
+      id: `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
+      name: `${sourceCase.name} - 副本`,
+      commands: sourceCase.commands.map(cmd => ({
+        ...cmd,
+        id: `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        selected: false,
+        status: 'pending'
+      })),
+      subCases: [], // 简化处理，不递归克隆子用例
+      selected: false,
+      status: 'pending',
+      isRunning: false,
+      currentCommand: -1
     };
-    input.click();
-  };
-
-  const handleDownload = () => {
-    const dataStr = JSON.stringify(testCases, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'test-cases.json';
-    link.click();
-    URL.revokeObjectURL(url);
     
+    setTestCases([...testCases, clonedCase]);
+    setShowCloneDialog(false);
     toast({
-      title: "导出成功",
-      description: "测试用例已导出",
+      title: "克隆成功",
+      description: `已克隆测试用例: ${clonedCase.name}`,
     });
   };
 
+  const workspaces = ['默认工作区', '调试工作区', '生产工作区']; // 示例工作区
+
   return (
     <>
-      {/* 底部工具栏 */}
-      <div className="flex-shrink-0 p-3 border-t border-border/50 bg-card/80 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-3">
-          {/* 左侧：用例选择 */}
-          <div className="flex items-center gap-2">
+      {/* 底部工具栏 - 四列布局 */}
+      <div className="flex-shrink-0 border-t border-border/50 bg-card/80 backdrop-blur-sm">
+        <div className="grid grid-cols-4 gap-px bg-border/50">
+          
+          {/* 第一列：工作区切换 */}
+          <div className="bg-card p-3 flex flex-col items-center gap-2">
+            <div className="text-xs text-muted-foreground font-medium">工作区</div>
+            <Select value={currentWorkspace} onValueChange={setCurrentWorkspace}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {workspaces.map((workspace) => (
+                  <SelectItem key={workspace} value={workspace} className="text-xs">
+                    {workspace}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 第二列：测试用例选择 */}
+          <div className="bg-card p-3 flex flex-col items-center gap-2">
+            <div className="text-xs text-muted-foreground font-medium">当前用例</div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowCaseSelector(true)}
-              className="flex items-center gap-2 min-w-[120px] h-8"
+              className="h-8 text-xs px-2 min-w-[100px]"
             >
-              <TestTube2 className="w-3 h-3" />
-              <span className="text-xs">
-                {currentTestCase ? `#${currentTestCase.uniqueId}` : '选择测试用例'}
-              </span>
+              <TestTube2 className="w-3 h-3 mr-1" />
+              {currentTestCase ? currentTestCase.name : '选择用例'}
             </Button>
           </div>
 
-          {/* 右侧：管理按钮 */}
-          <div className="flex items-center gap-1">
-            {/* 新增用例 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handleCreateTestCase}
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 px-3 text-xs"
-                  >
-                    <FilePlus className="w-3 h-3 mr-1" />
-                    新增用例
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>创建新的测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            {/* 删除当前用例 */}
-            {currentTestCase && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={handleDeleteCurrentCase}
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 px-3 text-xs text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      删除当前用例
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>删除当前测试用例</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            
-            {/* 分隔线 */}
-            <div className="w-px h-4 bg-border mx-1" />
-            
-            {/* 同步 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={onSync}
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>同步测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            {/* 导入 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handleUpload}
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                  >
-                    <Upload className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>导入测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            {/* 导出 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handleDownload}
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 w-8 p-0"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>导出测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+          {/* 第三列：新增用例 */}
+          <div className="bg-card p-3 flex flex-col items-center gap-2">
+            <div className="text-xs text-muted-foreground font-medium">新增用例</div>
+            <Button 
+              onClick={handleCreateTestCase}
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs px-2"
+            >
+              <FilePlus className="w-3 h-3 mr-1" />
+              新建
+            </Button>
           </div>
+
+          {/* 第四列：克隆用例 */}
+          <div className="bg-card p-3 flex flex-col items-center gap-2">
+            <div className="text-xs text-muted-foreground font-medium">克隆用例</div>
+            <Button 
+              onClick={() => setShowCloneDialog(true)}
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs px-2"
+              disabled={testCases.length === 0}
+            >
+              <Copy className="w-3 h-3 mr-1" />
+              克隆
+            </Button>
+          </div>
+
         </div>
       </div>
 
       {/* 测试用例选择窗口 */}
       <Dialog open={showCaseSelector} onOpenChange={setShowCaseSelector}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-xl max-h-[70vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>选择测试用例</DialogTitle>
           </DialogHeader>
@@ -267,7 +179,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
           <div className="relative mb-4">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="搜索测试用例名称、编号或描述..."
+              placeholder="搜索测试用例..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"
@@ -275,7 +187,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
           </div>
           
           {/* 测试用例列表 */}
-          <div className="flex-1 overflow-y-auto space-y-2 max-h-[400px]">
+          <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px]">
             {filteredTestCases.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 {searchQuery ? '未找到匹配的测试用例' : '暂无测试用例'}
@@ -293,40 +205,52 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
                     setSearchQuery('');
                   }}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            #{testCase.uniqueId}
-                          </Badge>
-                          <span className="font-medium truncate">{testCase.name}</span>
-                        </div>
-                        
-                        {testCase.description && (
-                          <p className="text-sm text-muted-foreground truncate mb-2">
-                            {testCase.description}
-                          </p>
-                        )}
-                        
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>{testCase.commands.length} 个步骤</span>
-                          <Badge 
-                            variant={
-                              testCase.status === 'success' ? 'default' :
-                              testCase.status === 'failed' ? 'destructive' :
-                              testCase.status === 'running' ? 'secondary' :
-                              'outline'
-                            }
-                            className="text-xs"
-                          >
-                            {testCase.status === 'pending' ? '待执行' :
-                             testCase.status === 'running' ? '执行中' :
-                             testCase.status === 'success' ? '成功' :
-                             testCase.status === 'failed' ? '失败' : '部分成功'}
-                          </Badge>
+                        <div className="font-medium text-sm truncate">{testCase.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {testCase.commands.length} 步骤
                         </div>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 克隆用例选择窗口 */}
+      <Dialog open={showCloneDialog} onOpenChange={setShowCloneDialog}>
+        <DialogContent className="max-w-xl max-h-[70vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>选择要克隆的测试用例</DialogTitle>
+          </DialogHeader>
+          
+          {/* 测试用例列表 */}
+          <div className="flex-1 overflow-y-auto space-y-2 max-h-[300px]">
+            {testCases.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                暂无可克隆的测试用例
+              </div>
+            ) : (
+              testCases.map((testCase) => (
+                <Card 
+                  key={testCase.id} 
+                  className="cursor-pointer transition-colors hover:bg-accent/50"
+                  onClick={() => handleCloneTestCase(testCase)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{testCase.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {testCase.commands.length} 步骤
+                        </div>
+                      </div>
+                      <Copy className="w-4 h-4 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>

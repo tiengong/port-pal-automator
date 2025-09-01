@@ -434,12 +434,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </span>
                
 
-              {testCase.subCases.length > 0 && (
-                <Badge variant="outline" className="text-xs flex-shrink-0">
-                  {testCase.subCases.length} 个子用例
-                </Badge>
-              )}
-            </div>
+             </div>
           </div>
           
           {/* 状态指示器 */}

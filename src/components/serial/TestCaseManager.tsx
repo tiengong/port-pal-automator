@@ -128,6 +128,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   // 参数存储系统 - 用于URC解析的参数（端口内作用域）
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
   
+  // 跟踪已触发的永久URC ID，防止重复触发
+  const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
+  
   // URC解析和变量替换系统
   const parseUrcData = (data: string, command: TestCommand): { [key: string]: { value: string; timestamp: number } } => {
     if (!command.dataParseConfig || !command.dataParseConfig.enabled) return {};
@@ -318,6 +321,77 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       return findTestCaseById(selectedTestCaseId);
     }
     return testCases[0] || null;
+  };
+  
+  // ========== 导航工具函数 ==========
+  
+  // 查找命令在用例树中的位置
+  const findCommandLocation = (commandId: string, cases: TestCase[] = testCases): { caseId: string; commandIndex: number } | null => {
+    for (const testCase of cases) {
+      const commandIndex = testCase.commands.findIndex(cmd => cmd.id === commandId);
+      if (commandIndex !== -1) {
+        return { caseId: testCase.id, commandIndex };
+      }
+      
+      // 递归查找子用例
+      const found = findCommandLocation(commandId, testCase.subCases);
+      if (found) return found;
+    }
+    return null;
+  };
+  
+  // 获取用例中第一个可执行项
+  const getFirstExecutableInCase = (testCase: TestCase): { caseId: string; commandIndex: number } | null => {
+    if (testCase.commands.length > 0) {
+      return { caseId: testCase.id, commandIndex: 0 };
+    }
+    
+    // 如果当前用例没有命令，查找第一个子用例的第一条命令
+    for (const subCase of testCase.subCases) {
+      const first = getFirstExecutableInCase(subCase);
+      if (first) return first;
+    }
+    
+    return null;
+  };
+  
+  // 获取指定位置的下一步
+  const getNextStepFrom = (caseId: string, commandIndex: number): { caseId: string; commandIndex: number } | null => {
+    const targetCase = findTestCaseById(caseId);
+    if (!targetCase) return null;
+    
+    // 尝试获取当前用例的下一条命令
+    if (commandIndex + 1 < targetCase.commands.length) {
+      return { caseId, commandIndex: commandIndex + 1 };
+    }
+    
+    // 如果没有下一条命令，尝试进入第一个子用例
+    if (targetCase.subCases.length > 0) {
+      const first = getFirstExecutableInCase(targetCase.subCases[0]);
+      if (first) return first;
+    }
+    
+    return null;
+  };
+  
+  // 构建跳转命令选项（仅限当前用例及其子用例的执行命令）
+  const buildCommandOptionsFromCase = (testCase: TestCase | null, path: string[] = []): Array<{ id: string; label: string }> => {
+    if (!testCase) return [];
+    
+    const pathName = [...path, testCase.name].join(' / ');
+    const currentCaseOptions = testCase.commands
+      .map((cmd, idx) => ({ cmd, idx }))
+      .filter(({ cmd }) => cmd.type === 'execution')
+      .map(({ cmd, idx }) => ({
+        id: cmd.id,
+        label: `${pathName} · ${idx + 1}. ${cmd.command}`
+      }));
+    
+    const subCaseOptions = testCase.subCases.flatMap(subCase => 
+      buildCommandOptionsFromCase(subCase, [...path, testCase.name])
+    );
+    
+    return [...currentCaseOptions, ...subCaseOptions];
   };
   
   const currentTestCase = getCurrentTestCase();
@@ -571,10 +645,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       if (event.type === 'received') {
         // 检查是否有活跃的URC监听器
         if (currentTestCase) {
-          currentTestCase.commands.forEach((command) => {
+          currentTestCase.commands.forEach((command, commandIndex) => {
             if (command.type === 'urc' && command.selected && command.urcPattern) {
               const matches = checkUrcMatch(event.data, command);
               if (matches) {
+                // 参数提取
                 const extractedParams = parseUrcData(event.data, command);
                 if (Object.keys(extractedParams).length > 0) {
                   // 更新存储的参数，同名变量使用最新值
@@ -592,6 +667,80 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     description: `提取参数: ${Object.entries(extractedParams).map(([k, v]) => `${k}=${v.value}`).join(', ')}`,
                   });
                 }
+                
+                // 处理URC状态更新和跳转逻辑
+                const isUrcAlreadyTriggered = triggeredUrcIds.has(command.id);
+                
+                // 更新URC状态
+                const updatedCommands = currentTestCase.commands.map((cmd, idx) => {
+                  if (idx === commandIndex) {
+                    let newCmd = { ...cmd, status: 'success' as const };
+                    
+                    // 处理once模式：匹配后失活
+                    if (cmd.urcListenMode === 'once') {
+                      newCmd.selected = false;
+                    }
+                    
+                    return newCmd;
+                  }
+                  return cmd;
+                });
+                
+                const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
+                  ...testCase,
+                  commands: updatedCommands
+                }));
+                setTestCases(updatedTestCases);
+                
+                // 处理跳转逻辑（只有在未触发过或once模式下才执行）
+                if (!isUrcAlreadyTriggered || command.urcListenMode === 'once') {
+                  // 标记permanent URC为已触发
+                  if (command.urcListenMode === 'permanent') {
+                    setTriggeredUrcIds(prev => new Set([...prev, command.id]));
+                  }
+                  
+                  // 执行跳转逻辑
+                  switch (command.jumpConfig?.onReceived) {
+                    case 'continue':
+                      const nextStep = getNextStepFrom(currentTestCase.id, commandIndex);
+                      if (nextStep) {
+                        setTimeout(() => runCommand(nextStep.caseId, nextStep.commandIndex), 100);
+                        toast({
+                          title: "URC继续执行",
+                          description: `已继续到下一步执行`,
+                        });
+                      } else {
+                        toast({
+                          title: "URC执行完成",
+                          description: "没有更多步骤可执行",
+                        });
+                      }
+                      break;
+                      
+                    case 'jump':
+                      if (command.jumpConfig?.jumpTarget?.type === 'command' && command.jumpConfig?.jumpTarget?.targetId) {
+                        const targetLocation = findCommandLocation(command.jumpConfig.jumpTarget.targetId);
+                        if (targetLocation) {
+                          setTimeout(() => runCommand(targetLocation.caseId, targetLocation.commandIndex), 100);
+                          toast({
+                            title: "URC跳转执行",
+                            description: `已跳转到指定命令`,
+                          });
+                        } else {
+                          toast({
+                            title: "跳转失败",
+                            description: "找不到目标命令",
+                            variant: "destructive"
+                          });
+                        }
+                      }
+                      break;
+                      
+                    default:
+                      // 默认情况：仅参数提取，不跳转
+                      break;
+                  }
+                }
               }
             }
           });
@@ -600,7 +749,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
     
     return unsubscribe;
-  }, [currentTestCase]);
+  }, [currentTestCase, testCases, triggeredUrcIds]);
   
   // URC匹配检查
   const checkUrcMatch = (data: string, command: TestCommand): boolean => {
@@ -717,8 +866,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 运行测试用例
   const runTestCase = (caseId: string) => {
-    // 每次运行测试用例时清空存储的变量
+    // 每次运行测试用例时清空存储的变量和触发状态
     setStoredParameters({});
+    setTriggeredUrcIds(new Set());
     
     toast({
       title: "开始执行",
@@ -1265,6 +1415,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       commands: updatedCommands
                     }));
                     setTestCases(updatedTestCases);
+                  }}
+                  jumpOptions={{
+                    commandOptions: buildCommandOptionsFromCase(currentTestCase)
                   }}
                 />
               )}

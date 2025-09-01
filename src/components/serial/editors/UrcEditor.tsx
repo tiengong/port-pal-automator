@@ -15,11 +15,15 @@ import { UrcPreview } from '../UrcPreview';
 interface UrcEditorProps {
   command: TestCommand;
   onUpdate: (updates: Partial<TestCommand>) => void;
+  jumpOptions?: {
+    commandOptions: Array<{ id: string; label: string }>;
+  };
 }
 
 export const UrcEditor: React.FC<UrcEditorProps> = ({
   command,
-  onUpdate
+  onUpdate,
+  jumpOptions
 }) => {
   const [showExamples, setShowExamples] = useState(false);
   const [parameterMapText, setParameterMapText] = useState('');
@@ -531,22 +535,51 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
               </div>
 
               <div>
-                <Label htmlFor="jumpTarget">跳转目标ID</Label>
-                <Input
-                  id="jumpTarget"
-                  value={command.jumpConfig?.jumpTarget?.targetId || ''}
-                  onChange={(e) => {
-                    const newConfig = { 
-                      ...command.jumpConfig, 
-                      jumpTarget: { 
-                        ...command.jumpConfig?.jumpTarget,
-                        targetId: e.target.value
-                      }
-                    };
-                    updateCommand('jumpConfig', newConfig);
-                  }}
-                  placeholder="输入目标ID"
-                />
+                <Label htmlFor="jumpTarget">
+                  {command.jumpConfig?.jumpTarget?.type === 'command' ? '选择跳转命令（当前用例及子用例）' : '跳转目标ID'}
+                </Label>
+                {command.jumpConfig?.jumpTarget?.type === 'command' && jumpOptions?.commandOptions?.length ? (
+                  <Select
+                    value={command.jumpConfig?.jumpTarget?.targetId || ''}
+                    onValueChange={(value) => {
+                      const newConfig = { 
+                        ...command.jumpConfig, 
+                        jumpTarget: { 
+                          ...command.jumpConfig?.jumpTarget,
+                          targetId: value
+                        }
+                      };
+                      updateCommand('jumpConfig', newConfig);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择跳转命令" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jumpOptions.commandOptions.map(option => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="jumpTarget"
+                    value={command.jumpConfig?.jumpTarget?.targetId || ''}
+                    onChange={(e) => {
+                      const newConfig = { 
+                        ...command.jumpConfig, 
+                        jumpTarget: { 
+                          ...command.jumpConfig?.jumpTarget,
+                          targetId: e.target.value
+                        }
+                      };
+                      updateCommand('jumpConfig', newConfig);
+                    }}
+                    placeholder={command.jumpConfig?.jumpTarget?.type === 'command' ? '输入命令ID' : '输入目标ID'}
+                  />
+                )}
               </div>
             </div>
           )}

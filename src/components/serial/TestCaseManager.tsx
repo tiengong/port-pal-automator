@@ -99,6 +99,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     commandId: string | null;
     value: string;
   }>({ commandId: null, value: '' });
+
+  // 当前执行命令状态
+  const [executingCommand, setExecutingCommand] = useState<{
+    caseId: string | null;
+    commandIndex: number | null;
+  }>({ caseId: null, commandIndex: null });
   
   // Initialize workspace and load test cases
   useEffect(() => {
@@ -466,6 +472,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const renderCommandRow = (command: TestCommand, caseId: string, commandIndex: number, level: number) => {
     const isDragging = dragInfo.draggedItem?.caseId === caseId && dragInfo.draggedItem?.commandIndex === commandIndex;
     const isDropTarget = dragInfo.dropTarget?.caseId === caseId && dragInfo.dropTarget?.commandIndex === commandIndex;
+    const isExecuting = executingCommand.caseId === caseId && executingCommand.commandIndex === commandIndex;
     
     return (
       <div 
@@ -476,6 +483,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           isDropTarget && dragInfo.dropTarget?.position === 'above' ? 'border-t-2 border-primary' : ''
         } ${
           isDropTarget && dragInfo.dropTarget?.position === 'below' ? 'border-b-2 border-primary' : ''
+        } ${
+          isExecuting ? 'bg-primary/10 border border-primary/30 shadow-sm' : ''
         }`}
         draggable
         onDragStart={(e) => {
@@ -1095,10 +1104,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           // 检查是否被暂停
           const currentTestCase = findTestCaseById(caseId);
           if (!currentTestCase?.isRunning) {
+            setExecutingCommand({ caseId: null, commandIndex: null });
             return;
           }
 
-          await runCommand(caseId, testCase.commands.indexOf(command));
+          const commandIndex = testCase.commands.indexOf(command);
+          await runCommand(caseId, commandIndex);
           
           // 命令间等待时间
           if (command.waitTime > 0) {
@@ -1107,7 +1118,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         }
       }
 
-      // 执行完成，更新状态
+      // 执行完成，清除高亮并更新状态
+      setExecutingCommand({ caseId: null, commandIndex: null });
       const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: false,
@@ -1120,7 +1132,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         description: `测试用例 "${testCase.name}" 执行完成`,
       });
     } catch (error) {
-      // 执行出错，更新状态
+      // 执行出错，清除高亮并更新状态
+      setExecutingCommand({ caseId: null, commandIndex: null });
       const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: false,
@@ -1137,11 +1150,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   // 运行单个命令
-  const runCommand = (caseId: string, commandIndex: number) => {
+  const runCommand = async (caseId: string, commandIndex: number) => {
     const targetCase = findTestCaseById(caseId);
     if (!targetCase) return;
     
     const command = targetCase.commands[commandIndex];
+    
+    // 设置当前执行的命令高亮
+    setExecutingCommand({ caseId, commandIndex });
     
     if (command.type === 'execution') {
       // 执行命令前进行变量替换
@@ -1157,26 +1173,20 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
       
       toast({
-        title: "命令已发送",
-        description: `执行步骤 ${commandIndex + 1}: ${substitutedCommand}`,
+        title: "执行命令",
+        description: `发送: ${substitutedCommand}`,
       });
     } else if (command.type === 'urc') {
-      // 激活URC监听
-      const updatedCommands = targetCase.commands.map((cmd, idx) =>
-        idx === commandIndex ? { ...cmd, selected: true, status: 'running' as const } : cmd
-      );
-      
-      const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
-        ...testCase,
-        commands: updatedCommands
-      }));
-      setTestCases(updatedTestCases);
-      
       toast({
-        title: "URC监听已激活",
-        description: `监听模式: ${command.urcPattern}`,
+        title: "URC监听",
+        description: `监听: ${command.urcPattern}`,
       });
     }
+    
+    // 模拟执行时间后清除高亮
+    setTimeout(() => {
+      setExecutingCommand({ caseId: null, commandIndex: null });
+    }, command.waitTime || 1000);
   };
 
   // 删除测试用例

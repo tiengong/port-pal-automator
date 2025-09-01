@@ -1560,6 +1560,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           onSync={handleSync}
           onDeleteTestCase={deleteTestCase}
           onDeletePresetCases={deletePresetCases}
+          onSelectTestCase={handleSelectTestCase}
           onAddSubCase={(parentId: string) => {
             const newSubCase: TestCase = {
               id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

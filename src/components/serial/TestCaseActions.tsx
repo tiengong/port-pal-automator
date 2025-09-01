@@ -42,6 +42,7 @@ interface TestCaseActionsProps {
   onDeletePresetCases?: () => void;
   onAddSubCase?: (parentId: string) => void;
   onUpdateCase?: (caseId: string, updater: (c: TestCase) => TestCase) => void;
+  onSelectTestCase?: (caseId: string) => void;
 }
 
 export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
@@ -57,7 +58,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onDeleteSelectedCommands,
   onDeletePresetCases,
   onAddSubCase,
-  onUpdateCase
+  onUpdateCase,
+  onSelectTestCase
 }) => {
   console.log('TestCaseActions rendered', { currentTestCase });
   
@@ -248,6 +250,11 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
             }
             
             setTestCases([...testCases, ...validatedCases]);
+            
+            // 自动切换到导入的用例
+            if (onSelectTestCase && validatedCases.length > 0) {
+              onSelectTestCase(validatedCases[0].id);
+            }
             
             // 根据导入类型显示不同的成功消息
             if (isSingleCase) {

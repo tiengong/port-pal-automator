@@ -240,6 +240,11 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             
             setTestCases([...testCases, ...validatedCases]);
             
+            // 自动切换到导入的用例
+            if (onSelectTestCase && validatedCases.length > 0) {
+              onSelectTestCase(validatedCases[0].id);
+            }
+            
             // 根据导入类型显示不同的成功消息
             if (isSingleCase) {
               toast({

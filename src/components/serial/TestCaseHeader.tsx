@@ -17,7 +17,6 @@ export const TestCaseHeader: React.FC<TestCaseHeaderProps> = ({ currentTestCase 
         {currentTestCase ? (
           <div className="space-y-2">
             <div className="flex items-center gap-2 min-w-0">
-              <Badge variant="outline" className="text-xs flex-shrink-0">#{currentTestCase.uniqueId}</Badge>
               <span className="font-semibold text-lg truncate">{currentTestCase.name}</span>
             </div>
             

@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { RefreshCw, Plug, PlugZap, AlertTriangle, Settings2, Plus, ChevronDown, ChevronRight, ArrowLeftRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { useSerialManager, type SerialPortInfo } from "@/hooks/useSerialManager";
 
 interface DualChannelConnectionProps {
@@ -22,6 +23,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
   isSupported
 }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [availablePorts, setAvailablePorts] = useState<any[]>([]);
   const [selectedPorts, setSelectedPorts] = useState<{
     P1: any | null;
@@ -42,8 +44,8 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
   const refreshPorts = async () => {
     if (!isSupported) {
       toast({
-        title: "不支持 Web Serial API",
-        description: "请使用 Chrome、Edge 或 Opera 浏览器",
+        title: t("connection.webSerialNotSupported"),
+        description: t("connection.webSerialNotSupportedDesc"),
         variant: "destructive"
       });
       return;
@@ -55,15 +57,15 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
       
       if (ports.length === 0) {
         toast({
-          title: "未找到串口",
-          description: "请连接串口设备或点击「请求访问」选择新设备",
+          title: t("connection.noPortsFound"),
+          description: t("connection.noPortsFoundDesc"),
         });
       }
     } catch (error) {
       console.error('获取串口列表失败:', error);
       toast({
-        title: "获取串口失败",
-        description: "无法获取串口列表，请检查设备连接",
+        title: t("connection.requestFailed"),
+        description: t("connection.requestFailedDesc"),
         variant: "destructive"
       });
     }
@@ -82,15 +84,15 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
       await refreshPorts();
       
       toast({
-        title: "设备已添加",
-        description: "串口设备已成功添加到列表",
+        title: t("connection.deviceAdded"),
+        description: t("connection.deviceAddedDesc"),
       });
     } catch (error) {
       if ((error as any).name !== 'NotFoundError') {
         console.error('请求串口访问失败:', error);
         toast({
-          title: "请求失败",
-          description: "无法请求串口访问权限",
+          title: t("connection.requestFailed"),
+          description: t("connection.requestFailedDesc"),
           variant: "destructive"
         });
       }
@@ -136,12 +138,12 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-warning">
             <AlertTriangle className="w-5 h-5" />
-            浏览器不支持
+            <span>{t("connection.browserNotSupported")}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            当前浏览器不支持 Web Serial API，请使用以下浏览器：
+            {t("connection.currentBrowserNotSupported")}
           </p>
           <div className="space-y-2">
             <Badge variant="outline">Chrome 89+</Badge>
@@ -166,14 +168,14 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
             {p1Port?.connected ? (
               <>
                 <PlugZap className="w-5 h-5 text-success" />
-                <span>串口连接</span>
-                <Badge variant="secondary" className="ml-auto">已连接</Badge>
+                <span>{t("connection.serialConnection")}</span>
+                <Badge variant="secondary" className="ml-auto">{t("connection.connected")}</Badge>
               </>
             ) : (
               <>
                 <Plug className="w-5 h-5" />
-                <span>串口连接</span>
-                <Badge variant="outline" className="ml-auto">未连接</Badge>
+                <span>{t("connection.serialConnection")}</span>
+                <Badge variant="outline" className="ml-auto">{t("connection.disconnected")}</Badge>
               </>
             )}
           </CardTitle>
@@ -183,7 +185,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
             <>
               {/* Port Selection */}
               <div className="space-y-2">
-                <Label>选择端口</Label>
+                <Label>{t("connection.selectPort")}</Label>
                 <Select
                   value={selectedIndex.P1}
                   onValueChange={(value) => {
@@ -199,26 +201,26 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       // 如果没有可用端口，提示并尝试请求新设备
                       if (availablePorts.length === 0) {
                         toast({
-                          title: "正在扫描串口设备",
-                          description: "将自动请求访问新的串口设备",
+                          title: t("connection.scanningPorts"),
+                          description: t("connection.autoRequestDesc"),
                         });
                         await requestPortAndRefresh();
                       } else {
                         toast({
-                          title: "串口列表已更新",
-                          description: `发现 ${availablePorts.length} 个可用串口设备`,
+                          title: t("connection.portsUpdated"),
+                          description: t("connection.portsFoundDesc", { count: availablePorts.length }),
                         });
                       }
                     }
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="点击选择设备（自动请求新设备）" />
+                    <SelectValue placeholder={t("connection.selectDeviceAuto")} />
                   </SelectTrigger>
                   <SelectContent>
                     {availablePorts.length === 0 ? (
                       <SelectItem value="no-ports" disabled>
-                        正在请求设备访问权限...
+                        {t("connection.requestingAccess")}
                       </SelectItem>
                     ) : (
                       availablePorts.map((port, index) => {
@@ -226,7 +228,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         const getPortInfo = () => {
                           const info = (port as any).getInfo?.() || {};
                           if (info.usbVendorId && info.usbProductId) {
-                            return `USB设备 (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
+                            return `${t("connection.usbDevice")} (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
                           }
                           return `COM${index + 1}`;
                         };
@@ -245,7 +247,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
               {/* Basic Configuration */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>波特率</Label>
+                  <Label>{t("connection.baudRate")}</Label>
                   <Select
                     value={strategy.p1Config.baudRate.toString()}
                     onValueChange={(value) => 
@@ -268,7 +270,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>数据位</Label>
+                  <Label>{t("connection.dataBits")}</Label>
                   <Select
                     value={strategy.p1Config.dataBits.toString()}
                     onValueChange={(value) => 
@@ -283,7 +285,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     <SelectContent>
                       {[5, 6, 7, 8].map(bits => (
                         <SelectItem key={bits} value={bits.toString()}>
-                          {bits} 位
+                          {bits} {t("connection.bits")}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -291,7 +293,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>校验位</Label>
+                  <Label>{t("connection.parity")}</Label>
                   <Select
                     value={strategy.p1Config.parity}
                     onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
@@ -304,17 +306,17 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">无校验</SelectItem>
-                      <SelectItem value="even">偶校验</SelectItem>
-                      <SelectItem value="odd">奇校验</SelectItem>
-                      <SelectItem value="mark">标记校验</SelectItem>
-                      <SelectItem value="space">空格校验</SelectItem>
+                      <SelectItem value="none">{t("connection.noParity")}</SelectItem>
+                      <SelectItem value="even">{t("connection.evenParity")}</SelectItem>
+                      <SelectItem value="odd">{t("connection.oddParity")}</SelectItem>
+                      <SelectItem value="mark">{t("connection.markParity")}</SelectItem>
+                      <SelectItem value="space">{t("connection.spaceParity")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>停止位</Label>
+                  <Label>{t("connection.stopBits")}</Label>
                   <Select
                     value={strategy.p1Config.stopBits.toString()}
                     onValueChange={(value) => 
@@ -327,8 +329,8 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 位</SelectItem>
-                      <SelectItem value="2">2 位</SelectItem>
+                      <SelectItem value="1">1 {t("connection.bits")}</SelectItem>
+                      <SelectItem value="2">2 {t("connection.bits")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -342,10 +344,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 {isConnecting.P1 ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    连接中...
+                    {t("connection.connecting")}
                   </>
                 ) : (
-                  "连接串口"
+                  t("connection.connect")
                 )}
               </Button>
             </>
@@ -355,7 +357,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 <div className="flex items-center gap-2 text-success">
                   <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
                   <span className="text-sm font-medium">
-                    已连接 - {p1Port.params.baudRate} bps
+                    {t("connection.connected")} - {p1Port.params.baudRate} bps
                   </span>
                 </div>
                 <Button
@@ -363,11 +365,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   size="sm"
                   onClick={() => disconnectChannel('P1')}
                 >
-                  断开
+                  {t("connection.disconnect")}
                 </Button>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {p1Port.params.dataBits}位数据 • {p1Port.params.parity === 'none' ? '无校验' : p1Port.params.parity} • {p1Port.params.stopBits}停止位
+                {p1Port.params.dataBits}{t("connection.bits")} • {p1Port.params.parity === 'none' ? t("connection.noParity") : p1Port.params.parity} • {p1Port.params.stopBits}{t("connection.stopBits")}
               </div>
             </div>
           )}
@@ -391,13 +393,13 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
             await requestPortAndRefresh();
             
             toast({
-              title: "第二路串口已启用",
-              description: "配置已与主串口同步，请选择设备连接",
+              title: t("connection.secondPortEnabled"),
+              description: t("connection.secondPortEnabledDesc"),
             });
           }}
         >
           <Plus className="w-4 h-4 mr-2" />
-          添加第二路串口
+          {t("connection.addSecondPort")}
         </Button>
       )}
 
@@ -409,14 +411,14 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
               {p2Port?.connected ? (
                 <>
                   <PlugZap className="w-5 h-5 text-success" />
-                  <span>第二路串口</span>
-                  <Badge variant="secondary" className="ml-auto">已连接</Badge>
+                  <span>{t("connection.secondSerialPort")}</span>
+                  <Badge variant="secondary" className="ml-auto">{t("connection.connected")}</Badge>
                 </>
               ) : (
                 <>
                   <Plug className="w-5 h-5" />
-                  <span>第二路串口</span>
-                  <Badge variant="outline" className="ml-auto">未连接</Badge>
+                  <span>{t("connection.secondSerialPort")}</span>
+                  <Badge variant="outline" className="ml-auto">{t("connection.disconnected")}</Badge>
                 </>
               )}
               <Button
@@ -437,7 +439,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
               <>
                 {/* Port Selection */}
                 <div className="space-y-2">
-                  <Label>选择端口</Label>
+                  <Label>{t("connection.selectPort")}</Label>
                   <Select
                     value={selectedIndex.P2}
                     onValueChange={(value) => {
@@ -453,26 +455,26 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         // 如果没有可用端口，提示并尝试请求新设备
                         if (availablePorts.length === 0) {
                           toast({
-                            title: "正在扫描串口设备",
-                            description: "将自动请求访问新的串口设备",
+                            title: t("connection.scanningPorts"),
+                            description: t("connection.autoRequestDesc"),
                           });
                           await requestPortAndRefresh();
                         } else {
                           toast({
-                            title: "串口列表已更新",
-                            description: `发现 ${availablePorts.length} 个可用串口设备`,
+                            title: t("connection.portsUpdated"),
+                            description: t("connection.portsFoundDesc", { count: availablePorts.length }),
                           });
                         }
                       }
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="点击选择设备（自动请求新设备）" />
+                      <SelectValue placeholder={t("connection.selectDeviceAuto")} />
                     </SelectTrigger>
                     <SelectContent>
                       {availablePorts.length === 0 ? (
                         <SelectItem value="no-ports" disabled>
-                          正在请求设备访问权限...
+                          {t("connection.requestingAccess")}
                         </SelectItem>
                       ) : (
                         availablePorts.map((port, index) => {
@@ -480,7 +482,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                           const getPortInfo = () => {
                             const info = (port as any).getInfo?.() || {};
                             if (info.usbVendorId && info.usbProductId) {
-                              return `USB设备 (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
+                              return `${t("connection.usbDevice")} (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
                             }
                             return `COM${index + 1}`;
                           };
@@ -499,7 +501,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 {/* Detailed Configuration */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>波特率</Label>
+                    <Label>{t("connection.baudRate")}</Label>
                     <Select
                       value={strategy.p2Config.baudRate.toString()}
                       onValueChange={(value) => 
@@ -522,7 +524,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>数据位</Label>
+                    <Label>{t("connection.dataBits")}</Label>
                     <Select
                       value={strategy.p2Config.dataBits.toString()}
                       onValueChange={(value) => 
@@ -537,7 +539,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       <SelectContent>
                         {[5, 6, 7, 8].map(bits => (
                           <SelectItem key={bits} value={bits.toString()}>
-                            {bits} 位
+                            {bits} {t("connection.bits")}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -545,7 +547,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>校验位</Label>
+                    <Label>{t("connection.parity")}</Label>
                     <Select
                       value={strategy.p2Config.parity}
                       onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
@@ -558,11 +560,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">无校验</SelectItem>
-                        <SelectItem value="even">偶校验</SelectItem>
-                        <SelectItem value="odd">奇校验</SelectItem>
-                        <SelectItem value="mark">标记校验</SelectItem>
-                        <SelectItem value="space">空格校验</SelectItem>
+                        <SelectItem value="none">{t("connection.noParity")}</SelectItem>
+                        <SelectItem value="even">{t("connection.evenParity")}</SelectItem>
+                        <SelectItem value="odd">{t("connection.oddParity")}</SelectItem>
+                        <SelectItem value="mark">{t("connection.markParity")}</SelectItem>
+                        <SelectItem value="space">{t("connection.spaceParity")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

@@ -43,8 +43,8 @@
     /* Modern terminal theme */
     --terminal-bg: 220 13% 18%;
     --terminal-text: 210 40% 98%;
-    --terminal-sent: 142 71% 45%;
-    --terminal-error: 0 84% 60%;
+    --terminal-sent: 142 71% 50%;
+    --terminal-error: 0 84% 65%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
@@ -82,13 +82,13 @@
   }
 
   .dark {
-    --background: 224 71% 4%;
+    --background: 222 84% 5%;
     --foreground: 210 40% 98%;
 
-    --card: 224 71% 4%;
+    --card: 222 84% 7%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 224 71% 4%;
+    --popover: 222 84% 7%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 221 83% 53%;
@@ -111,8 +111,8 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
+    --border: 215 28% 20%;
+    --input: 215 28% 20%;
     --ring: 221 83% 53%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;

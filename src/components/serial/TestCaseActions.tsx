@@ -17,10 +17,12 @@ import {
   Radio,
   FileCode,
   Package,
-  FolderPlus
+  FolderPlus,
+  Edit
 } from "lucide-react";
 import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { OneNetTestCase } from "./OneNetTestCase";
 
 interface TestCaseActionsProps {
@@ -57,6 +59,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   console.log('TestCaseActions rendered', { currentTestCase });
   
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showPresetDialog, setShowPresetDialog] = useState(false);
 
@@ -92,8 +95,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     }
 
     toast({
-      title: "新增命令",
-      description: `已添加新命令: ${newCommand.command}`,
+      title: t("testCase.addCommand"),
+      description: t("testCase.addCommandDesc", { command: newCommand.command }),
     });
     setShowAddMenu(false);
   };
@@ -104,7 +107,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     const newUrc: TestCommand = {
       id: `urc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'urc',
-      command: 'URC监听',
+      command: t("testCase.urcListener"),
       validationMethod: 'none',
       waitTime: 0,
       stopOnFailure: false,
@@ -135,8 +138,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     }
 
     toast({
-      title: "新增URC",
-      description: `已添加URC监听: ${newUrc.urcPattern}`,
+      title: t("testCase.addUrc"),
+      description: t("testCase.addUrcDesc", { pattern: newUrc.urcPattern }),
     });
     setShowAddMenu(false);
   };
@@ -152,7 +155,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       const newSubCase: TestCase = {
         id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
-        name: '新建子用例',
+        name: t("testCase.newSubCase"),
         description: '',
         commands: [],
         subCases: [],
@@ -171,8 +174,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       setTestCases(updatedTestCases);
 
       toast({
-        title: "新增子用例",
-        description: `已添加子用例: ${newSubCase.name}`,
+        title: t("testCase.addSubCase"),
+        description: t("testCase.addSubCaseDesc", { name: newSubCase.name }),
       });
     }
     setShowAddMenu(false);
@@ -192,13 +195,13 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
             const data = JSON.parse(e.target?.result as string);
             setTestCases(data);
             toast({
-              title: "导入成功",
-              description: "测试用例已导入",
+              title: t("testCase.importSuccess"),
+              description: t("testCase.importSuccessDesc"),
             });
           } catch (error) {
             toast({
-              title: "导入失败",
-              description: "文件格式错误",
+              title: t("testCase.importFailed"),
+              description: t("testCase.importFailedDesc"),
               variant: "destructive"
             });
           }
@@ -220,8 +223,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     URL.revokeObjectURL(url);
     
     toast({
-      title: "导出成功",
-      description: "测试用例已导出",
+      title: t("testCase.exportSuccess"),
+      description: t("testCase.exportSuccessDesc"),
     });
   };
 
@@ -233,7 +236,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       const newTestCase: TestCase = {
         id: `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
-        name: '新建测试用例',
+        name: t("testCase.newTestCase"),
         description: '',
         commands: [],
         subCases: [],
@@ -246,8 +249,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       
       setTestCases([...testCases, newTestCase]);
       toast({
-        title: "新建成功",
-        description: `已创建测试用例: ${newTestCase.name}`,
+        title: t("testCase.createSuccess"),
+        description: t("testCase.createSuccessDesc", { name: newTestCase.name }),
       });
     }
   };
@@ -262,8 +265,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       const updatedTestCases = testCases.filter(tc => tc.id !== currentTestCase.id);
       setTestCases(updatedTestCases);
       toast({
-        title: "删除成功",
-        description: `已删除测试用例: ${currentTestCase.name}`,
+        title: t("testCase.deleteSuccess"),
+        description: t("testCase.deleteSuccessDesc", { name: currentTestCase.name }),
       });
     }
   };
@@ -276,8 +279,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     
     if (selectedCommands.length === 0) {
       toast({
-        title: "提示",
-        description: "请先勾选要删除的命令或子用例",
+        title: t("testCase.deleteSelected"),
+        description: t("testCase.deleteSelectedDesc"),
         variant: "destructive"
       });
       return;
@@ -292,8 +295,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     setTestCases(updatedTestCases);
     
     toast({
-      title: "删除成功",
-      description: `已删除 ${selectedCommands.length} 个选中的项目`,
+      title: t("testCase.deleteSuccess"),
+      description: t("testCase.deleteSelectedSuccess", { count: selectedCommands.length }),
     });
   };
 
@@ -306,8 +309,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       
       if (presetCases.length === 0) {
         toast({
-          title: "提示",
-          description: "没有预设用例需要删除",
+          title: t("testCase.deletePresetCases"),
+          description: t("testCase.noPresetCases"),
           variant: "default"
         });
         return;
@@ -317,8 +320,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       setTestCases(updatedTestCases);
       
       toast({
-        title: "删除成功",
-        description: `已删除 ${presetCases.length} 个预设用例`,
+        title: t("testCase.deleteSuccess"),
+        description: t("testCase.deletePresetSuccess", { count: presetCases.length }),
       });
     }
   };
@@ -348,7 +351,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               onClick={addCommand}
             >
               <FileCode className="w-3 h-3 mr-2" />
-              新增命令
+              {t("testCase.addCommand")}
             </Button>
             <Button
               variant="ghost"
@@ -357,7 +360,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               onClick={addUrc}
             >
               <Radio className="w-3 h-3 mr-2" />
-              新增URC
+              {t("testCase.addUrc")}
             </Button>
             <Button
               variant="ghost"
@@ -366,7 +369,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               onClick={addSubCase}
             >
               <FolderPlus className="w-3 h-3 mr-2" />
-              新增子用例
+              {t("testCase.addSubCase")}
             </Button>
             {testCases.some(tc => tc.isPreset) && (
               <Button
@@ -379,7 +382,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 }}
               >
                 <Trash2 className="w-3 h-3 mr-2" />
-                删除预设用例
+                {t("testCase.deletePresetCases")}
               </Button>
             )}
           </div>
@@ -401,7 +404,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>删除选中的命令</p>
+              <p>{t("testCase.deleteSelected")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -418,11 +421,11 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 size="sm" 
                 className="h-8 w-8 p-0"
               >
-                <Settings className="w-4 h-4" />
+                <Edit className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>编辑测试用例</p>
+              <p>{t("testCase.edit")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -448,7 +451,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{currentTestCase.isRunning ? "暂停测试用例" : "运行测试用例"}</p>
+              <p>{currentTestCase.isRunning ? t("testCase.pause") : t("testCase.run")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -468,7 +471,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>停止测试</p>
+              <p>{t("testCase.stop")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -488,7 +491,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>重置测试状态</p>
+              <p>{t("testCase.reset")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

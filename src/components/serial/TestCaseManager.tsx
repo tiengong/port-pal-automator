@@ -36,6 +36,7 @@ import {
   Hash
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
 import { TestCaseHeader } from './TestCaseHeader';
 import { TestCaseActions } from './TestCaseActions';
 import { TestCaseSwitcher } from './TestCaseSwitcher';
@@ -64,6 +65,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   statusMessages
 }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   
   // Track running test cases to prevent race conditions
@@ -127,8 +129,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       } catch (error) {
         console.error('Failed to initialize workspace:', error);
         toast({
-          title: "初始化失败",
-          description: "无法加载工作区",
+          title: t("testCase.initFailed"),
+          description: t("testCase.initFailedDesc"),
           variant: "destructive"
         });
       }
@@ -276,8 +278,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       }
       
       toast({
-        title: "修改成功",
-        description: "命令内容已更新"
+        title: t("testCase.modifySuccess"),
+        description: t("testCase.modifySuccessDesc")
       });
     }
     setInlineEdit({ commandId: null, value: '' });

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 export interface SerialPortInfo {
   id: string;
@@ -25,6 +26,7 @@ export interface ConnectionStrategy {
 
 export const useSerialManager = () => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [ports, setPorts] = useState<SerialPortInfo[]>([]);
   const [strategy, setStrategy] = useState<ConnectionStrategy>({
     mode: 'P1_ONLY',
@@ -60,7 +62,7 @@ export const useSerialManager = () => {
     return {
       connected,
       count: connected.length,
-      label: connected.length > 0 ? connected.join('+') : '未连接'
+      label: connected.length > 0 ? connected.join('+') : t("app.disconnected")
     };
   }, [ports]);
 
@@ -69,8 +71,8 @@ export const useSerialManager = () => {
       // Check if port is already connected
       if (ports.some(p => p.port === selectedPort)) {
         toast({
-          title: "设备已连接",
-          description: `${label} 端口已经连接`,
+          title: t("connection.deviceAlreadyConnected"),
+          description: t("connection.deviceAlreadyConnectedDesc", { port: label }),
           variant: "destructive"
         });
         return false;
@@ -98,16 +100,16 @@ export const useSerialManager = () => {
       });
 
       toast({
-        title: "连接成功",
-        description: `${label} 端口已连接 (${params.baudRate} bps)`,
+        title: t("connection.connectSuccess"),
+        description: t("connection.connectSuccessDesc", { port: label, baudRate: params.baudRate }),
       });
 
       return true;
     } catch (error) {
       console.error(`Connect ${label} failed:`, error);
       toast({
-        title: "连接失败",
-        description: `无法连接到 ${label} 端口`,
+        title: t("connection.connectFailed"),
+        description: t("connection.connectFailedDesc", { port: label }),
         variant: "destructive"
       });
       return false;
@@ -135,8 +137,8 @@ export const useSerialManager = () => {
       setPorts(prev => prev.filter(p => p.label !== label));
 
       toast({
-        title: "已断开连接",
-        description: `${label} 端口连接已断开`,
+        title: t("connection.disconnectSuccess"),
+        description: t("connection.disconnectSuccessDesc", { port: label }),
       });
     } catch (error) {
       console.error(`Disconnect ${label} failed:`, error);
@@ -145,8 +147,8 @@ export const useSerialManager = () => {
       setPorts(prev => prev.filter(p => p.label !== label));
       
       toast({
-        title: "端口已断开",
-        description: `${label} 连接已断开，端口可能仍在使用中`,
+        title: t("connection.disconnectError"),
+        description: t("connection.disconnectErrorDesc", { port: label }),
         variant: "destructive"
       });
     }

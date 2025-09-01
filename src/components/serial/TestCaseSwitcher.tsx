@@ -240,12 +240,12 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button onClick={handleDownload} variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <Download className="w-4 h-4" />
+                  <Button onClick={handleUpload} variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Upload className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>导出测试用例</p>
+                  <p>导入测试用例</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

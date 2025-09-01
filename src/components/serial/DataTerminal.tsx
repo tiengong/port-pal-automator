@@ -225,18 +225,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       return;
     }
 
-    if (!sendData.trim()) {
-      toast({
-        title: "发送内容为空",
-        description: "请输入要发送的数据",
-        variant: "destructive"
-      });
-      return;
-    }
-
     let dataToSend = sendData;
-    // 立即清空输入框
-    setSendData("");
     
     // 添加换行符
     switch (newlineMode) {

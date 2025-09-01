@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,15 +7,12 @@ import { SerialConnection } from "@/components/serial/SerialConnection";
 import { DataTerminal } from "@/components/serial/DataTerminal";
 import { TestCaseManager } from "@/components/serial/TestCaseManager";
 import { SettingsPanel } from "@/components/serial/SettingsPanel";
-import { ExecutionStatus } from "@/components/ExecutionStatus";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSerialManager } from "@/hooks/useSerialManager";
-import { useExecutionLogs } from "@/hooks/useExecutionLogs";
 
 const Index = () => {
   const serialManager = useSerialManager();
-  const executionLogs = useExecutionLogs();
   const [leftPanelTab, setLeftPanelTab] = useState("connection");
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [receivedData, setReceivedData] = useState<string[]>([]);
@@ -166,7 +162,6 @@ const Index = () => {
               <TestCaseManager 
                 connectedPorts={serialManager.getConnectedPorts()}
                 receivedData={receivedData}
-                executionLogs={executionLogs}
               />
             </TabsContent>
           </Tabs>
@@ -180,7 +175,7 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Enhanced Status Bar with Execution Logs */}
+      {/* Enhanced Status Bar */}
       <footer className="h-10 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm text-muted-foreground backdrop-blur-sm">
         <div className="flex items-center gap-6">
           <span className="font-medium">串口调试工具 v2.2.0</span>
@@ -196,9 +191,7 @@ const Index = () => {
             </div>
           )}
         </div>
-        
         <div className="flex items-center gap-6">
-          <ExecutionStatus latestLog={executionLogs.getLatestLog()} />
           {connectionStatus.count > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">活跃连接:</span>

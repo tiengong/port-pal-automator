@@ -11,6 +11,7 @@ import { Search, TestTube2, FilePlus, Trash2, RotateCcw, Upload, Download, Folde
 import { TestCase } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { createWorkspace, openWorkspace, cloneCase, getNextUniqueId, saveCase, getCurrentWorkspace } from "./workspace";
+
 interface TestCaseSwitcherProps {
   testCases: TestCase[];
   currentTestCase: TestCase | null;
@@ -21,6 +22,7 @@ interface TestCaseSwitcherProps {
   onSync?: () => void;
   onWorkspaceChange?: () => void;
 }
+
 export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   testCases,
   currentTestCase,
@@ -268,6 +270,11 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
           
           {/* 操作按钮工具栏 */}
           <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+            <Button variant="outline" size="sm" onClick={() => setShowNewCaseDialog(true)} className="flex items-center gap-2">
+              <FilePlus className="w-4 h-4" />
+              新增用例
+            </Button>
+            
             <Button variant="outline" size="sm" onClick={() => setConfirmNewWorkspace(true)} className="flex items-center gap-2">
               <FolderOpen className="w-4 h-4" />
               打开新工作区

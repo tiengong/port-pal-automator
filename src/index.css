@@ -40,11 +40,11 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Modern terminal theme */
-    --terminal-bg: 220 13% 18%;
-    --terminal-text: 210 40% 98%;
-    --terminal-sent: 142 71% 50%;
-    --terminal-error: 0 84% 65%;
+    /* VS Code terminal theme */
+    --terminal-bg: 0 0% 12%;        /* Match main background */
+    --terminal-text: 0 0% 88%;      /* Clean white text */
+    --terminal-sent: 142 69% 58%;   /* Green for sent data */
+    --terminal-error: 0 73% 67%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
@@ -52,11 +52,11 @@
 
     --radius: 0.5rem;
 
-    /* Enhanced gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(220 14% 98%));
-    --gradient-terminal: linear-gradient(145deg, hsl(var(--terminal-bg)), hsl(220 13% 15%));
-    --gradient-panel: linear-gradient(180deg, hsl(var(--card)), hsl(220 14% 98%));
+    /* Simplified gradients - VS Code style clean backgrounds */
+    --gradient-primary: hsl(var(--primary));
+    --gradient-secondary: hsl(var(--secondary));
+    --gradient-terminal: hsl(var(--terminal-bg));
+    --gradient-panel: hsl(var(--card));
 
     /* Enhanced shadows */
     --shadow-sm: 0 1px 2px 0 hsl(220 43% 11% / 0.05);
@@ -82,46 +82,49 @@
   }
 
   .dark {
-    --background: 222 84% 5%;
-    --foreground: 210 40% 98%;
+    /* VS Code inspired dark theme - clean and professional */
+    --background: 0 0% 12%;          /* #1e1e1e - main editor background */
+    --foreground: 0 0% 88%;          /* #e1e1e1 - main text */
 
-    --card: 222 84% 7%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 3% 15%;              /* #252526 - panel backgrounds */
+    --card-foreground: 0 0% 88%;
 
-    --popover: 222 84% 7%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 2% 20%;           /* #323233 - dropdown/modal backgrounds */
+    --popover-foreground: 0 0% 88%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --primary-glow: 221 83% 63%;
+    --primary: 207 100% 54%;         /* #0078d4 - VS Code blue accent */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 207 100% 64%;
 
-    --secondary: 215 25% 15%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 3% 18%;         /* #2d2d30 - secondary panels */
+    --secondary-foreground: 0 0% 88%;
 
-    --muted: 215 25% 17%;
-    --muted-foreground: 217 12% 65%;
+    --muted: 240 2% 20%;             /* #323233 - muted backgrounds */
+    --muted-foreground: 0 0% 63%;    /* #a1a1a1 - muted text */
 
-    --accent: 215 25% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 240 3% 18%;            /* #2d2d30 - accent backgrounds */
+    --accent-foreground: 0 0% 88%;
 
-    --success: 142 71% 45%;
+    --success: 142 69% 48%;          /* #4caf50 - success green */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    --warning: 45 100% 51%;          /* #ffab00 - warning amber */
+    --warning-foreground: 0 0% 0%;
+    --destructive: 0 73% 57%;        /* #e53e3e - error red */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 28% 20%;
-    --input: 215 28% 20%;
-    --ring: 221 83% 53%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --border: 240 3% 25%;            /* #3e3e42 - borders */
+    --input: 240 3% 25%;             /* #3e3e42 - input backgrounds */
+    --ring: 207 100% 54%;            /* #0078d4 - focus ring */
+    
+    /* Sidebar colors matching VS Code file explorer */
+    --sidebar-background: 240 3% 15%; /* #252526 - sidebar background */
+    --sidebar-foreground: 0 0% 80%;   /* #cccccc - sidebar text */
+    --sidebar-primary: 207 100% 54%;  /* #0078d4 - active items */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 240 3% 20%;     /* #323233 - hover states */
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 240 3% 25%;     /* #3e3e42 - sidebar borders */
+    --sidebar-ring: 207 100% 54%;
   }
 }
 
@@ -162,14 +165,13 @@
     animation: pulse-warning 1.5s infinite;
   }
 
-  /* Enhanced terminal styles */
+  /* Enhanced terminal styles - VS Code inspired clean look */
   .terminal-output {
     @apply font-mono text-sm;
-    background: var(--gradient-terminal);
+    background: hsl(var(--terminal-bg));
     color: hsl(var(--terminal-text));
-    box-shadow: inset 0 4px 12px hsl(220 13% 0% / 0.4);
-    border-radius: 0.5rem;
-    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 0.25rem;
+    border: 1px solid hsl(var(--border));
   }
 
   .terminal-sent {
@@ -182,45 +184,40 @@
     font-weight: 500;
   }
 
-  /* Enhanced button variants */
+  /* Clean button variants - VS Code inspired */
   .btn-connect {
-    background: var(--gradient-primary);
-    box-shadow: var(--shadow-primary);
-    transition: var(--transition-smooth);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    transition: var(--transition-fast);
     border: 0;
-    border-radius: 0.5rem;
+    border-radius: 0.25rem;
   }
 
   .btn-connect:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    background: hsl(var(--primary-glow));
   }
 
   .btn-connect:active {
-    transform: translateY(0);
+    background: hsl(var(--primary));
     transition: var(--transition-fast);
   }
 
-  /* Enhanced panel styles */
+  /* Clean panel styles - VS Code inspired */
   .control-panel {
-    background: var(--gradient-panel);
-    box-shadow: var(--shadow-md);
+    background: hsl(var(--card));
     border-right: 1px solid hsl(var(--border));
-    backdrop-filter: blur(10px);
-    border-radius: 0.5rem 0 0 0.5rem;
+    border-radius: 0;
   }
 
   .panel-card {
     background: hsl(var(--card));
-    box-shadow: var(--shadow);
     border: 1px solid hsl(var(--border));
-    transition: var(--transition-smooth);
-    border-radius: 0.5rem;
+    transition: var(--transition-fast);
+    border-radius: 0.25rem;
   }
 
   .panel-card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
+    background: hsl(var(--accent));
   }
 
   /* Data flow indicator */
@@ -257,18 +254,16 @@
     background: hsl(var(--muted-foreground) / 0.7);
   }
 
-  /* Modern header style */
+  /* Clean header style - VS Code inspired */
   .app-header {
-    background: var(--gradient-panel);
+    background: hsl(var(--card));
     border-bottom: 1px solid hsl(var(--border));
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow-sm);
   }
 
-  /* Enhanced tab styling */
+  /* Clean tab styling - VS Code inspired */
   .tab-trigger-enhanced {
-    transition: var(--transition-smooth);
-    border-radius: 0.375rem;
+    transition: var(--transition-fast);
+    border-radius: 0.25rem;
   }
 
   .tab-trigger-enhanced:hover {
@@ -276,9 +271,8 @@
   }
 
   .tab-trigger-enhanced[data-state="active"] {
-    background: var(--gradient-primary);
+    background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    box-shadow: var(--shadow-primary);
   }
 }
 

@@ -180,7 +180,7 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
           <div>
             <Label htmlFor="validationMethod">验证方式</Label>
             <Select
-              value={command.validationMethod}
+              value={command.validationMethod || 'none'}
               onValueChange={(value) => updateCommand('validationMethod', value)}
             >
               <SelectTrigger>
@@ -193,6 +193,18 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectItem value="regex">正则表达式</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="timeout">验证超时时间 (ms)</Label>
+            <Input
+              id="timeout"
+              type="number"
+              value={command.timeout || 5000}
+              onChange={(e) => updateCommand('timeout', parseInt(e.target.value) || 5000)}
+              min="1000"
+              placeholder="5000"
+            />
           </div>
           
           {command.validationMethod !== 'none' && (
@@ -249,39 +261,20 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
         </CardContent>
       </Card>
 
-      {/* 时间设置 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">时间设置</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="waitTime">等待时间 (ms)</Label>
-              <Input
-                id="waitTime"
-                type="number"
-                value={command.waitTime}
-                onChange={(e) => updateCommand('waitTime', parseInt(e.target.value) || 0)}
-                min="0"
-                placeholder="0"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="timeout">超时时间 (ms)</Label>
-              <Input
-                id="timeout"
-                type="number"
-                value={command.timeout || 5000}
-                onChange={(e) => updateCommand('timeout', parseInt(e.target.value) || 5000)}
-                min="1000"
-                placeholder="5000"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div>
+        <Label htmlFor="waitTime">等待时间 (ms)</Label>
+        <Input
+          id="waitTime"
+          type="number"
+          value={command.waitTime}
+          onChange={(e) => updateCommand('waitTime', parseInt(e.target.value) || 0)}
+          min="0"
+          placeholder="0"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          发送命令前的等待时间
+        </p>
+      </div>
 
       {/* 错误处理 */}
       <Card>
@@ -290,7 +283,7 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="failureHandling">失败处理方式</Label>
+            <Label htmlFor="failureHandling">错误处理</Label>
             <Select
               value={command.failureHandling || 'stop'}
               onValueChange={(value) => updateCommand('failureHandling', value)}
@@ -306,13 +299,20 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
             </Select>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="stopOnFailure"
-              checked={command.stopOnFailure}
-              onCheckedChange={(checked) => updateCommand('stopOnFailure', checked)}
-            />
-            <Label htmlFor="stopOnFailure">失败时停止整个用例</Label>
+          <div>
+            <Label htmlFor="failureSeverity">失败异常等级</Label>
+            <Select
+              value={command.failureSeverity || 'error'}
+              onValueChange={(value) => updateCommand('failureSeverity', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="warning">警告</SelectItem>
+                <SelectItem value="error">异常</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -329,12 +329,15 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
               checked={command.userActionDialog || false}
               onCheckedChange={(checked) => updateCommand('userActionDialog', checked)}
             />
-            <Label htmlFor="userActionDialog">需要用户确认弹框</Label>
+            <Label htmlFor="userActionDialog">用户确认弹框开关</Label>
           </div>
+          <p className="text-xs text-muted-foreground">
+            开启后，执行此命令前会弹窗提示用户确认
+          </p>
           
           {command.userActionDialog && (
             <div>
-              <Label htmlFor="dialogContent">弹框提示内容</Label>
+              <Label htmlFor="dialogContent">用户确认弹框内容</Label>
               <Textarea
                 id="dialogContent"
                 value={command.dialogContent || ''}

@@ -130,7 +130,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="urcPattern">URC匹配内容</Label>
+            <Label htmlFor="urcPattern">URC内容</Label>
             <Input
               id="urcPattern"
               value={command.urcPattern || ''}
@@ -144,7 +144,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="urcMatchMode">匹配方式</Label>
+            <Label htmlFor="urcMatchMode">URC匹配方式</Label>
             <Select
               value={command.urcMatchMode || 'contains'}
               onValueChange={(value) => updateCommand('urcMatchMode', value)}
@@ -182,7 +182,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="urcListenMode">监听类型</Label>
+            <Label htmlFor="urcListenMode">监听模式</Label>
             <Select
               value={command.urcListenMode || 'once'}
               onValueChange={(value) => updateCommand('urcListenMode', value)}
@@ -191,8 +191,8 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="permanent">永久监听</SelectItem>
                 <SelectItem value="once">监听一次</SelectItem>
+                <SelectItem value="permanent">永久监听</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
@@ -205,7 +205,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
           
           {command.urcListenMode === 'once' && (
             <div>
-              <Label htmlFor="urcListenTimeout">监听超时时间 (ms)</Label>
+              <Label htmlFor="urcListenTimeout">超时时间 (ms)</Label>
               <Input
                 id="urcListenTimeout"
                 type="number"
@@ -215,7 +215,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
                 placeholder="10000"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                超过此时间未收到匹配的URC将视为失败
+                如果是监听一次，超过此时间未收到匹配的URC将视为失败
               </p>
             </div>
           )}
@@ -229,7 +229,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="urcFailureHandling">失败处理方式</Label>
+            <Label htmlFor="urcFailureHandling">错误处理</Label>
             <Select
               value={command.urcFailureHandling || 'stop'}
               onValueChange={(value) => updateCommand('urcFailureHandling', value)}
@@ -241,6 +241,22 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
                 <SelectItem value="stop">停止执行</SelectItem>
                 <SelectItem value="continue">继续执行</SelectItem>
                 <SelectItem value="prompt">提示用户</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="failureSeverity">失败异常等级</Label>
+            <Select
+              value={command.failureSeverity || 'error'}
+              onValueChange={(value) => updateCommand('failureSeverity', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="warning">警告</SelectItem>
+                <SelectItem value="error">异常</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -260,10 +276,10 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
         </CardContent>
       </Card>
 
-      {/* 变量提取配置 */}
+      {/* 变量提取 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">变量提取配置</CardTitle>
+          <CardTitle className="text-sm">变量提取</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
@@ -287,7 +303,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
           {command.dataParseConfig?.enabled && (
             <>
               <div>
-                <Label htmlFor="parseType">提取方式</Label>
+                <Label htmlFor="parseType">解析方式</Label>
                 <Select
                   value={command.dataParseConfig?.parseType || 'regex'}
                   onValueChange={(value) => {
@@ -390,6 +406,13 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
               }
             </p>
           </div>
+          
+          <div>
+            <Label htmlFor="testPreview">验证测试</Label>
+            <p className="text-xs text-muted-foreground">
+              在下方查看实时提取预览，确保配置正确
+            </p>
+          </div>
 
               <p className="text-xs text-muted-foreground mt-1 bg-blue-50 border border-blue-200 rounded-md p-2">
                 <strong>说明：</strong><br/>
@@ -405,14 +428,14 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
       {/* 实时预览 */}
       {command.dataParseConfig?.enabled && <UrcPreview command={command} />}
 
-      {/* 跳转配置 */}
+      {/* 验证成功后操作 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">跳转配置 (高级)</CardTitle>
+          <CardTitle className="text-sm">验证成功后操作</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="jumpAction">收到URC后操作</Label>
+            <Label htmlFor="jumpAction">操作选择</Label>
             <Select
               value={command.jumpConfig?.onReceived || 'continue'}
               onValueChange={(value) => {
@@ -428,7 +451,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="continue">继续执行</SelectItem>
-                <SelectItem value="jump">跳转到指定位置</SelectItem>
+                <SelectItem value="jump">转跳指定命令</SelectItem>
               </SelectContent>
             </Select>
           </div>

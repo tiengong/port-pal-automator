@@ -1107,9 +1107,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       <Dialog open={editingCommandIndex !== null} onOpenChange={() => setEditingCommandIndex(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>编辑步骤配置</DialogTitle>
+            <DialogTitle>
+              {editingCommandIndex !== null && currentTestCase && 
+                currentTestCase.commands[editingCommandIndex].type === 'execution' && '编辑命令配置'}
+              {editingCommandIndex !== null && currentTestCase && 
+                currentTestCase.commands[editingCommandIndex].type === 'urc' && '编辑URC配置'}
+              {editingCommandIndex !== null && currentTestCase && 
+                currentTestCase.commands[editingCommandIndex].type === 'subcase' && '编辑子用例配置'}
+            </DialogTitle>
             <DialogDescription>
-              配置命令的详细属性，包括执行参数、验证规则、错误处理等
+              配置详细属性，包括执行参数、验证规则、错误处理等
             </DialogDescription>
           </DialogHeader>
           

@@ -17,6 +17,7 @@ export interface TestCommand {
   dataFormat?: 'string' | 'hex'; // 数据格式：字符串或十六进制
   timeout?: number; // 超时时间（毫秒）
   failureHandling?: 'stop' | 'continue' | 'prompt'; // 失败处理方式
+  failureSeverity?: 'warning' | 'error'; // 失败异常等级：警告/异常
   userActionDialog?: boolean; // 是否需要用户操作弹框
   dialogContent?: string; // 弹框内容
   

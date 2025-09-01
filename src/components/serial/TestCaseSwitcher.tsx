@@ -243,7 +243,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button onClick={handleUpload} variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <Upload className="w-4 h-4" />
+                    <Download className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>

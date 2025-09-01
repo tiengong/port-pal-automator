@@ -37,6 +37,9 @@ interface AppSettings {
   defaultParity: string;
   defaultStopBits: number;
   
+  // 自动发送设置
+  defaultAutoSendInterval: number;
+  
   // 显示设置
   showTimestamp: boolean;
   autoScroll: boolean;
@@ -69,6 +72,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className }) => {
     defaultDataBits: 8,
     defaultParity: 'none',
     defaultStopBits: 1,
+    
+    defaultAutoSendInterval: 1000,
     
     showTimestamp: true,
     autoScroll: true,
@@ -128,6 +133,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className }) => {
       defaultDataBits: 8,
       defaultParity: 'none',
       defaultStopBits: 1,
+      
+      defaultAutoSendInterval: 1000,
       
       showTimestamp: true,
       autoScroll: true,
@@ -396,6 +403,29 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className }) => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <Separator />
+
+              {/* 自动发送设置 */}
+              <div className="space-y-4">
+                <Label className="text-base font-medium">自动发送设置</Label>
+                
+                {/* 默认自动发送间隔 */}
+                <div className="space-y-2">
+                  <Label>默认自动发送间隔 (毫秒)</Label>
+                  <Input
+                    type="number"
+                    min="10"
+                    max="3600000"
+                    value={settings.defaultAutoSendInterval}
+                    onChange={(e) => updateSetting('defaultAutoSendInterval', parseInt(e.target.value) || 1000)}
+                    placeholder="1000"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    设置自动发送功能的默认间隔时间，范围：10ms - 3600000ms (1小时)
+                  </div>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -497,6 +527,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className }) => {
             <div className="flex justify-between">
               <span>默认波特率:</span>
               <span>{settings.defaultBaudRate}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>自动发送间隔:</span>
+              <span>{settings.defaultAutoSendInterval}ms</span>
             </div>
             <div className="flex justify-between">
               <span>自动保存:</span>

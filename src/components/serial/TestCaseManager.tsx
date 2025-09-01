@@ -940,7 +940,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       <div className="flex-shrink-0 p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         {/* 🎯 新模块化布局已激活 - 2024版本 */}
         <div className="flex items-center justify-between mb-4">
-          <TestCaseHeader currentTestCase={currentTestCase} />
+          <TestCaseHeader 
+            currentTestCase={currentTestCase} 
+            onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
+              const updatedTestCases = updateCaseById(testCases, caseId, updater);
+              setTestCases(updatedTestCases);
+            }}
+          />
         </div>
 
         {/* 2. 操作栏 */}

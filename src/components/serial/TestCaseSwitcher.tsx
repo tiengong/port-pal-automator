@@ -48,6 +48,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   const [cloneSourceId, setCloneSourceId] = useState('');
   const [cloneNewName, setCloneNewName] = useState('');
   const [confirmNewWorkspace, setConfirmNewWorkspace] = useState(false);
+  const [deleteConfirmCase, setDeleteConfirmCase] = useState<TestCase | null>(null);
   console.log('TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE', {
     testCases,
     currentTestCase
@@ -135,6 +136,32 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
       });
     }
   };
+  const handleDeleteCase = async (testCase: TestCase) => {
+    try {
+      // 如果有传入的删除回调，使用它
+      if (onDeleteTestCase) {
+        onDeleteTestCase(testCase.id);
+      } else {
+        // 默认删除逻辑
+        const updatedTestCases = testCases.filter(tc => tc.id !== testCase.id);
+        setTestCases(updatedTestCases);
+      }
+      
+      toast({
+        title: "删除成功",
+        description: `已删除测试用例: ${testCase.name}`
+      });
+      
+      setDeleteConfirmCase(null);
+    } catch (error) {
+      toast({
+        title: "删除失败",
+        description: "无法删除测试用例",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleDeleteCurrentCase = () => {
     if (!currentTestCase) return;
     if (onDeleteTestCase) {
@@ -321,36 +348,81 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             {filteredTestCases.length === 0 ? <div className="text-center text-muted-foreground py-8">
                 {searchQuery ? '未找到匹配的测试用例' : '暂无测试用例'}
               </div> : <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-20">用例ID</TableHead>
-                    <TableHead>用例名</TableHead>
-                    <TableHead>用例简述</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTestCases.map(testCase => <TableRow key={testCase.id} className={`cursor-pointer hover:bg-accent/50 ${currentTestCase?.id === testCase.id ? 'bg-accent/30' : ''}`} onClick={() => {
-                onSelectTestCase(testCase.id);
-                setShowCaseSelector(false);
-                setSearchQuery('');
-              }}>
-                      <TableCell className="font-mono text-sm">
-                        #{testCase.uniqueId}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {testCase.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {testCase.description || '-'}
-                      </TableCell>
-                    </TableRow>)}
-                </TableBody>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead className="w-20">用例ID</TableHead>
+                     <TableHead>用例名</TableHead>
+                     <TableHead>用例简述</TableHead>
+                     <TableHead className="w-20">操作</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {filteredTestCases.map(testCase => <TableRow key={testCase.id} className={`hover:bg-accent/50 ${currentTestCase?.id === testCase.id ? 'bg-accent/30' : ''}`}>
+                       <TableCell className="font-mono text-sm cursor-pointer" onClick={() => {
+                         onSelectTestCase(testCase.id);
+                         setShowCaseSelector(false);
+                         setSearchQuery('');
+                       }}>
+                         #{testCase.uniqueId}
+                       </TableCell>
+                       <TableCell className="font-medium cursor-pointer" onClick={() => {
+                         onSelectTestCase(testCase.id);
+                         setShowCaseSelector(false);
+                         setSearchQuery('');
+                       }}>
+                         {testCase.name}
+                       </TableCell>
+                       <TableCell className="text-muted-foreground cursor-pointer" onClick={() => {
+                         onSelectTestCase(testCase.id);
+                         setShowCaseSelector(false);
+                         setSearchQuery('');
+                       }}>
+                         {testCase.description || '-'}
+                       </TableCell>
+                       <TableCell>
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setDeleteConfirmCase(testCase);
+                           }}
+                         >
+                           <Trash2 className="w-4 h-4" />
+                         </Button>
+                       </TableCell>
+                     </TableRow>)}
+                 </TableBody>
               </Table>}
           </div>
         </DialogContent>
-      </Dialog>
+       </Dialog>
 
-      {/* 新工作区确认对话框 */}
+       {/* 删除用例确认对话框 */}
+       <AlertDialog open={!!deleteConfirmCase} onOpenChange={() => setDeleteConfirmCase(null)}>
+         <AlertDialogContent>
+           <AlertDialogHeader>
+             <AlertDialogTitle>确认删除测试用例</AlertDialogTitle>
+             <AlertDialogDescription>
+               确定要删除测试用例 "{deleteConfirmCase?.name}" 吗？此操作不可撤销。
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <AlertDialogFooter>
+             <AlertDialogCancel onClick={() => setDeleteConfirmCase(null)}>
+               取消
+             </AlertDialogCancel>
+             <AlertDialogAction 
+               onClick={() => deleteConfirmCase && handleDeleteCase(deleteConfirmCase)}
+               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+             >
+               删除
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
+
+       {/* 新工作区确认对话框 */}
       <AlertDialog open={confirmNewWorkspace} onOpenChange={setConfirmNewWorkspace}>
         <AlertDialogContent>
           <AlertDialogHeader>

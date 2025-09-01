@@ -363,11 +363,11 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowNewCaseDialog(true)}
+              onClick={onSync}
               className="flex items-center gap-2"
             >
-              <FilePlus className="w-4 h-4" />
-              新增用例
+              <RotateCcw className="w-4 h-4" />
+              刷新
             </Button>
             
             <Button

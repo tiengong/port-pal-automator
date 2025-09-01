@@ -1640,6 +1640,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 />
               </div>
               
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="case-failure-handling">失败处理方式</Label>
                   <Select
@@ -1656,6 +1657,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div>
+                  <Label htmlFor="case-run-count">运行次数</Label>
+                  <Input
+                    id="case-run-count"
+                    type="number"
+                    min="1"
+                    max="999"
+                    value={editingCase.runCount || 1}
+                    onChange={(e) => setEditingCase({ 
+                      ...editingCase, 
+                      runCount: parseInt(e.target.value) || 1 
+                    })}
+                    placeholder="1"
+                  />
+                  <div className="text-xs text-muted-foreground mt-1">
+                    设置测试用例执行次数 (1-999次)
+                  </div>
+                </div>
+              </div>
               
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>

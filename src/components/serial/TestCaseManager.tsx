@@ -319,14 +319,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             <span className="font-mono text-sm truncate">
               {command.command}
             </span>
-            
-            {/* 命令类型标识 */}
-            <Badge 
-              variant="outline" 
-              className="text-xs flex-shrink-0"
-            >
-              {command.type === 'execution' ? 'AT' : 'URC'}
-            </Badge>
           </div>
           
           {command.expectedResponse && (

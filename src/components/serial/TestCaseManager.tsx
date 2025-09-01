@@ -247,6 +247,32 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  // 查找用例路径（从根到目标节点的完整路径）
+  const findCasePath = (targetId: string, cases: TestCase[] = testCases, path: TestCase[] = []): TestCase[] | null => {
+    for (const testCase of cases) {
+      const currentPath = [...path, testCase];
+      
+      if (testCase.id === targetId) {
+        return currentPath;
+      }
+      
+      const found = findCasePath(targetId, testCase.subCases, currentPath);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  // 获取可见的根用例（当前选中用例的顶层祖先）
+  const getVisibleRootCase = (): TestCase | null => {
+    if (selectedTestCaseId) {
+      const casePath = findCasePath(selectedTestCaseId);
+      if (casePath && casePath.length > 0) {
+        return casePath[0]; // 返回路径的第一个元素（顶层祖先）
+      }
+    }
+    return testCases[0] || null;
+  };
+
   // 获取当前选中的测试用例（支持嵌套查找）
   const getCurrentTestCase = () => {
     if (selectedTestCaseId) {
@@ -256,6 +282,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
   
   const currentTestCase = getCurrentTestCase();
+  const visibleRootCase = getVisibleRootCase();
 
   // ========== 递归渲染函数 ==========
   
@@ -1004,7 +1031,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               <ContextMenuTrigger asChild>
                 <div className="border border-border rounded-lg bg-card">
                   <div className="divide-y divide-border">
-                    {renderUnifiedTree(testCases, 0)}
+                    {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
                   </div>
                 </div>
               </ContextMenuTrigger>

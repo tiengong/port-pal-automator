@@ -16,12 +16,14 @@ interface SubcaseRefEditorProps {
   command: TestCommand;
   onUpdate: (updates: Partial<TestCommand>) => void;
   allTestCases?: Array<{ id: string; name: string; uniqueId: string }>;
+  onEditReferencedCase?: (caseId: string) => void;
 }
 
 export const SubcaseRefEditor: React.FC<SubcaseRefEditorProps> = ({
   command,
   onUpdate,
-  allTestCases = []
+  allTestCases = [],
+  onEditReferencedCase
 }) => {
   const [openCombobox, setOpenCombobox] = useState(false);
   
@@ -124,9 +126,21 @@ export const SubcaseRefEditor: React.FC<SubcaseRefEditorProps> = ({
 
           {selectedTestCase && (
             <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <p className="text-xs text-blue-800">
-                <strong>当前引用：</strong> {selectedTestCase.uniqueId} - {selectedTestCase.name}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-blue-800">
+                  <strong>当前引用：</strong> {selectedTestCase.uniqueId} - {selectedTestCase.name}
+                </p>
+                {onEditReferencedCase && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-6 text-xs"
+                    onClick={() => onEditReferencedCase(selectedTestCase.id)}
+                  >
+                    编辑引用用例
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 

@@ -457,6 +457,46 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  // 删除预设用例
+  const deletePresetCases = () => {
+    const presetCases = testCases.filter(tc => tc.isPreset);
+    
+    if (presetCases.length === 0) {
+      toast({
+        title: "提示",
+        description: "没有预设用例需要删除",
+        variant: "default"
+      });
+      return;
+    }
+    
+    const updatedTestCases = testCases.filter(tc => !tc.isPreset);
+    setTestCases(updatedTestCases);
+    
+    // 如果当前选中的是预设用例，切换到第一个非预设用例
+    if (currentTestCase && currentTestCase.isPreset) {
+      const firstNonPreset = updatedTestCases[0];
+      if (firstNonPreset) {
+        setSelectedTestCaseId(firstNonPreset.id);
+      } else {
+        setSelectedTestCaseId('');
+      }
+    }
+    
+    toast({
+      title: "删除成功",
+      description: `已删除 ${presetCases.length} 个预设用例`,
+    });
+  };
+
+  // 编辑引用的测试用例
+  const handleEditReferencedCase = (caseId: string) => {
+    const referencedCase = testCases.find(tc => tc.id === caseId);
+    if (referencedCase) {
+      handleEditCase(referencedCase);
+    }
+  };
+
   // 同步测试用例
   const handleSync = () => {
     toast({
@@ -658,6 +698,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           onRunTestCase={runTestCase}
           onSync={handleSync}
           onDeleteTestCase={deleteTestCase}
+          onDeletePresetCases={deletePresetCases}
         />
       </div>
 
@@ -1176,6 +1217,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     name: tc.name,
                     uniqueId: tc.uniqueId
                   }))}
+                  onEditReferencedCase={handleEditReferencedCase}
                 />
               )}
               

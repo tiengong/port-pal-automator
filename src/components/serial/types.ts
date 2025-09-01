@@ -65,6 +65,7 @@ export interface TestCase {
   status: 'pending' | 'running' | 'success' | 'failed' | 'partial'; // 运行状态
   failureHandling?: 'stop' | 'continue' | 'prompt'; // 失败处理方式
   referencedCaseId?: string; // 引用用例（用于子用例）
+  isPreset?: boolean; // 是否为预设用例
 }
 
 export interface ExecutionResult {

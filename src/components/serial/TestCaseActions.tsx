@@ -34,6 +34,7 @@ interface TestCaseActionsProps {
   onDeleteTestCase?: (caseId: string) => void;
   onCreateTestCase?: () => void;
   onDeleteSelectedCommands?: () => void;
+  onDeletePresetCases?: () => void;
 }
 
 export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
@@ -46,7 +47,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onSync,
   onDeleteTestCase,
   onCreateTestCase,
-  onDeleteSelectedCommands
+  onDeleteSelectedCommands,
+  onDeletePresetCases
 }) => {
   console.log('TestCaseActions rendered', { currentTestCase });
   
@@ -267,6 +269,32 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     });
   };
 
+  const handleDeletePresetCases = () => {
+    if (onDeletePresetCases) {
+      onDeletePresetCases();
+    } else {
+      // 默认删除预设用例逻辑
+      const presetCases = testCases.filter(tc => tc.isPreset);
+      
+      if (presetCases.length === 0) {
+        toast({
+          title: "提示",
+          description: "没有预设用例需要删除",
+          variant: "default"
+        });
+        return;
+      }
+      
+      const updatedTestCases = testCases.filter(tc => !tc.isPreset);
+      setTestCases(updatedTestCases);
+      
+      toast({
+        title: "删除成功",
+        description: `已删除 ${presetCases.length} 个预设用例`,
+      });
+    }
+  };
+
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
       {/* 新增按钮 */}
@@ -324,6 +352,20 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               <Package className="w-3 h-3 mr-2" />
               预设用例
             </Button>
+            {testCases.some(tc => tc.isPreset) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start h-8 px-2 text-sm text-red-600 hover:text-red-700"
+                onClick={() => {
+                  setShowAddMenu(false);
+                  handleDeletePresetCases();
+                }}
+              >
+                <Trash2 className="w-3 h-3 mr-2" />
+                删除预设用例
+              </Button>
+            )}
           </div>
         </PopoverContent>
       </Popover>

@@ -356,7 +356,8 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
       isRunning: false,
       currentCommand: -1,
       selected: false,
-      status: 'pending'
+      status: 'pending',
+      isPreset: true
     };
   };
 

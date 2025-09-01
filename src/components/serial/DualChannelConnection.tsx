@@ -27,6 +27,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     P1: any | null;
     P2: any | null;
   }>({ P1: null, P2: null });
+  const [selectedIndex, setSelectedIndex] = useState<{
+    P1: string;
+    P2: string;
+  }>({ P1: "", P2: "" });
   const [isConnecting, setIsConnecting] = useState<{
     P1: boolean;
     P2: boolean;
@@ -107,6 +111,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
       if (success) {
         // 清空选择，准备连接下一个
         setSelectedPorts(prev => ({ ...prev, [channel]: null }));
+        setSelectedIndex(prev => ({ ...prev, [channel]: "" }));
       }
     } finally {
       setIsConnecting(prev => ({ ...prev, [channel]: false }));
@@ -180,12 +185,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
               <div className="space-y-2">
                 <Label>选择端口</Label>
                 <Select
-                  value={selectedPorts.P1 ? "selected" : ""}
+                  value={selectedIndex.P1}
                   onValueChange={(value) => {
-                    if (value !== "selected") {
-                      const port = availablePorts[parseInt(value)];
-                      setSelectedPorts(prev => ({ ...prev, P1: port }));
-                    }
+                    const port = availablePorts[parseInt(value)];
+                    setSelectedPorts(prev => ({ ...prev, P1: port }));
+                    setSelectedIndex(prev => ({ ...prev, P1: value }));
                   }}
                   onOpenChange={async (isOpen) => {
                     if (isOpen) {
@@ -435,12 +439,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 <div className="space-y-2">
                   <Label>选择端口</Label>
                   <Select
-                    value={selectedPorts.P2 ? "selected" : ""}
+                    value={selectedIndex.P2}
                     onValueChange={(value) => {
-                      if (value !== "selected") {
-                        const port = availablePorts[parseInt(value)];
-                        setSelectedPorts(prev => ({ ...prev, P2: port }));
-                      }
+                      const port = availablePorts[parseInt(value)];
+                      setSelectedPorts(prev => ({ ...prev, P2: port }));
+                      setSelectedIndex(prev => ({ ...prev, P2: value }));
                     }}
                     onOpenChange={async (isOpen) => {
                       if (isOpen) {

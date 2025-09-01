@@ -523,12 +523,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     return elements;
   };
 
-  // 渲染统一树结构
+  // 渲染统一树结构（顶级用例不显示，直接显示内容）
   const renderUnifiedTree = (cases: TestCase[], level: number): React.ReactNode[] => {
     const elements: React.ReactNode[] = [];
     
     cases.forEach((testCase) => {
-      elements.push(...renderCaseNode(testCase, level));
+      // 对于顶级用例（level === 0），不渲染用例行本身，直接渲染其内容
+      if (level === 0) {
+        // 直接渲染命令
+        testCase.commands.forEach((command, index) => {
+          elements.push(renderCommandRow(command, testCase.id, index, 0));
+        });
+        
+        // 直接渲染子用例
+        testCase.subCases.forEach((subCase) => {
+          elements.push(...renderCaseNode(subCase, 0));
+        });
+      } else {
+        // 对于非顶级用例，正常渲染
+        elements.push(...renderCaseNode(testCase, level));
+      }
     });
     
     return elements;

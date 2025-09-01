@@ -530,7 +530,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-mono text-sm truncate">
-                {command.command}
+                {command.type === 'urc' ? command.urcPattern || 'URC校验内容' : command.command}
               </span>
             </div>
             

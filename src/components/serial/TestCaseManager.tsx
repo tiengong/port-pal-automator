@@ -308,6 +308,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 递归更新测试用例
   const updateCaseById = (cases: TestCase[], id: string, updater: (testCase: TestCase) => TestCase): TestCase[] => {
+    // Ensure cases is always an array to prevent iteration errors
+    if (!Array.isArray(cases)) {
+      return [];
+    }
+    
     return cases.map(testCase => {
       if (testCase.id === id) {
         return updater(testCase);
@@ -324,6 +329,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 递归添加子用例
   const addSubCaseById = (cases: TestCase[], parentId: string, newCase: TestCase): TestCase[] => {
+    // Ensure cases is always an array to prevent iteration errors
+    if (!Array.isArray(cases)) {
+      return [];
+    }
+    
     return cases.map(testCase => {
       if (testCase.id === parentId) {
         return {
@@ -344,6 +354,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 递归展开/折叠
   const toggleExpandById = (cases: TestCase[], id: string): TestCase[] => {
+    // Ensure cases is always an array to prevent iteration errors
+    if (!Array.isArray(cases)) {
+      return [];
+    }
+    
     return cases.map(testCase => {
       if (testCase.id === id) {
         return { ...testCase, isExpanded: !testCase.isExpanded };
@@ -360,6 +375,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 查找用例路径（从根到目标节点的完整路径）
   const findCasePath = (targetId: string, cases: TestCase[] = testCases, path: TestCase[] = []): TestCase[] | null => {
+    // Ensure cases is always an array to prevent iteration errors
+    if (!Array.isArray(cases)) {
+      return null;
+    }
+    
     for (const testCase of cases) {
       const currentPath = [...path, testCase];
       
@@ -375,6 +395,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 获取可见的根用例（当前选中用例的顶层祖先）
   const getVisibleRootCase = (): TestCase | null => {
+    // Ensure testCases is always an array
+    if (!Array.isArray(testCases)) {
+      return null;
+    }
+    
     if (selectedTestCaseId) {
       const casePath = findCasePath(selectedTestCaseId);
       if (casePath && casePath.length > 0) {
@@ -401,6 +426,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 查找命令在用例树中的位置
   const findCommandLocation = (commandId: string, cases: TestCase[] = testCases): { caseId: string; commandIndex: number } | null => {
+    // Ensure cases is always an array to prevent iteration errors
+    if (!Array.isArray(cases)) {
+      return null;
+    }
+    
     for (const testCase of cases) {
       const commandIndex = testCase.commands.findIndex(cmd => cmd.id === commandId);
       if (commandIndex !== -1) {

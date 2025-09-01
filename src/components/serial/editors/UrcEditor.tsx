@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronDown, Radio, Wand2 } from "lucide-react";
 import { TestCommand } from '../types';
 import { UrcPreview } from '../UrcPreview';
@@ -28,6 +29,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
   const [showExamples, setShowExamples] = useState(false);
   const [parameterMapText, setParameterMapText] = useState('');
   const [parameterMapError, setParameterMapError] = useState<string | null>(null);
+  const [showCommandOptions, setShowCommandOptions] = useState(false);
   
   const updateCommand = (field: keyof TestCommand, value: any) => {
     onUpdate({ [field]: value });
@@ -490,7 +492,12 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
               onValueChange={(value) => {
                 const newConfig = { 
                   ...command.jumpConfig, 
-                  onReceived: value as any 
+                  onReceived: value as any,
+                  jumpTarget: value === 'jump' ? { 
+                    type: 'command', 
+                    targetId: '',
+                    ...command.jumpConfig?.jumpTarget
+                  } : undefined
                 };
                 updateCommand('jumpConfig', newConfig);
               }}
@@ -499,8 +506,8 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="continue">继续执行</SelectItem>
-                <SelectItem value="jump">转跳指定命令</SelectItem>
+                <SelectItem value="continue">顺序执行</SelectItem>
+                <SelectItem value="jump">跳转到指定命令</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -508,78 +515,71 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
           {command.jumpConfig?.onReceived === 'jump' && (
             <div className="space-y-3">
               <div>
-                <Label htmlFor="jumpType">跳转类型</Label>
-                <Select
-                  value={command.jumpConfig?.jumpTarget?.type || 'command'}
-                  onValueChange={(value) => {
-                    const newConfig = { 
-                      ...command.jumpConfig, 
-                      jumpTarget: { 
-                        ...command.jumpConfig?.jumpTarget,
-                        type: value as any,
-                        targetId: '',
-                        targetIndex: 0
-                      }
-                    };
-                    updateCommand('jumpConfig', newConfig);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="command">跳转到命令</SelectItem>
-                    <SelectItem value="case">跳转到用例</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="jumpTarget">
-                  {command.jumpConfig?.jumpTarget?.type === 'command' ? '选择跳转命令（当前用例及子用例）' : '跳转目标ID'}
-                </Label>
-                {command.jumpConfig?.jumpTarget?.type === 'command' && jumpOptions?.commandOptions?.length ? (
-                  <Select
-                    value={command.jumpConfig?.jumpTarget?.targetId || ''}
-                    onValueChange={(value) => {
-                      const newConfig = { 
-                        ...command.jumpConfig, 
-                        jumpTarget: { 
-                          ...command.jumpConfig?.jumpTarget,
-                          targetId: value
+                <Label htmlFor="commandSelect">选择命令</Label>
+                <div className="space-y-2">
+                  <Popover open={showCommandOptions} onOpenChange={setShowCommandOptions}>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-between"
+                        disabled={!jumpOptions?.commandOptions?.length}
+                      >
+                        {command.jumpConfig?.jumpTarget?.targetId ? 
+                          jumpOptions?.commandOptions?.find(opt => opt.id === command.jumpConfig?.jumpTarget?.targetId)?.label || '未找到命令'
+                          : '选择命令'
                         }
-                      };
-                      updateCommand('jumpConfig', newConfig);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择跳转命令" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {jumpOptions.commandOptions.map(option => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    id="jumpTarget"
-                    value={command.jumpConfig?.jumpTarget?.targetId || ''}
-                    onChange={(e) => {
-                      const newConfig = { 
-                        ...command.jumpConfig, 
-                        jumpTarget: { 
-                          ...command.jumpConfig?.jumpTarget,
-                          targetId: e.target.value
-                        }
-                      };
-                      updateCommand('jumpConfig', newConfig);
-                    }}
-                    placeholder={command.jumpConfig?.jumpTarget?.type === 'command' ? '输入命令ID' : '输入目标ID'}
-                  />
-                )}
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80 p-0 bg-popover border shadow-lg z-50" align="start">
+                      <div className="p-2 border-b">
+                        <p className="text-sm font-medium">当前用例及子用例命令清单</p>
+                      </div>
+                      {jumpOptions?.commandOptions?.length ? (
+                        <ScrollArea className="max-h-64">
+                          <div className="p-1">
+                            {jumpOptions.commandOptions.map(option => (
+                              <Button
+                                key={option.id}
+                                variant="ghost"
+                                size="sm"
+                                className="w-full justify-start h-auto p-2 text-left"
+                                onClick={() => {
+                                  const newConfig = { 
+                                    ...command.jumpConfig, 
+                                    jumpTarget: { 
+                                      type: 'command' as const,
+                                      targetId: option.id
+                                    }
+                                  };
+                                  updateCommand('jumpConfig', newConfig);
+                                  setShowCommandOptions(false);
+                                }}
+                              >
+                                <div className="text-left">
+                                  <div className="text-xs font-mono text-muted-foreground truncate">
+                                    {option.label}
+                                  </div>
+                                </div>
+                              </Button>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      ) : (
+                        <div className="p-4 text-center text-sm text-muted-foreground">
+                          暂无可跳转命令
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                  
+                  {command.jumpConfig?.jumpTarget?.targetId && (
+                    <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+                      <span className="font-medium">已选择: </span>
+                      {jumpOptions?.commandOptions?.find(opt => opt.id === command.jumpConfig?.jumpTarget?.targetId)?.label || command.jumpConfig.jumpTarget.targetId}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

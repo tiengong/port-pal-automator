@@ -211,6 +211,8 @@ const Index = () => {
         currentMessage={statusMessages.currentMessage}
         onClearMessage={statusMessages.clearMessage}
         isSerialSupported={isSerialSupported}
+        messages={statusMessages.messages}
+        onClearAllMessages={statusMessages.clearAllMessages}
       />
     </div>
   );

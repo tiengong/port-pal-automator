@@ -90,8 +90,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     setAutoSendInterval(settings.defaultAutoSendInterval);
   }, [settings.displayFormat, settings.showTimestamp, settings.defaultAutoSendInterval]);
 
-  // 添加日志条目
+  // 添加日志条目 - 只记录发送和接收的UART数据
   const addLog = (type: LogEntry['type'], data: string, format: 'ascii' | 'hex' = displayFormat, portIndex?: number) => {
+    // 只记录发送和接收的数据，不记录系统消息
+    if (type !== 'sent' && type !== 'received') return;
+    
     const entry: LogEntry = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       timestamp: new Date(),
@@ -132,28 +135,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           sentBytes: type === 'sent' ? (prev[portIndex]?.sentBytes || 0) + data.length : (prev[portIndex]?.sentBytes || 0)
         }
       }));
-    } else {
-      // 系统日志添加到所有端口
-      setLogs(prev => {
-        const newLogs = { ...prev };
-        connectedPorts.forEach((_, index) => {
-          const newPortLogs = [...(newLogs[index] || []), entry];
-          // 应用最大日志行数限制
-          newLogs[index] = newPortLogs.slice(-settings.maxLogLines);
-        });
-        return newLogs;
-      });
-      
-      // 系统日志也添加到合并日志
-      const mergedEntry: MergedLogEntry = {
-        ...entry,
-        portLabel: 'SYSTEM'
-      };
-      setMergedLogs(prev => {
-        const newMergedLogs = [...prev, mergedEntry];
-        // 应用最大日志行数限制
-        return newMergedLogs.slice(-settings.maxLogLines);
-      });
     }
 
     // 自动滚动到底部（仅当启用自动滚动时）
@@ -214,7 +195,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           }
         } catch (error) {
           if ((error as any).name === 'NetworkError') {
-            addLog('error', '设备连接已断开', displayFormat, portIndex);
+            statusMessages?.addMessage('设备连接已断开', 'error');
             // Find the port label and disconnect
             const portLabel = connectedPortLabels[portIndex]?.label;
             if (portLabel) {
@@ -227,7 +208,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       }
     } catch (error) {
       console.error('开始读取失败:', error);
-      addLog('error', '无法开始读取数据', displayFormat, portIndex);
+      statusMessages?.addMessage('无法开始读取数据', 'error');
     }
   };
 
@@ -249,7 +230,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   // 发送数据到所有连接的端口
   const sendSerialData = async () => {
     if (connectedPorts.length === 0) {
-      addLog('system', t('terminal.notConnected'));
       statusMessages?.addMessage(t('terminal.notConnected'), 'warning');
       return;
     }
@@ -317,10 +297,10 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         const portLabel = connectedPortLabels[index]?.label || `${t('terminal.port')} ${index + 1}`;
         addLog('sent', dataToSend, sendFormat, index);
         return { success: true, portLabel };
-      } catch (error) {
+        } catch (error) {
         const portLabel = connectedPortLabels[index]?.label || `${t('terminal.port')} ${index + 1}`;
         console.error(`发送数据到 ${portLabel} 失败:`, error);
-        addLog('error', `发送失败: ${(error as Error).message}`, displayFormat, index);
+        statusMessages?.addMessage(`发送失败: ${(error as Error).message}`, 'error');
         return { success: false, portLabel };
       }
     });
@@ -353,7 +333,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         autoSendTimerRef.current = null;
       }
       setAutoSend(false);
-      addLog('system', t('terminal.autoSendStopped'));
+      statusMessages?.addMessage(t('terminal.autoSendStopped'), 'info');
     } else {
       if (autoSendInterval < 10) {
         toast({
@@ -369,7 +349,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       }, autoSendInterval);
       
       setAutoSend(true);
-      addLog('system', `已启动自动发送，间隔 ${autoSendInterval}ms`);
+      statusMessages?.addMessage(`已启动自动发送，间隔 ${autoSendInterval}ms`, 'success');
     }
   };
 
@@ -379,13 +359,13 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       // 清空特定端口的日志
       setLogs(prev => ({ ...prev, [portIndex]: [] }));
       setStats(prev => ({ ...prev, [portIndex]: { sentBytes: 0, receivedBytes: 0, totalLogs: 0 } }));
-      addLog('system', `${t('terminal.port')} ${portIndex + 1} ${t('terminal.logsCleared')}`, displayFormat, portIndex);
+      statusMessages?.addMessage(`${t('terminal.port')} ${portIndex + 1} ${t('terminal.logsCleared')}`, 'success');
     } else {
       // 清空所有日志
       setLogs({});
       setMergedLogs([]);
       setStats({});
-      addLog('system', t('terminal.logsCleared'));
+      statusMessages?.addMessage(t('terminal.logsCleared'), 'success');
     }
   };
 
@@ -483,7 +463,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     connectedPorts.forEach(({ port }, index) => {
       if (!readersRef.current.has(port)) {
         startReading(port, index);
-        addLog('system', `开始监听端口数据 - 端口 ${index + 1}`);
+        statusMessages?.addMessage(`开始监听端口数据 - 端口 ${index + 1}`, 'info');
       }
     });
 
@@ -492,7 +472,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     for (const [port, reader] of readersRef.current.entries()) {
       if (!connectedPortSet.has(port)) {
         stopReading(port);
-        addLog('system', '端口已断开连接');
+        statusMessages?.addMessage('端口已断开连接', 'warning');
       }
     }
 

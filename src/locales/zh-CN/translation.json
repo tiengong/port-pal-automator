@@ -17,7 +17,10 @@
     "serialTool": "串口调试工具 v2.2.0",
     "webSerialSupported": "Web Serial API 已支持",
     "webSerialNotSupported": "Web Serial API 不支持",
-    "activeConnections": "活跃连接"
+    "activeConnections": "活跃连接",
+    "history": "系统消息历史",
+    "clearAll": "清空所有",
+    "noMessages": "暂无系统消息"
   },
   "settings": {
     "title": "设置",

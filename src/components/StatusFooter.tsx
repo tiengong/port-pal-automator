@@ -2,7 +2,9 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CheckCircle, AlertCircle, XCircle, Info, X, Wifi, WifiOff } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { CheckCircle, AlertCircle, XCircle, Info, X, Wifi, WifiOff, History, Trash } from 'lucide-react';
 import { StatusMessage } from '@/hooks/useStatusMessages';
 import { useSerialManager } from '@/hooks/useSerialManager';
 import { useTranslation } from 'react-i18next';
@@ -11,12 +13,16 @@ interface StatusFooterProps {
   currentMessage: StatusMessage | null;
   onClearMessage: () => void;
   isSerialSupported: boolean;
+  messages: StatusMessage[];
+  onClearAllMessages: () => void;
 }
 
 export const StatusFooter: React.FC<StatusFooterProps> = ({
   currentMessage,
   onClearMessage,
-  isSerialSupported
+  isSerialSupported,
+  messages,
+  onClearAllMessages
 }) => {
   const { t } = useTranslation();
   const serialManager = useSerialManager();
@@ -85,7 +91,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
         )}
       </div>
 
-      {/* Right: Connection Status */}
+      {/* Right: Connection Status & History */}
       <div className="flex items-center gap-6">
         {connectionStatus.count > 0 && (
           <div className="flex items-center gap-2">
@@ -98,6 +104,61 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
             ))}
           </div>
         )}
+        
+        {/* Message History */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+            >
+              <History className="w-4 h-4" />
+              {messages.length > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
+                  {messages.length > 99 ? '99+' : messages.length}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-0" align="end">
+            <div className="flex items-center justify-between p-3 border-b">
+              <h4 className="font-medium text-sm">{t('status.history')}</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearAllMessages}
+                className="h-8 w-8 p-0"
+              >
+                <Trash className="w-4 h-4" />
+              </Button>
+            </div>
+            <ScrollArea className="h-64">
+              {messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                  {t('status.noMessages')}
+                </div>
+              ) : (
+                <div className="p-2">
+                  {messages.slice().reverse().map((msg) => (
+                    <div key={msg.id} className="mb-2 p-2 rounded bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                      <div className="flex items-start gap-2">
+                        {getMessageIcon(msg.type)}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm break-words">{msg.message}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {msg.timestamp.toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
+        
         <span className="text-muted-foreground/70">© 2024</span>
       </div>
     </footer>

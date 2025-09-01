@@ -17,7 +17,10 @@
     "serialTool": "Serial Debug Tool v2.2.0",
     "webSerialSupported": "Web Serial API Supported",
     "webSerialNotSupported": "Web Serial API Not Supported",
-    "activeConnections": "Active Connections"
+    "activeConnections": "Active Connections",
+    "history": "System Message History",
+    "clearAll": "Clear All",
+    "noMessages": "No system messages"
   },
   "settings": {
     "title": "Settings",

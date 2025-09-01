@@ -54,6 +54,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [executingCommand, setExecutingCommand] = useState<{ caseId: string | null, commandIndex: number | null }>({ caseId: null, commandIndex: null });
   const { toast } = useToast();
 
+  // 加载测试用例
   useEffect(() => {
     const savedTestCases = localStorage.getItem('testCases');
     if (savedTestCases) {
@@ -61,13 +62,18 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
   }, []);
 
+  // 保存测试用例
   useEffect(() => {
     localStorage.setItem('testCases', JSON.stringify(testCases));
   }, [testCases]);
 
+  // 创建测试用例
   const createTestCase = () => {
     if (!newCaseName.trim()) {
-      executionLogs.addLog('error', '用例名称不能为空', '请填写用例名称');
+      toast({
+        title: "用例名称不能为空",
+        description: "请填写用例名称",
+      })
       return;
     }
 
@@ -85,28 +91,40 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setNewCaseDescription('');
   };
 
+  // 删除测试用例
   const deleteTestCase = (caseId: string) => {
     setTestCases(testCases.filter(tc => tc.id !== caseId));
     setSelectedCaseId(null);
   };
 
+  // 选择测试用例
   const selectTestCase = (caseId: string) => {
     setSelectedCaseId(caseId);
   };
 
+  // 添加命令
   const addCommand = () => {
     if (!selectedCaseId) {
-      executionLogs.addLog('error', '请选择测试用例', '请先选择一个测试用例');
+      toast({
+        title: "请选择测试用例",
+        description: "请先选择一个测试用例",
+      })
       return;
     }
 
     if (commandType === 'execution' && !newCommand.trim()) {
-      executionLogs.addLog('error', '命令不能为空', '请填写命令');
+      toast({
+        title: "命令不能为空",
+        description: "请填写命令",
+      })
       return;
     }
 
     if (commandType === 'urc' && !newURCPattern.trim()) {
-      executionLogs.addLog('error', 'URC Pattern 不能为空', '请填写 URC Pattern');
+      toast({
+        title: "URC Pattern 不能为空",
+        description: "请填写 URC Pattern",
+      })
       return;
     }
 
@@ -130,6 +148,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setNewURCPattern('');
   };
 
+  // 更新命令
   const updateCommand = (caseId: string, commandId: string, updatedFields: Partial<Command>) => {
     const updatedTestCases = testCases.map(tc =>
       tc.id === caseId
@@ -144,6 +163,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setTestCases(updatedTestCases);
   };
 
+  // 删除命令
   const deleteCommand = (caseId: string, commandId: string) => {
     const updatedTestCases = testCases.map(tc =>
       tc.id === caseId
@@ -153,6 +173,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setTestCases(updatedTestCases);
   };
 
+  // 更新用例属性
   const updateCase = (caseId: string, updatedFields: Partial<TestCase>) => {
     const updatedTestCases = testCases.map(tc =>
       tc.id === caseId ? { ...tc, ...updatedFields } : tc
@@ -170,6 +191,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     );
   };
 
+  // 执行测试用例
   const executeTestCase = async (caseId: string) => {
     const testCase = findTestCaseById(caseId);
     if (!testCase) return;
@@ -177,6 +199,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     executionLogs.addLog('info', `开始执行测试用例: ${testCase.name}`);
 
     try {
+      // 更新运行状态
       const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: true,
@@ -184,12 +207,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       }));
       setTestCases(updatedTestCases);
 
+      // 根据运行次数执行
       for (let run = 0; run < testCase.runCount; run++) {
         if (testCase.runCount > 1) {
           executionLogs.addLog('info', `执行第 ${run + 1}/${testCase.runCount} 次`);
         }
 
+        // 执行所有选中的命令
         for (const command of testCase.commands.filter(cmd => cmd.selected)) {
+          // 检查是否被暂停
           const currentTestCase = findTestCaseById(caseId);
           if (!currentTestCase?.isRunning) {
             setExecutingCommand({ caseId: null, commandIndex: null });
@@ -200,12 +226,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           const commandIndex = testCase.commands.indexOf(command);
           await runCommand(caseId, commandIndex);
           
+          // 命令间等待时间
           if (command.waitTime > 0) {
             await new Promise(resolve => setTimeout(resolve, command.waitTime));
           }
         }
       }
 
+      // 执行完成，清除高亮并更新状态
       setExecutingCommand({ caseId: null, commandIndex: null });
       const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
@@ -216,6 +244,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       executionLogs.addLog('success', `测试用例 "${testCase.name}" 执行完成`, `共执行 ${testCase.runCount} 次`);
     } catch (error) {
+      // 执行出错，清除高亮并更新状态
       setExecutingCommand({ caseId: null, commandIndex: null });
       const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
@@ -228,16 +257,19 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
   };
 
+  // 运行单个命令
   const runCommand = async (caseId: string, commandIndex: number) => {
     const targetCase = findTestCaseById(caseId);
     if (!targetCase) return;
     
     const command = targetCase.commands[commandIndex];
     
+    // 设置当前执行的命令高亮
     setExecutingCommand({ caseId, commandIndex });
     
     if (command.type === 'execution') {
-      const substitutedCommand = command.command;
+      // 执行命令前进行变量替换
+      const substitutedCommand = command.command; // 这里可以添加变量替换逻辑
       
       const sendEvent = {
         command: substitutedCommand,
@@ -246,6 +278,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         targetPort: command.targetPort || 'ALL'  
       };
       
+      // 发送命令
       eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
       
       executionLogs.addLog('info', `执行命令: ${substitutedCommand}`, `步骤 ${commandIndex + 1}`);
@@ -253,11 +286,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       executionLogs.addLog('info', `激活URC监听: ${command.urcPattern}`, `步骤 ${commandIndex + 1}`);
     }
     
+    // 模拟执行时间后清除高亮
     setTimeout(() => {
       setExecutingCommand({ caseId: null, commandIndex: null });
     }, command.waitTime || 1000);
   };
 
+  // 停止测试用例
   const stopTestCase = (caseId: string) => {
     updateCase(caseId, { isRunning: false });
     setExecutingCommand({ caseId: null, commandIndex: null });
@@ -266,6 +301,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   return (
     <div className="flex flex-col h-full">
+      {/* 测试用例列表 */}
       <Card className="mb-4 flex-grow">
         <CardHeader>
           <CardTitle>测试用例</CardTitle>
@@ -317,6 +353,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         </CardContent>
       </Card>
 
+      {/* 命令列表和添加命令 */}
       {selectedCaseId && (
         <Card className="flex-grow">
           <CardHeader>
@@ -325,7 +362,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </CardHeader>
           <CardContent className="flex flex-col">
             <div className="mb-4">
-              <Select value={commandType} onValueChange={(value) => setCommandType(value as 'execution' | 'urc')}>
+              <Select value={commandType} onValueChange={setCommandType}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="选择命令类型" />
                 </SelectTrigger>
@@ -377,9 +414,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                             <div className="flex items-center">
                               <Checkbox
                                 id={`command-selected-${command.id}`}
-                                checked={Boolean(command.selected)}
+                                checked={command.selected}
                                 onCheckedChange={(checked) =>
-                                  updateCommand(selectedCaseId, command.id, { selected: Boolean(checked) })
+                                  updateCommand(selectedCaseId, command.id, { selected: checked })
                                 }
                                 className="mr-2"
                               />

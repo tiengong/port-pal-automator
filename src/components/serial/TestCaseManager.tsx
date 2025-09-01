@@ -159,16 +159,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
 
   // 更新命令选中状态（支持嵌套）
-  const updateCommandSelection = (commandId: string, selected: boolean) => {
-    if (!currentTestCase) return;
-    
-    const updatedCommands = currentTestCase.commands.map(cmd =>
-      cmd.id === commandId ? { ...cmd, selected } : cmd
-    );
-    
-    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
+  const updateCommandSelection = (caseId: string, commandId: string, selected: boolean) => {
+    const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
       ...testCase,
-      commands: updatedCommands
+      commands: testCase.commands.map(cmd =>
+        cmd.id === commandId ? { ...cmd, selected } : cmd
+      )
     }));
     setTestCases(updatedTestCases);
   };
@@ -260,6 +256,256 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
   
   const currentTestCase = getCurrentTestCase();
+
+  // ========== 递归渲染函数 ==========
+  
+  // 获取状态图标
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'running':
+        return <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />;
+      case 'partial':
+        return <AlertCircle className="w-4 h-4 text-blue-500" />;
+      default:
+        return null;
+    }
+  };
+
+  // 渲染命令行
+  const renderCommandRow = (command: TestCommand, caseId: string, commandIndex: number, level: number) => (
+    <div key={command.id} className="p-3 hover:bg-muted/50 transition-colors">
+      <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+        {/* 复选框 */}
+        <Checkbox
+          checked={command.selected}
+          onCheckedChange={(checked) => updateCommandSelection(caseId, command.id, checked as boolean)}
+          className="flex-shrink-0"
+        />
+        
+        {/* 命令内容 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm truncate">
+              {command.command}
+            </span>
+            
+            {/* 命令类型标识 */}
+            <Badge 
+              variant="outline" 
+              className="text-xs flex-shrink-0"
+            >
+              {command.type === 'execution' ? 'AT' : 'URC'}
+            </Badge>
+          </div>
+          
+          {command.expectedResponse && (
+            <div className="text-xs text-muted-foreground truncate mt-1">
+              期望: {command.expectedResponse}
+            </div>
+          )}
+        </div>
+        
+        {/* 状态指示器 */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {getStatusIcon(command.status)}
+        </div>
+        
+        {/* 操作按钮 */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => runCommand(caseId, commandIndex)}
+                  disabled={connectedPorts.length === 0}
+                >
+                  <PlayCircle className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>运行</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    setSelectedTestCaseId(caseId);
+                    setEditingCommandIndex(commandIndex);
+                  }}
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>设置</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 渲染测试用例节点
+  const renderCaseNode = (testCase: TestCase, level: number): React.ReactNode[] => {
+    const elements: React.ReactNode[] = [];
+    
+    // 渲染用例行
+    elements.push(
+      <div key={testCase.id} className="p-3 hover:bg-muted/50 transition-colors">
+        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+          {/* 展开/折叠按钮 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 flex-shrink-0"
+            onClick={() => {
+              const updatedTestCases = toggleExpandById(testCases, testCase.id);
+              setTestCases(updatedTestCases);
+            }}
+          >
+            {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
+              testCase.isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )
+            ) : (
+              <div className="w-4 h-4" />
+            )}
+          </Button>
+
+          {/* 复选框 */}
+          <Checkbox
+            checked={testCase.selected}
+            onCheckedChange={(checked) => {
+              const updatedTestCases = updateCaseById(testCases, testCase.id, (tc) => ({
+                ...tc,
+                selected: checked as boolean
+              }));
+              setTestCases(updatedTestCases);
+            }}
+            className="flex-shrink-0"
+          />
+          
+          {/* 用例内容 */}
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => setSelectedTestCaseId(testCase.id)}
+          >
+            <div className="flex items-center gap-2">
+              <span className={`font-medium text-sm truncate ${
+                selectedTestCaseId === testCase.id ? 'text-primary' : ''
+              }`}>
+                {testCase.name}
+              </span>
+              
+              <Badge variant="outline" className="text-xs flex-shrink-0">
+                {testCase.uniqueId}
+              </Badge>
+
+              {testCase.commands.length > 0 && (
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                  {testCase.commands.length} 条命令
+                </Badge>
+              )}
+
+              {testCase.subCases.length > 0 && (
+                <Badge variant="outline" className="text-xs flex-shrink-0">
+                  {testCase.subCases.length} 个子用例
+                </Badge>
+              )}
+            </div>
+          </div>
+          
+          {/* 状态指示器 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {getStatusIcon(testCase.status)}
+          </div>
+          
+          {/* 操作按钮 */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => runTestCase(testCase.id)}
+                    disabled={connectedPorts.length === 0}
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>运行</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleEditCase(testCase)}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>设置</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+    );
+
+    // 渲染展开的内容（命令和子用例）
+    if (testCase.isExpanded) {
+      // 先渲染命令
+      testCase.commands.forEach((command, index) => {
+        elements.push(renderCommandRow(command, testCase.id, index, level + 1));
+      });
+      
+      // 再渲染子用例
+      testCase.subCases.forEach((subCase) => {
+        elements.push(...renderCaseNode(subCase, level + 1));
+      });
+    }
+    
+    return elements;
+  };
+
+  // 渲染统一树结构
+  const renderUnifiedTree = (cases: TestCase[], level: number): React.ReactNode[] => {
+    const elements: React.ReactNode[] = [];
+    
+    cases.forEach((testCase) => {
+      elements.push(...renderCaseNode(testCase, level));
+    });
+    
+    return elements;
+  };
 
   // 监听串口数据接收事件
   useEffect(() => {
@@ -424,9 +670,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 运行单个命令
   const runCommand = (caseId: string, commandIndex: number) => {
-    if (!currentTestCase) return;
+    const targetCase = findTestCaseById(caseId);
+    if (!targetCase) return;
     
-    const command = currentTestCase.commands[commandIndex];
+    const command = targetCase.commands[commandIndex];
     
     if (command.type === 'execution') {
       // 执行命令前进行变量替换
@@ -447,11 +694,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       });
     } else if (command.type === 'urc') {
       // 激活URC监听
-      const updatedCommands = currentTestCase.commands.map((cmd, idx) =>
+      const updatedCommands = targetCase.commands.map((cmd, idx) =>
         idx === commandIndex ? { ...cmd, selected: true, status: 'running' as const } : cmd
       );
       
-      const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
+      const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
         ...testCase,
         commands: updatedCommands
       }));
@@ -727,231 +974,90 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {/* 用例树面板 */}
-            <div className="border border-border rounded-lg bg-card">
-              <div className="p-3 border-b border-border">
-                <h3 className="text-sm font-medium">测试用例树</h3>
-              </div>
-              <div className="p-2 max-h-64 overflow-y-auto">
-                <CaseTree
-                  cases={testCases}
-                  selectedId={selectedTestCaseId}
-                  onSelect={(caseId: string) => setSelectedTestCaseId(caseId)}
-                  onToggleExpand={(caseId: string) => {
-                    const updatedTestCases = toggleExpandById(testCases, caseId);
-                    setTestCases(updatedTestCases);
-                  }}
-                  onAddSubCase={(parentId: string) => {
-                    const newSubCase: TestCase = {
-                      id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                      uniqueId: generateUniqueId(),
-                      name: '新建子用例',
-                      description: '',
-                      commands: [],
-                      subCases: [],
-                      isExpanded: false,
-                      isRunning: false,
-                      currentCommand: -1,
-                      selected: false,
-                      status: 'pending'
-                    };
-
-                    const updatedTestCases = addSubCaseById(testCases, parentId, newSubCase);
-                    setTestCases(updatedTestCases);
-
-                    toast({
-                      title: "新增子用例",
-                      description: `已添加子用例: ${newSubCase.name}`,
-                    });
-                  }}
-                />
-              </div>
-            </div>
-
-            {!currentTestCase ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <TestTube2 className="w-8 h-8 mb-2 opacity-30" />
-                <p className="text-sm">请选择一个测试用例</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {/* 参数显示面板 */}
-                {Object.keys(storedParameters).length > 0 && (
-                  <VariableDisplay
-                    storedParameters={storedParameters}
-                    onClearParameter={(key) => {
-                      setStoredParameters(prev => {
-                        const newParams = { ...prev };
-                        delete newParams[key];
-                        return newParams;
-                      });
-                      toast({
-                        title: "参数已清除",
-                        description: `已清除参数: ${key}`,
-                      });
-                    }}
-                    onClearAll={() => {
-                      setStoredParameters({});
-                      toast({
-                        title: "全部参数已清除",
-                        description: "所有解析的参数已被清空",
-                      });
-                    }}
-                  />
-                )}
-                
-                {/* 当前测试用例的命令列表 */}
-                <ContextMenu>
-                  <ContextMenuTrigger asChild>
-                    <div className="border border-border rounded-lg bg-card">
-                      {/* 命令列表 */}
-                      <div className="divide-y divide-border">
-                        {currentTestCase.commands.map((command, index) => (
-                          <div key={command.id}>
-                            {/* 主命令行 */}
-                            <div className="p-3 hover:bg-muted/50 transition-colors">
-                              <div className="flex items-center gap-3">
-                                {/* 复选框 */}
-                                <Checkbox
-                                  checked={command.selected}
-                                  onCheckedChange={(checked) => updateCommandSelection(command.id, checked as boolean)}
-                                  className="flex-shrink-0"
-                                />
-                                
-                                {/* 命令编号 */}
-                                <div className="flex items-center justify-center w-8 h-6 bg-primary/10 text-primary rounded-full text-xs font-medium flex-shrink-0">
-                                  {formatCommandIndex(index)}
-                                </div>
-                                
-                                
-                                {/* 命令内容 */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono text-sm truncate">
-                                      {command.command}
-                                    </span>
-                                    
-                                    {/* 命令类型标识 */}
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-xs flex-shrink-0"
-                                    >
-                                      {command.type === 'execution' ? 'AT' : 'URC'}
-                                    </Badge>
-                                  </div>
-                                  
-                                  {command.expectedResponse && (
-                                    <div className="text-xs text-muted-foreground truncate mt-1">
-                                      期望: {command.expectedResponse}
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* 状态指示器 */}
-                                <div className="flex items-center gap-2 flex-shrink-0">
-                                  {command.status === 'success' && <CheckCircle className="w-4 h-4 text-green-500" />}
-                                  {command.status === 'failed' && <XCircle className="w-4 h-4 text-red-500" />}
-                                  {command.status === 'running' && <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />}
-                                  
-                                  {/* 操作按钮 */}
-                                  <div className="flex items-center gap-1">
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0"
-                                            onClick={() => runCommand(currentTestCase.id, index)}
-                                            disabled={connectedPorts.length === 0}
-                                          >
-                                            <PlayCircle className="w-4 h-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>单步执行</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                    
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0"
-                                            onClick={() => setEditingCommandIndex(index)}
-                                          >
-                                            <Settings className="w-4 h-4" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p>设置</p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent className="w-64">
-                    <ContextMenuSub>
-                      <ContextMenuSubTrigger className="flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        新建
-                      </ContextMenuSubTrigger>
-                      <ContextMenuSubContent className="w-48">
-                        <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
-                          <Hash className="w-4 h-4" />
-                          新建命令
-                        </ContextMenuItem>
-                        <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
-                          <Search className="w-4 h-4" />
-                          新建URC
-                        </ContextMenuItem>
-                      </ContextMenuSubContent>
-                    </ContextMenuSub>
-                    
-                    <ContextMenuSeparator />
-                    
-                    <ContextMenuSub>
-                      <ContextMenuSubTrigger className="flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        载入
-                      </ContextMenuSubTrigger>
-                      <ContextMenuSubContent className="w-64">
-                        {testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
-                          <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseToCurrentCase(testCase)} className="flex items-center justify-between">
-                            <span className="truncate mr-2">{testCase.name}</span>
-                            <span className="text-xs text-muted-foreground">载入到当前用例</span>
-                          </ContextMenuItem>
-                        ))}
-                      </ContextMenuSubContent>
-                    </ContextMenuSub>
-                    
-                    <ContextMenuSeparator />
-                    
-                    <ContextMenuItem onClick={deleteSelectedCommands} className="flex items-center gap-2 text-destructive">
-                      <Trash2 className="w-4 h-4" />
-                      删除勾选的命令
-                    </ContextMenuItem>
-                    
-                    <ContextMenuSeparator />
-                    
-                    <ContextMenuItem onClick={exportTestCase} className="flex items-center gap-2">
-                      <Download className="w-4 h-4" />
-                      导出用例到...
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              </div>
+            {/* 参数显示面板 */}
+            {Object.keys(storedParameters).length > 0 && (
+              <VariableDisplay
+                storedParameters={storedParameters}
+                onClearParameter={(key) => {
+                  setStoredParameters(prev => {
+                    const newParams = { ...prev };
+                    delete newParams[key];
+                    return newParams;
+                  });
+                  toast({
+                    title: "参数已清除",
+                    description: `已清除参数: ${key}`,
+                  });
+                }}
+                onClearAll={() => {
+                  setStoredParameters({});
+                  toast({
+                    title: "全部参数已清除",
+                    description: "所有解析的参数已被清空",
+                  });
+                }}
+              />
             )}
+            
+            {/* 统一层级树 */}
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <div className="border border-border rounded-lg bg-card">
+                  <div className="divide-y divide-border">
+                    {renderUnifiedTree(testCases, 0)}
+                  </div>
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-64">
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    新建
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-48">
+                    <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
+                      <Hash className="w-4 h-4" />
+                      新建命令
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
+                      <Search className="w-4 h-4" />
+                      新建URC
+                    </ContextMenuItem>
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+                
+                <ContextMenuSeparator />
+                
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger className="flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    载入
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-64">
+                    {testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
+                      <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseToCurrentCase(testCase)} className="flex items-center justify-between">
+                        <span className="truncate mr-2">{testCase.name}</span>
+                        <span className="text-xs text-muted-foreground">载入到当前用例</span>
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+                
+                <ContextMenuSeparator />
+                
+                <ContextMenuItem onClick={deleteSelectedCommands} className="flex items-center gap-2 text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                  删除勾选的命令
+                </ContextMenuItem>
+                
+                <ContextMenuSeparator />
+                
+                <ContextMenuItem onClick={exportTestCase} className="flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  导出用例到...
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           </div>
         )}
       </div>

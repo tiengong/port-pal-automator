@@ -24,6 +24,7 @@ import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { OneNetTestCase } from "./OneNetTestCase";
+import { normalizeImportedCases, ensureUniqueIds } from "@/lib/testCaseUtils";
 
 interface TestCaseActionsProps {
   currentTestCase: TestCase | null;
@@ -190,13 +191,37 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           try {
-            const data = JSON.parse(e.target?.result as string);
-            setTestCases(data);
+            const rawData = JSON.parse(e.target?.result as string);
+            
+            // 验证数据必须是数组
+            if (!Array.isArray(rawData)) {
+              toast({
+                title: t("testCase.importFailed"),
+                description: "JSON文件必须包含测试用例数组",
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            // 标准化和验证导入的测试用例
+            const normalizedCases = normalizeImportedCases(rawData);
+            const validatedCases = await ensureUniqueIds(normalizedCases, testCases);
+            
+            if (validatedCases.length === 0) {
+              toast({
+                title: t("testCase.importFailed"),
+                description: "未找到有效的测试用例",
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            setTestCases([...testCases, ...validatedCases]);
             toast({
               title: t("testCase.importSuccess"),
-              description: t("testCase.importSuccessDesc"),
+              description: `已导入 ${validatedCases.length} 个测试用例`,
             });
           } catch (error) {
             toast({

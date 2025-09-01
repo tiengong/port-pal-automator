@@ -11,6 +11,7 @@ import { Search, TestTube2, FilePlus, Trash2, RotateCcw, Upload, Download, Folde
 import { TestCase } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { createWorkspace, openWorkspace, cloneCase, getNextUniqueId, saveCase, getCurrentWorkspace } from "./workspace";
+import { normalizeImportedCases, ensureUniqueIds } from "@/lib/testCaseUtils";
 
 interface TestCaseSwitcherProps {
   testCases: TestCase[];
@@ -156,18 +157,42 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = e => {
+        reader.onload = async e => {
           try {
-            const data = JSON.parse(e.target?.result as string);
-            setTestCases(data);
+            const rawData = JSON.parse(e.target?.result as string);
+            
+            // 验证数据必须是数组
+            if (!Array.isArray(rawData)) {
+              toast({
+                title: "导入失败",
+                description: "JSON文件必须包含测试用例数组",
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            // 标准化和验证导入的测试用例
+            const normalizedCases = normalizeImportedCases(rawData);
+            const validatedCases = await ensureUniqueIds(normalizedCases, testCases);
+            
+            if (validatedCases.length === 0) {
+              toast({
+                title: "导入失败", 
+                description: "未找到有效的测试用例",
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            setTestCases([...testCases, ...validatedCases]);
             toast({
               title: "导入成功",
-              description: "测试用例已导入"
+              description: `已导入 ${validatedCases.length} 个测试用例`
             });
           } catch (error) {
             toast({
               title: "导入失败",
-              description: "文件格式错误",
+              description: "文件格式错误或包含无效数据",
               variant: "destructive"
             });
           }

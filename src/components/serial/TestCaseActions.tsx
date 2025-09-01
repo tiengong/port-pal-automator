@@ -435,16 +435,20 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
             <TooltipTrigger asChild>
               <Button 
                 onClick={() => onRunTestCase(currentTestCase.id)} 
-                variant="default" 
+                variant={currentTestCase.isRunning ? "destructive" : "default"} 
                 size="sm" 
                 className="h-8 w-8 p-0" 
                 disabled={connectedPorts.length === 0}
               >
-                <Play className="w-4 h-4" />
+                {currentTestCase.isRunning ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>运行测试用例</p>
+              <p>{currentTestCase.isRunning ? "暂停测试用例" : "运行测试用例"}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

@@ -1029,15 +1029,111 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   console.log('TestCaseManager rendered with modular layout', { currentTestCase, testCases });
 
   // 运行测试用例
-  const runTestCase = (caseId: string) => {
+  const runTestCase = async (caseId: string) => {
+    const testCase = findTestCaseById(caseId);
+    if (!testCase) return;
+
+    // 如果正在运行，则暂停
+    if (testCase.isRunning) {
+      const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+        ...tc,
+        isRunning: false,
+        status: 'pending'
+      }));
+      setTestCases(updatedTestCases);
+      toast({
+        title: "执行已暂停",
+        description: `测试用例 "${testCase.name}" 已暂停`,
+      });
+      return;
+    }
+
     // 每次运行测试用例时清空存储的变量和触发状态
     setStoredParameters({});
     setTriggeredUrcIds(new Set());
     
+    // 更新状态为运行中
+    const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+      ...tc,
+      isRunning: true,
+      status: 'running',
+      currentCommand: 0
+    }));
+    setTestCases(updatedTestCases);
+    
     toast({
       title: "开始执行",
-      description: `正在执行测试用例: ${currentTestCase?.name}`,
+      description: `正在执行测试用例: ${testCase.name}`,
     });
+
+    // 获取运行次数，默认为1
+    const runCount = testCase.runCount || 1;
+    
+    try {
+      for (let i = 0; i < runCount; i++) {
+        if (runCount > 1) {
+          toast({
+            title: `第 ${i + 1} 次执行`,
+            description: `执行测试用例: ${testCase.name} (${i + 1}/${runCount})`,
+          });
+        }
+
+        // 执行所有选中的命令
+        const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
+        if (selectedCommands.length === 0) {
+          toast({
+            title: "没有选中的命令",
+            description: "请先选择要执行的命令",
+            variant: "destructive"
+          });
+          break;
+        }
+
+        for (let j = 0; j < selectedCommands.length; j++) {
+          const command = selectedCommands[j];
+          
+          // 检查是否被暂停
+          const currentTestCase = findTestCaseById(caseId);
+          if (!currentTestCase?.isRunning) {
+            return;
+          }
+
+          await runCommand(caseId, testCase.commands.indexOf(command));
+          
+          // 命令间等待时间
+          if (command.waitTime > 0) {
+            await new Promise(resolve => setTimeout(resolve, command.waitTime));
+          }
+        }
+      }
+
+      // 执行完成，更新状态
+      const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
+        ...tc,
+        isRunning: false,
+        status: 'success'
+      }));
+      setTestCases(finalTestCases);
+
+      toast({
+        title: "执行完成",
+        description: `测试用例 "${testCase.name}" 执行完成`,
+      });
+    } catch (error) {
+      // 执行出错，更新状态
+      const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
+        ...tc,
+        isRunning: false,
+        status: 'failed'
+      }));
+      setTestCases(errorTestCases);
+
+      toast({
+        title: "执行失败",
+        description: `测试用例执行出错: ${error}`,
+        variant: "destructive"
+      });
+    }
   };
 
   // 运行单个命令

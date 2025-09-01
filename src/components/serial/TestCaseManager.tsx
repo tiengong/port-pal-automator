@@ -88,6 +88,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   
+  // Drag and drop state
+  const [dragInfo, setDragInfo] = useState<{
+    draggedItem: { caseId: string; commandIndex: number } | null;
+    dropTarget: { caseId: string; commandIndex: number; position: 'above' | 'below' } | null;
+  }>({ draggedItem: null, dropTarget: null });
+  
   // Initialize workspace and load test cases
   useEffect(() => {
     const initWorkspace = async () => {
@@ -221,6 +227,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     const id = nextUniqueId.toString();
     setNextUniqueId(prev => prev + 1);
     return id;
+  };
+
+  // 数组移动工具函数
+  const moveItem = <T,>(array: T[], fromIndex: number, toIndex: number): T[] => {
+    const newArray = [...array];
+    const [movedItem] = newArray.splice(fromIndex, 1);
+    newArray.splice(toIndex, 0, movedItem);
+    return newArray;
   };
 
   // ========== 递归工具函数 ==========
@@ -416,81 +430,168 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   // 渲染命令行
-  const renderCommandRow = (command: TestCommand, caseId: string, commandIndex: number, level: number) => (
-    <div key={command.id} className="p-3 hover:bg-muted/50 transition-colors">
-      <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
-        {/* 复选框 */}
-        <Checkbox
-          checked={command.selected}
-          onCheckedChange={(checked) => updateCommandSelection(caseId, command.id, checked as boolean)}
-          className="flex-shrink-0"
-        />
-        
-        {/* 命令内容 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-sm truncate">
-              {command.command}
-            </span>
+  const renderCommandRow = (command: TestCommand, caseId: string, commandIndex: number, level: number) => {
+    const isDragging = dragInfo.draggedItem?.caseId === caseId && dragInfo.draggedItem?.commandIndex === commandIndex;
+    const isDropTarget = dragInfo.dropTarget?.caseId === caseId && dragInfo.dropTarget?.commandIndex === commandIndex;
+    
+    return (
+      <div 
+        key={command.id} 
+        className={`p-3 hover:bg-muted/50 transition-colors cursor-move select-none ${
+          isDragging ? 'opacity-50' : ''
+        } ${
+          isDropTarget && dragInfo.dropTarget?.position === 'above' ? 'border-t-2 border-primary' : ''
+        } ${
+          isDropTarget && dragInfo.dropTarget?.position === 'below' ? 'border-b-2 border-primary' : ''
+        }`}
+        draggable
+        onDragStart={(e) => {
+          setDragInfo(prev => ({
+            ...prev,
+            draggedItem: { caseId, commandIndex }
+          }));
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          
+          const rect = e.currentTarget.getBoundingClientRect();
+          const midpoint = rect.top + rect.height / 2;
+          const position = e.clientY < midpoint ? 'above' : 'below';
+          
+          setDragInfo(prev => ({
+            ...prev,
+            dropTarget: { caseId, commandIndex, position }
+          }));
+        }}
+        onDragLeave={(e) => {
+          // 只在离开整个元素时清除，避免子元素触发
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setDragInfo(prev => ({ ...prev, dropTarget: null }));
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const { draggedItem, dropTarget } = dragInfo;
+          
+          if (draggedItem && dropTarget && draggedItem.caseId === dropTarget.caseId) {
+            const targetCase = findTestCaseById(dropTarget.caseId);
+            if (targetCase) {
+              let newIndex = dropTarget.commandIndex;
+              if (dropTarget.position === 'below') {
+                newIndex += 1;
+              }
+              
+              // 如果拖拽的索引在目标索引之前，需要调整目标索引
+              if (draggedItem.commandIndex < newIndex) {
+                newIndex -= 1;
+              }
+              
+              const reorderedCommands = moveItem(targetCase.commands, draggedItem.commandIndex, newIndex);
+              
+              const updatedTestCases = updateCaseById(testCases, dropTarget.caseId, (testCase) => ({
+                ...testCase,
+                commands: reorderedCommands
+              }));
+              
+              setTestCases(updatedTestCases);
+              
+              // 保存更新后的用例
+              const updatedCase = findTestCaseById(dropTarget.caseId, updatedTestCases);
+              if (updatedCase) {
+                saveCase(updatedCase);
+              }
+              
+              toast({
+                title: "重新排序成功",
+                description: "命令顺序已更新"
+              });
+            }
+          } else if (draggedItem && dropTarget && draggedItem.caseId !== dropTarget.caseId) {
+            toast({
+              title: "不支持跨用例拖拽",
+              description: "只能在同一用例内重新排序命令"
+            });
+          }
+          
+          setDragInfo({ draggedItem: null, dropTarget: null });
+        }}
+      >
+        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+          {/* 复选框 */}
+          <Checkbox
+            checked={command.selected}
+            onCheckedChange={(checked) => updateCommandSelection(caseId, command.id, checked as boolean)}
+            className="flex-shrink-0"
+          />
+          
+          {/* 命令内容 */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-sm truncate">
+                {command.command}
+              </span>
+            </div>
+            
+            {command.expectedResponse && (
+              <div className="text-xs text-muted-foreground truncate mt-1">
+                期望: {command.expectedResponse}
+              </div>
+            )}
           </div>
           
-          {command.expectedResponse && (
-            <div className="text-xs text-muted-foreground truncate mt-1">
-              期望: {command.expectedResponse}
-            </div>
-          )}
-        </div>
-        
-        {/* 状态指示器 */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {getStatusIcon(command.status)}
-        </div>
-        
-        {/* 操作按钮 */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => runCommand(caseId, commandIndex)}
-                  disabled={connectedPorts.length === 0}
-                >
-                  <PlayCircle className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>运行</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {/* 状态指示器 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {getStatusIcon(command.status)}
+          </div>
           
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => {
-                    setSelectedTestCaseId(caseId);
-                    setEditingCommandIndex(commandIndex);
-                  }}
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>设置</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
-    </div>
-  );
+          {/* 操作按钮 */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => runCommand(caseId, commandIndex)}
+                    disabled={connectedPorts.length === 0}
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>运行</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      setSelectedTestCaseId(caseId);
+                      setEditingCommandIndex(commandIndex);
+                    }}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>设置</p>
+                </TooltipContent>
+                 </Tooltip>
+               </TooltipProvider>
+             </div>
+           </div>
+         </div>
+       );
+    };
 
   // 渲染测试用例节点
   const renderCaseNode = (testCase: TestCase, level: number): React.ReactNode[] => {

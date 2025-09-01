@@ -60,7 +60,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   const [newlineMode, setNewlineMode] = useState<'none' | 'lf' | 'cr' | 'crlf'>('crlf');
   const [autoSend, setAutoSend] = useState(false);
   const [autoSendInterval, setAutoSendInterval] = useState(1000);
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [showTimestamp, setShowTimestamp] = useState(true);
   const [selectedSendPort, setSelectedSendPort] = useState<'ALL' | 'P1' | 'P2'>('ALL');
   const [synchronizedScrolling, setSynchronizedScrolling] = useState(true);
@@ -128,27 +127,25 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     }
 
     // 自动滚动到底部
-    if (autoScrollEnabled) {
-      setTimeout(() => {
-        if (synchronizedScrolling && connectedPorts.length > 1) {
-          // 同步滚动所有终端
-          terminalRefs.current.forEach(ref => {
-            if (ref) {
-              ref.scrollTo({
-                top: ref.scrollHeight,
-                behavior: 'smooth'
-              });
-            }
-          });
-        } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
-          // 只滚动特定终端
-          terminalRefs.current[portIndex]!.scrollTo({
-            top: terminalRefs.current[portIndex]!.scrollHeight,
-            behavior: 'smooth'
-          });
-        }
-      }, 50);
-    }
+    setTimeout(() => {
+      if (synchronizedScrolling && connectedPorts.length > 1) {
+        // 同步滚动所有终端
+        terminalRefs.current.forEach(ref => {
+          if (ref) {
+            ref.scrollTo({
+              top: ref.scrollHeight,
+              behavior: 'smooth'
+            });
+          }
+        });
+      } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
+        // 只滚动特定终端
+        terminalRefs.current[portIndex]!.scrollTo({
+          top: terminalRefs.current[portIndex]!.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
   };
 
   // 开始监听数据
@@ -623,22 +620,6 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
           <TooltipProvider>
             <div className="flex items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={autoScrollEnabled ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ArrowDown className="w-3 h-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>自动滚动</p>
-                </TooltipContent>
-              </Tooltip>
-              
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" onClick={() => clearLogs()} className="hover:bg-destructive hover:text-destructive-foreground">

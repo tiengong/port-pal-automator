@@ -122,7 +122,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         const workspace = await initializeDefaultWorkspace();
         setCurrentWorkspace(workspace);
         const cases = await loadCases();
-        setTestCases(cases);
+        // Ensure cases is always an array
+        setTestCases(Array.isArray(cases) ? cases : []);
         if (cases.length > 0 && !selectedTestCaseId) {
           setSelectedTestCaseId(cases[0].id);
         }
@@ -144,8 +145,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     try {
       const workspace = getCurrentWorkspace();
       setCurrentWorkspace(workspace);
-      const cases = await loadCases();
-      setTestCases(cases);
+        const cases = await loadCases();
+        // Ensure cases is always an array
+        setTestCases(Array.isArray(cases) ? cases : []);
       setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
     } catch (error) {
       console.error('Failed to reload workspace:', error);
@@ -289,6 +291,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 根据ID查找测试用例
   const findTestCaseById = (id: string, cases: TestCase[] = testCases): TestCase | null => {
+    // Ensure cases is always an array to prevent iteration errors
+    if (!Array.isArray(cases)) {
+      return null;
+    }
+    
     for (const testCase of cases) {
       if (testCase.id === id || testCase.uniqueId === id) {
         return testCase;
@@ -379,6 +386,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 获取当前选中的测试用例（支持嵌套查找）
   const getCurrentTestCase = () => {
+    // Ensure testCases is always an array
+    if (!Array.isArray(testCases)) {
+      return null;
+    }
+    
     if (selectedTestCaseId) {
       return findTestCaseById(selectedTestCaseId);
     }

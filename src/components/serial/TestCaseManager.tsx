@@ -432,11 +432,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               }`}>
                 {testCase.name}
               </span>
-              
-              <Badge variant="outline" className="text-xs flex-shrink-0">
-                {testCase.uniqueId}
-              </Badge>
-
+               
 
               {testCase.subCases.length > 0 && (
                 <Badge variant="outline" className="text-xs flex-shrink-0">

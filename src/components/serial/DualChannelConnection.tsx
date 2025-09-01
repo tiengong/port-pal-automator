@@ -189,10 +189,21 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   }}
                   onOpenChange={async (isOpen) => {
                     if (isOpen) {
+                      // 每次打开时都刷新串口列表
                       await refreshPorts();
-                      // 如果没有可用端口，自动请求新设备
+                      
+                      // 如果没有可用端口，提示并尝试请求新设备
                       if (availablePorts.length === 0) {
+                        toast({
+                          title: "正在扫描串口设备",
+                          description: "将自动请求访问新的串口设备",
+                        });
                         await requestPortAndRefresh();
+                      } else {
+                        toast({
+                          title: "串口列表已更新",
+                          description: `发现 ${availablePorts.length} 个可用串口设备`,
+                        });
                       }
                     }
                   }}
@@ -422,10 +433,21 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     }}
                     onOpenChange={async (isOpen) => {
                       if (isOpen) {
+                        // 每次打开时都刷新串口列表
                         await refreshPorts();
-                        // 如果没有可用端口，自动请求新设备
+                        
+                        // 如果没有可用端口，提示并尝试请求新设备
                         if (availablePorts.length === 0) {
+                          toast({
+                            title: "正在扫描串口设备",
+                            description: "将自动请求访问新的串口设备",
+                          });
                           await requestPortAndRefresh();
+                        } else {
+                          toast({
+                            title: "串口列表已更新",
+                            description: `发现 ${availablePorts.length} 个可用串口设备`,
+                          });
                         }
                       }
                     }}

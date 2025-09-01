@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import "./i18n";
 
 const queryClient = new QueryClient();
 

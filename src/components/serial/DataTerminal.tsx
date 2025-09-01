@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSerialManager } from "@/hooks/useSerialManager";
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from "@/lib/eventBus";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useTranslation } from "react-i18next";
 
 interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -56,6 +57,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   serialManager,
   statusMessages
 }) => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { settings } = useSettings();
   const [logs, setLogs] = useState<{ [portIndex: number]: LogEntry[] }>({});
@@ -111,7 +113,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       });
       
       // 更新合并日志（用于 MERGED_TXRX 模式）
-      const portLabel = connectedPortLabels[portIndex]?.label || `端口 ${portIndex + 1}`;
+      const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
       const mergedEntry: MergedLogEntry = {
         ...entry,
         portLabel
@@ -200,7 +202,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             addLog('received', text, displayFormat, portIndex);
             
             // 发送数据到事件总线
-            const portLabel = connectedPortLabels[portIndex]?.label || `端口 ${portIndex + 1}`;
+            const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
             const serialEvent: SerialDataEvent = {
               portIndex,
               portLabel,
@@ -247,8 +249,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   // 发送数据到所有连接的端口
   const sendSerialData = async () => {
     if (connectedPorts.length === 0) {
-      addLog('system', '未连接设备，无法发送');
-      statusMessages?.addMessage('未连接设备，无法发送', 'warning');
+      addLog('system', t('terminal.notConnected'));
+      statusMessages?.addMessage(t('terminal.notConnected'), 'warning');
       return;
     }
 
@@ -312,11 +314,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         await writer.releaseLock();
         
         // 记录发送的数据到对应端口
-        const portLabel = connectedPortLabels[index]?.label || `端口 ${index + 1}`;
+        const portLabel = connectedPortLabels[index]?.label || `${t('terminal.port')} ${index + 1}`;
         addLog('sent', dataToSend, sendFormat, index);
         return { success: true, portLabel };
       } catch (error) {
-        const portLabel = connectedPortLabels[index]?.label || `端口 ${index + 1}`;
+        const portLabel = connectedPortLabels[index]?.label || `${t('terminal.port')} ${index + 1}`;
         console.error(`发送数据到 ${portLabel} 失败:`, error);
         addLog('error', `发送失败: ${(error as Error).message}`, displayFormat, index);
         return { success: false, portLabel };
@@ -351,11 +353,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         autoSendTimerRef.current = null;
       }
       setAutoSend(false);
-      addLog('system', '已停止自动发送');
+      addLog('system', t('terminal.autoSendStopped'));
     } else {
       if (autoSendInterval < 10) {
         toast({
-          title: "间隔时间过短",
+          title: t('terminal.intervalTooShort'),
           description: "自动发送间隔不能少于 10ms",
           variant: "destructive"
         });
@@ -377,13 +379,13 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       // 清空特定端口的日志
       setLogs(prev => ({ ...prev, [portIndex]: [] }));
       setStats(prev => ({ ...prev, [portIndex]: { sentBytes: 0, receivedBytes: 0, totalLogs: 0 } }));
-      addLog('system', `端口 ${portIndex + 1} 日志已清空`, displayFormat, portIndex);
+      addLog('system', `${t('terminal.port')} ${portIndex + 1} ${t('terminal.logsCleared')}`, displayFormat, portIndex);
     } else {
       // 清空所有日志
       setLogs({});
       setMergedLogs([]);
       setStats({});
-      addLog('system', '日志已清空');
+      addLog('system', t('terminal.logsCleared'));
     }
   };
 
@@ -391,10 +393,10 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   const exportLogs = () => {
     let content = '';
     Object.entries(logs).forEach(([portIndex, portLogs]) => {
-      content += `=== 端口 ${parseInt(portIndex) + 1} ===\n`;
+      content += `=== ${t('terminal.port')} ${parseInt(portIndex) + 1} ===\n`;
       portLogs.forEach(log => {
         const timestamp = showTimestamp ? `[${log.timestamp.toLocaleTimeString()}] ` : '';
-        const type = log.type === 'sent' ? '发送' : log.type === 'received' ? '接收' : '系统';
+        const type = log.type === 'sent' ? t('terminal.sent') : log.type === 'received' ? t('terminal.received') : t('terminal.system');
         content += `${timestamp}${type}: ${log.data}\n`;
       });
       content += '\n';
@@ -413,7 +415,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     const totalLogs = Object.values(logs).reduce((sum, portLogs) => sum + portLogs.length, 0);
     toast({
       title: "日志已导出",
-      description: `导出了 ${totalLogs} 条日志记录`,
+      description: t('terminal.exportSuccess', { count: totalLogs }),
     });
   };
 

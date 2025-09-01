@@ -1,0 +1,92 @@
+{
+  "app": {
+    "title": "串口调试工具",
+    "version": "版本 2.2.0",
+    "notSupported": "您的浏览器不支持 Web Serial API",
+    "connecting": "连接中...",
+    "connected": "已连接",
+    "disconnected": "未连接",
+    "quickToggle": "快速切换连接",
+    "settings": "设置"
+  },
+  "tabs": {
+    "connection": "连接",
+    "testCase": "测试"
+  },
+  "status": {
+    "serialTool": "串口调试工具 v2.2.0",
+    "webSerialSupported": "Web Serial API 已支持",
+    "webSerialNotSupported": "Web Serial API 不支持",
+    "activeConnections": "活跃连接"
+  },
+  "settings": {
+    "title": "设置",
+    "save": "保存设置",
+    "export": "导出设置",
+    "import": "导入设置", 
+    "reset": "重置设置",
+    "tabs": {
+      "general": "通用",
+      "serial": "串口",
+      "display": "显示"
+    },
+    "general": {
+      "theme": "主题",
+      "themeLight": "浅色",
+      "themeDark": "深色",
+      "themeAuto": "跟随系统",
+      "language": "语言",
+      "languageZhCN": "中文",
+      "languageEnUS": "English",
+      "fontSize": "字体大小",
+      "fontSizeSmall": "小",
+      "fontSizeMedium": "中",
+      "fontSizeLarge": "大",
+      "maxLogLines": "最大日志行数",
+      "autoSave": "自动保存设置"
+    },
+    "serial": {
+      "defaultBaudRate": "默认波特率",
+      "defaultDataBits": "默认数据位",
+      "defaultParity": "默认校验位",
+      "parityNone": "无",
+      "parityEven": "偶校验",
+      "parityOdd": "奇校验",
+      "defaultStopBits": "默认停止位",
+      "autoSendInterval": "自动发送间隔(ms)"
+    },
+    "display": {
+      "showTimestamp": "显示时间戳",
+      "autoScroll": "自动滚动",
+      "displayFormat": "显示格式",
+      "formatAscii": "ASCII",
+      "formatHex": "HEX"
+    },
+    "summary": {
+      "title": "当前设置摘要",
+      "theme": "主题: {{theme}}",
+      "language": "语言: {{language}}",
+      "baudRate": "波特率: {{baudRate}}",
+      "maxLogs": "最大日志: {{maxLogs}} 行"
+    },
+    "messages": {
+      "saved": "设置已保存",
+      "saveFailed": "保存设置失败",
+      "reset": "设置已重置为默认值",
+      "exported": "设置已导出",
+      "imported": "设置导入成功",
+      "importFailed": "设置导入失败"
+    }
+  },
+  "terminal": {
+    "notConnected": "未连接设备，无法发送",
+    "intervalTooShort": "间隔时间过短，请设置至少 100ms",
+    "autoSendStopped": "已停止自动发送",
+    "logsCleared": "日志已清空",
+    "exportSuccess": "导出了 {{count}} 条日志记录",
+    "port": "端口",
+    "sent": "发送",
+    "received": "接收",
+    "system": "系统"
+  }
+}

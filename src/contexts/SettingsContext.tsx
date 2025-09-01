@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import i18n from '../i18n';
 
 export interface AppSettings {
   // 界面设置
@@ -35,7 +36,7 @@ export interface AppSettings {
 }
 
 export const defaultSettings: AppSettings = {
-  theme: 'light',
+  theme: 'auto',
   fontSize: 'medium',
   maxLogLines: 1000,
   autoSave: true,
@@ -81,10 +82,19 @@ const SETTINGS_KEY = 'serialTool_settings';
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  
+  // Track theme listener cleanup to prevent leaks
+  const themeCleanupRef = useRef<(() => void) | null>(null);
 
   // 应用主题设置
   const applyTheme = (theme: AppSettings['theme']) => {
     const root = document.documentElement;
+    
+    // Clean up previous listener
+    if (themeCleanupRef.current) {
+      themeCleanupRef.current();
+      themeCleanupRef.current = null;
+    }
     
     if (theme === 'auto') {
       // 监听系统主题变化
@@ -96,10 +106,17 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       applySystemTheme();
       mediaQuery.addEventListener('change', applySystemTheme);
       
-      return () => mediaQuery.removeEventListener('change', applySystemTheme);
+      // Store cleanup function
+      themeCleanupRef.current = () => mediaQuery.removeEventListener('change', applySystemTheme);
     } else {
       root.classList.toggle('dark', theme === 'dark');
     }
+  };
+  
+  // Apply language setting
+  const applyLanguage = (language: AppSettings['language']) => {
+    i18n.changeLanguage(language);
+    document.documentElement.lang = language;
   };
 
   // 应用字体大小设置
@@ -125,6 +142,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         // 立即应用设置
         applyTheme(mergedSettings.theme);
         applyFontSize(mergedSettings.fontSize);
+        applyLanguage(mergedSettings.language);
         
         console.log('Settings loaded and applied:', mergedSettings);
         return mergedSettings;
@@ -134,6 +152,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       // 使用默认设置并立即应用
       applyTheme(defaultSettings.theme);
       applyFontSize(defaultSettings.fontSize);
+      applyLanguage(defaultSettings.language);
     }
     
     return defaultSettings;
@@ -142,6 +161,13 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   // 初始化设置
   useEffect(() => {
     loadSettings();
+    
+    // Cleanup theme listener on unmount
+    return () => {
+      if (themeCleanupRef.current) {
+        themeCleanupRef.current();
+      }
+    };
   }, []);
 
   // 更新设置
@@ -154,6 +180,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         applyTheme(value as AppSettings['theme']);
       } else if (key === 'fontSize') {
         applyFontSize(value as AppSettings['fontSize']);
+      } else if (key === 'language') {
+        applyLanguage(value as AppSettings['language']);
       }
       
       // 自动保存
@@ -191,6 +219,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     // 立即应用默认设置
     applyTheme(defaultSettings.theme);
     applyFontSize(defaultSettings.fontSize);
+    applyLanguage(defaultSettings.language);
     
     // 保存到本地存储
     try {
@@ -241,6 +270,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
             // 立即应用导入的设置
             applyTheme(mergedSettings.theme);
             applyFontSize(mergedSettings.fontSize);
+            applyLanguage(mergedSettings.language);
             
             // 保存到本地存储
             localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));

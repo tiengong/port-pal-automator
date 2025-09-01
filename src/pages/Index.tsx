@@ -13,8 +13,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useSerialManager } from "@/hooks/useSerialManager";
 import { useStatusMessages } from "@/hooks/useStatusMessages";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useTranslation } from "react-i18next";
 
 const Index = () => {
+  const { t } = useTranslation();
   const serialManager = useSerialManager();
   const statusMessages = useStatusMessages();
   const { settings } = useSettings();
@@ -63,10 +65,10 @@ const Index = () => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <Terminal className="w-6 h-6 text-primary" />
-            <h1 className="text-lg font-semibold text-foreground">串口调试工具</h1>
+            <h1 className="text-lg font-semibold text-foreground">{t('app.title')}</h1>
           </div>
           <Badge variant="secondary" className="text-xs px-2 py-1 bg-primary/10 text-primary border-primary/20">
-            v2.2.0
+            {t('app.version')}
           </Badge>
         </div>
 
@@ -87,7 +89,7 @@ const Index = () => {
                 className="text-xs border-muted-foreground/30 bg-muted/30 text-muted-foreground"
               >
                 <WifiOff className="w-3 h-3 mr-1.5" />
-                未连接
+                {t('app.disconnected')}
               </Badge>
             )}
             
@@ -109,7 +111,7 @@ const Index = () => {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{serialManager.isConnected() ? "断开全部连接" : "快速连接串口"}</p>
+                    <p>{serialManager.isConnected() ? t('app.quickToggle') : t('app.quickToggle')}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -135,12 +137,12 @@ const Index = () => {
                 className="h-8 px-3 transition-smooth hover:shadow-md"
               >
                 <Settings2 className="w-3 h-3 mr-1.5" />
-                设置
+                {t('app.settings')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>应用设置</DialogTitle>
+                <DialogTitle>{t('settings.title')}</DialogTitle>
               </DialogHeader>
               <SettingsPanel statusMessages={statusMessages} />
             </DialogContent>
@@ -148,7 +150,7 @@ const Index = () => {
 
           {!isSerialSupported && (
             <Badge variant="destructive" className="text-xs animate-pulse">
-              不支持 Web Serial API
+              {t('app.notSupported')}
             </Badge>
           )}
         </div>
@@ -166,14 +168,14 @@ const Index = () => {
                   className="text-sm h-8 transition-smooth data-[state=active]:shadow-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <Plug className="w-4 h-4 mr-2" />
-                  连接
+                  {t('tabs.connection')}
                 </TabsTrigger>
                 <TabsTrigger 
                   value="testcase" 
                   className="text-sm h-8 transition-smooth data-[state=active]:shadow-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <TestTube2 className="w-4 h-4 mr-2" />
-                  测试
+                  {t('tabs.testCase')}
                 </TabsTrigger>
               </TabsList>
             </div>

@@ -5,6 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CheckCircle, AlertCircle, XCircle, Info, X, Wifi, WifiOff } from 'lucide-react';
 import { StatusMessage } from '@/hooks/useStatusMessages';
 import { useSerialManager } from '@/hooks/useSerialManager';
+import { useTranslation } from 'react-i18next';
 
 interface StatusFooterProps {
   currentMessage: StatusMessage | null;
@@ -17,6 +18,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   onClearMessage,
   isSerialSupported
 }) => {
+  const { t } = useTranslation();
   const serialManager = useSerialManager();
   const connectionStatus = serialManager.getConnectionStatus();
 
@@ -67,16 +69,16 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
           </div>
         ) : (
           <div className="flex items-center gap-6">
-            <span className="font-medium text-muted-foreground">串口调试工具 v2.2.0</span>
+            <span className="font-medium text-muted-foreground">{t('status.serialTool')}</span>
             {isSerialSupported ? (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
-                <span className="text-success font-medium">Web Serial API 已支持</span>
+                <span className="text-success font-medium">{t('status.webSerialSupported')}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
-                <span className="text-warning font-medium">请使用 Chrome/Edge 浏览器</span>
+                <span className="text-warning font-medium">{t('status.webSerialNotSupported')}</span>
               </div>
             )}
           </div>
@@ -87,7 +89,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
       <div className="flex items-center gap-6">
         {connectionStatus.count > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">活跃连接:</span>
+            <span className="text-muted-foreground">{t('status.activeConnections')}:</span>
             {serialManager.ports.filter(p => p.connected).map((p, i) => (
               <span key={i} className="text-success font-medium">
                 {p.label}({p.params.baudRate}bps)

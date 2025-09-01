@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useTranslation } from "react-i18next";
 
 interface SettingsPanelProps {
   className?: string;
@@ -29,13 +30,14 @@ interface SettingsPanelProps {
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusMessages }) => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { settings, updateSetting, saveSettings, resetSettings, exportSettings, importSettings } = useSettings();
 
   // 手动保存设置
   const handleSaveSettings = async () => {
     const success = await saveSettings();
-    const message = success ? "设置已保存" : "保存失败";
+    const message = success ? t('settings.messages.saved') : t('settings.messages.saveFailed');
     const description = success ? "配置已保存到本地存储" : "无法保存设置到本地存储";
     const type = success ? "success" : "error" as const;
     
@@ -53,7 +55,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
   // 重置设置
   const handleResetSettings = () => {
     resetSettings();
-    const message = "设置已重置";
+    const message = t('settings.messages.reset');
     const description = "所有设置已恢复到默认值";
     
     if (statusMessages) {
@@ -69,7 +71,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
   // 导出设置
   const handleExportSettings = () => {
     exportSettings();
-    const message = "设置已导出";
+    const message = t('settings.messages.exported');
     const description = "设置文件已下载到本地";
     
     if (statusMessages) {
@@ -85,7 +87,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
   // 导入设置
   const handleImportSettings = async () => {
     const success = await importSettings();
-    const message = success ? "设置已导入" : "导入失败";
+    const message = success ? t('settings.messages.imported') : t('settings.messages.importFailed');
     const description = success ? "配置文件已成功加载" : "配置文件格式错误";
     const type = success ? "success" : "error" as const;
     
@@ -105,16 +107,16 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings className="w-5 h-5" />
-          设置
+          {t('settings.title')}
         </CardTitle>
       </CardHeader>
       
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="general">通用</TabsTrigger>
-            <TabsTrigger value="serial">串口</TabsTrigger>
-            <TabsTrigger value="display">显示</TabsTrigger>
+            <TabsTrigger value="general">{t('settings.tabs.general')}</TabsTrigger>
+            <TabsTrigger value="serial">{t('settings.tabs.serial')}</TabsTrigger>
+            <TabsTrigger value="display">{t('settings.tabs.display')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-4 mt-4">
@@ -122,7 +124,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Palette className="w-4 h-4" />
-                主题
+                {t('settings.general.theme')}
               </Label>
               <Select 
                 value={settings.theme} 
@@ -132,9 +134,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dark">深色主题</SelectItem>
-                  <SelectItem value="light">浅色主题</SelectItem>
-                  <SelectItem value="auto">跟随系统</SelectItem>
+                  <SelectItem value="dark">{t('settings.general.themeDark')}</SelectItem>
+                  <SelectItem value="light">{t('settings.general.themeLight')}</SelectItem>
+                  <SelectItem value="auto">{t('settings.general.themeAuto')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

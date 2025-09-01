@@ -1,0 +1,92 @@
+{
+  "app": {
+    "title": "Serial Debug Tool",
+    "version": "Version 2.2.0",
+    "notSupported": "Your browser does not support Web Serial API",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnected": "Disconnected", 
+    "quickToggle": "Quick Toggle Connection",
+    "settings": "Settings"
+  },
+  "tabs": {
+    "connection": "Connection",
+    "testCase": "Test Cases"
+  },
+  "status": {
+    "serialTool": "Serial Debug Tool v2.2.0",
+    "webSerialSupported": "Web Serial API Supported",
+    "webSerialNotSupported": "Web Serial API Not Supported",
+    "activeConnections": "Active Connections"
+  },
+  "settings": {
+    "title": "Settings",
+    "save": "Save Settings",
+    "export": "Export Settings",
+    "import": "Import Settings",
+    "reset": "Reset Settings",
+    "tabs": {
+      "general": "General",
+      "serial": "Serial",
+      "display": "Display"
+    },
+    "general": {
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark", 
+      "themeAuto": "Follow System",
+      "language": "Language",
+      "languageZhCN": "中文",
+      "languageEnUS": "English",
+      "fontSize": "Font Size",
+      "fontSizeSmall": "Small",
+      "fontSizeMedium": "Medium",
+      "fontSizeLarge": "Large",
+      "maxLogLines": "Max Log Lines",
+      "autoSave": "Auto Save Settings"
+    },
+    "serial": {
+      "defaultBaudRate": "Default Baud Rate",
+      "defaultDataBits": "Default Data Bits",
+      "defaultParity": "Default Parity",
+      "parityNone": "None",
+      "parityEven": "Even",
+      "parityOdd": "Odd",
+      "defaultStopBits": "Default Stop Bits",
+      "autoSendInterval": "Auto Send Interval (ms)"
+    },
+    "display": {
+      "showTimestamp": "Show Timestamp",
+      "autoScroll": "Auto Scroll",
+      "displayFormat": "Display Format",
+      "formatAscii": "ASCII",
+      "formatHex": "HEX"
+    },
+    "summary": {
+      "title": "Current Settings Summary",
+      "theme": "Theme: {{theme}}",
+      "language": "Language: {{language}}",
+      "baudRate": "Baud Rate: {{baudRate}}",
+      "maxLogs": "Max Logs: {{maxLogs}} lines"
+    },
+    "messages": {
+      "saved": "Settings saved successfully",
+      "saveFailed": "Failed to save settings",
+      "reset": "Settings reset to defaults",
+      "exported": "Settings exported successfully",
+      "imported": "Settings imported successfully",
+      "importFailed": "Failed to import settings"
+    }
+  },
+  "terminal": {
+    "notConnected": "Device not connected, cannot send",
+    "intervalTooShort": "Interval too short, please set at least 100ms",
+    "autoSendStopped": "Auto send stopped",
+    "logsCleared": "Logs cleared",
+    "exportSuccess": "Exported {{count}} log records",
+    "port": "Port",
+    "sent": "Sent",
+    "received": "Received",
+    "system": "System"
+  }
+}

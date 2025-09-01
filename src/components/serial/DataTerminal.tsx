@@ -31,6 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSerialManager } from "@/hooks/useSerialManager";
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from "@/lib/eventBus";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -56,6 +57,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   statusMessages
 }) => {
   const { toast } = useToast();
+  const { settings } = useSettings();
   const [logs, setLogs] = useState<{ [portIndex: number]: LogEntry[] }>({});
   const [mergedLogs, setMergedLogs] = useState<MergedLogEntry[]>([]);
   const [sendData, setSendData] = useState("");
@@ -79,6 +81,13 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   // 统计信息
   const [stats, setStats] = useState<{ [portIndex: number]: { sentBytes: number; receivedBytes: number; totalLogs: number } }>({});
 
+  // 同步设置到组件状态
+  useEffect(() => {
+    setDisplayFormat(settings.displayFormat);
+    setShowTimestamp(settings.showTimestamp);
+    setAutoSendInterval(settings.defaultAutoSendInterval);
+  }, [settings.displayFormat, settings.showTimestamp, settings.defaultAutoSendInterval]);
+
   // 添加日志条目
   const addLog = (type: LogEntry['type'], data: string, format: 'ascii' | 'hex' = displayFormat, portIndex?: number) => {
     const entry: LogEntry = {
@@ -91,10 +100,15 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     
     if (portIndex !== undefined) {
       // 更新分端口日志
-      setLogs(prev => ({
-        ...prev,
-        [portIndex]: [...(prev[portIndex] || []), entry]
-      }));
+      setLogs(prev => {
+        const newPortLogs = [...(prev[portIndex] || []), entry];
+        // 应用最大日志行数限制
+        const limitedLogs = newPortLogs.slice(-settings.maxLogLines);
+        return {
+          ...prev,
+          [portIndex]: limitedLogs
+        };
+      });
       
       // 更新合并日志（用于 MERGED_TXRX 模式）
       const portLabel = connectedPortLabels[portIndex]?.label || `端口 ${portIndex + 1}`;
@@ -102,7 +116,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         ...entry,
         portLabel
       };
-      setMergedLogs(prev => [...prev, mergedEntry]);
+      setMergedLogs(prev => {
+        const newMergedLogs = [...prev, mergedEntry];
+        // 应用最大日志行数限制
+        return newMergedLogs.slice(-settings.maxLogLines);
+      });
       
       setStats(prev => ({
         ...prev,
@@ -117,7 +135,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       setLogs(prev => {
         const newLogs = { ...prev };
         connectedPorts.forEach((_, index) => {
-          newLogs[index] = [...(newLogs[index] || []), entry];
+          const newPortLogs = [...(newLogs[index] || []), entry];
+          // 应用最大日志行数限制
+          newLogs[index] = newPortLogs.slice(-settings.maxLogLines);
         });
         return newLogs;
       });
@@ -127,29 +147,35 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         ...entry,
         portLabel: 'SYSTEM'
       };
-      setMergedLogs(prev => [...prev, mergedEntry]);
+      setMergedLogs(prev => {
+        const newMergedLogs = [...prev, mergedEntry];
+        // 应用最大日志行数限制
+        return newMergedLogs.slice(-settings.maxLogLines);
+      });
     }
 
-    // 自动滚动到底部
-    setTimeout(() => {
-      if (synchronizedScrolling && connectedPorts.length > 1) {
-        // 同步滚动所有终端
-        terminalRefs.current.forEach(ref => {
-          if (ref) {
-            ref.scrollTo({
-              top: ref.scrollHeight,
-              behavior: 'smooth'
-            });
-          }
-        });
-      } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
-        // 只滚动特定终端
-        terminalRefs.current[portIndex]!.scrollTo({
-          top: terminalRefs.current[portIndex]!.scrollHeight,
-          behavior: 'smooth'
-        });
-      }
-    }, 50);
+    // 自动滚动到底部（仅当启用自动滚动时）
+    if (settings.autoScroll) {
+      setTimeout(() => {
+        if (synchronizedScrolling && connectedPorts.length > 1) {
+          // 同步滚动所有终端
+          terminalRefs.current.forEach(ref => {
+            if (ref) {
+              ref.scrollTo({
+                top: ref.scrollHeight,
+                behavior: 'smooth'
+              });
+            }
+          });
+        } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
+          // 只滚动特定终端
+          terminalRefs.current[portIndex]!.scrollTo({
+            top: terminalRefs.current[portIndex]!.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 50);
+    }
   };
 
   // 开始监听数据

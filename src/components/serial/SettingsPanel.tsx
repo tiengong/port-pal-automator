@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,210 +19,84 @@ import {
   Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface SettingsPanelProps {
   className?: string;
-}
-
-interface AppSettings {
-  // 界面设置
-  theme: 'dark' | 'light' | 'auto';
-  fontSize: 'small' | 'medium' | 'large';
-  maxLogLines: number;
-  autoSave: boolean;
-  
-  // 默认串口参数
-  defaultBaudRate: number;
-  defaultDataBits: number;
-  defaultParity: string;
-  defaultStopBits: number;
-  
-  // 自动发送设置
-  defaultAutoSendInterval: number;
-  
-  // 显示设置
-  showTimestamp: boolean;
-  autoScroll: boolean;
-  displayFormat: 'ascii' | 'hex';
-  
-  // 快捷键设置
-  shortcuts: {
-    saveConfig: string;
-    refreshPorts: string;
-    toggleFormat: string;
-    clearLogs: string;
-    sendData: string;
+  statusMessages?: {
+    addMessage: (message: string, type?: 'info' | 'success' | 'warning' | 'error') => void;
   };
-  
-  // 语言设置
-  language: 'zh-CN' | 'en-US';
 }
 
-export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className }) => {
+export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusMessages }) => {
   const { toast } = useToast();
-  
-  const [settings, setSettings] = useState<AppSettings>({
-    // 默认设置
-    theme: 'light',
-    fontSize: 'medium',
-    maxLogLines: 1000,
-    autoSave: true,
-    
-    defaultBaudRate: 115200,
-    defaultDataBits: 8,
-    defaultParity: 'none',
-    defaultStopBits: 1,
-    
-    defaultAutoSendInterval: 1000,
-    
-    showTimestamp: true,
-    autoScroll: true,
-    displayFormat: 'ascii',
-    
-    shortcuts: {
-      saveConfig: 'Ctrl+S',
-      refreshPorts: 'Ctrl+R', 
-      toggleFormat: 'Ctrl+T',
-      clearLogs: 'Ctrl+L',
-      sendData: 'Enter'
-    },
-    
-    language: 'zh-CN'
-  });
+  const { settings, updateSetting, saveSettings, resetSettings, exportSettings, importSettings } = useSettings();
 
-  // 从本地存储加载设置
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('serialTool_settings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setSettings(prev => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.error('加载设置失败:', error);
-      }
-    }
-  }, []);
-
-  // 保存设置到本地存储
-  const saveSettings = () => {
-    try {
-      localStorage.setItem('serialTool_settings', JSON.stringify(settings));
+  // 手动保存设置
+  const handleSaveSettings = async () => {
+    const success = await saveSettings();
+    const message = success ? "设置已保存" : "保存失败";
+    const description = success ? "配置已保存到本地存储" : "无法保存设置到本地存储";
+    const type = success ? "success" : "error" as const;
+    
+    if (statusMessages) {
+      statusMessages.addMessage(message, type);
+    } else {
       toast({
-        title: "设置已保存",
-        description: "配置已保存到本地存储",
-      });
-    } catch (error) {
-      console.error('保存设置失败:', error);
-      toast({
-        title: "保存失败",
-        description: "无法保存设置到本地存储",
-        variant: "destructive"
+        title: message,
+        description,
+        variant: success ? "default" : "destructive"
       });
     }
   };
 
   // 重置设置
-  const resetSettings = () => {
-    const defaultSettings: AppSettings = {
-      theme: 'dark',
-      fontSize: 'medium',
-      maxLogLines: 1000,
-      autoSave: true,
-      
-      defaultBaudRate: 115200,
-      defaultDataBits: 8,
-      defaultParity: 'none',
-      defaultStopBits: 1,
-      
-      defaultAutoSendInterval: 1000,
-      
-      showTimestamp: true,
-      autoScroll: true,
-      displayFormat: 'ascii',
-      
-      shortcuts: {
-        saveConfig: 'Ctrl+S',
-        refreshPorts: 'Ctrl+R',
-        toggleFormat: 'Ctrl+T',
-        clearLogs: 'Ctrl+L',
-        sendData: 'Enter'
-      },
-      
-      language: 'zh-CN'
-    };
-
-    setSettings(defaultSettings);
-    toast({
-      title: "设置已重置",
-      description: "所有设置已恢复到默认值",
-    });
+  const handleResetSettings = () => {
+    resetSettings();
+    const message = "设置已重置";
+    const description = "所有设置已恢复到默认值";
+    
+    if (statusMessages) {
+      statusMessages.addMessage(message, "success");
+    } else {
+      toast({
+        title: message,
+        description,
+      });
+    }
   };
 
   // 导出设置
-  const exportSettings = () => {
-    const dataStr = JSON.stringify(settings, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
+  const handleExportSettings = () => {
+    exportSettings();
+    const message = "设置已导出";
+    const description = "设置文件已下载到本地";
     
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `serial-tool-settings-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "设置已导出",
-      description: "设置文件已下载到本地",
-    });
+    if (statusMessages) {
+      statusMessages.addMessage(message, "success");
+    } else {
+      toast({
+        title: message,
+        description,
+      });
+    }
   };
 
   // 导入设置
-  const importSettings = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+  const handleImportSettings = async () => {
+    const success = await importSettings();
+    const message = success ? "设置已导入" : "导入失败";
+    const description = success ? "配置文件已成功加载" : "配置文件格式错误";
+    const type = success ? "success" : "error" as const;
     
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const imported = JSON.parse(event.target?.result as string);
-          setSettings(prev => ({ ...prev, ...imported }));
-          
-          toast({
-            title: "设置已导入",
-            description: "配置文件已成功加载",
-          });
-        } catch (error) {
-          console.error('导入设置失败:', error);
-          toast({
-            title: "导入失败",
-            description: "配置文件格式错误",
-            variant: "destructive"
-          });
-        }
-      };
-      
-      reader.readAsText(file);
-    };
-
-    input.click();
-  };
-
-  // 更新设置
-  const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    
-    // 如果启用了自动保存，立即保存
-    if (settings.autoSave && key !== 'autoSave') {
-      setTimeout(() => {
-        localStorage.setItem('serialTool_settings', JSON.stringify({ ...settings, [key]: value }));
-      }, 100);
+    if (statusMessages) {
+      statusMessages.addMessage(message, type);
+    } else {
+      toast({
+        title: message,
+        description,
+        variant: success ? "default" : "destructive"
+      });
     }
   };
 
@@ -499,20 +373,20 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className }) => {
 
         {/* 操作按钮 */}
         <div className="flex items-center gap-2">
-          <Button onClick={saveSettings} className="flex-1">
+          <Button onClick={handleSaveSettings} className="flex-1">
             <Save className="w-4 h-4 mr-2" />
             保存设置
           </Button>
           
-          <Button variant="outline" onClick={exportSettings}>
+          <Button variant="outline" onClick={handleExportSettings}>
             <Download className="w-4 h-4" />
           </Button>
           
-          <Button variant="outline" onClick={importSettings}>
+          <Button variant="outline" onClick={handleImportSettings}>
             <Upload className="w-4 h-4" />
           </Button>
           
-          <Button variant="outline" onClick={resetSettings}>
+          <Button variant="outline" onClick={handleResetSettings}>
             <RotateCcw className="w-4 h-4" />
           </Button>
         </div>

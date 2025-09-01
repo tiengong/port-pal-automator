@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSerialManager } from "@/hooks/useSerialManager";
 import { useStatusMessages } from "@/hooks/useStatusMessages";
+import { useSettings } from "@/contexts/SettingsContext";
 
 const Index = () => {
   const serialManager = useSerialManager();
   const statusMessages = useStatusMessages();
+  const { settings } = useSettings();
   const [leftPanelTab, setLeftPanelTab] = useState("connection");
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [receivedData, setReceivedData] = useState<string[]>([]);
@@ -31,6 +33,28 @@ const Index = () => {
       setLeftPanelTab("connection");
     }
   };
+
+  // 同步默认串口参数到未连接的端口
+  useEffect(() => {
+    const disconnectedPorts = serialManager.ports.filter(p => !p.connected);
+    if (disconnectedPorts.length > 0) {
+      // 更新未连接端口的默认配置
+      disconnectedPorts.forEach(portInfo => {
+        const updatedConfig = {
+          baudRate: settings.defaultBaudRate,
+          dataBits: settings.defaultDataBits as 5 | 6 | 7 | 8,
+          parity: settings.defaultParity as 'none' | 'even' | 'odd' | 'mark' | 'space',
+          stopBits: settings.defaultStopBits as 1 | 2
+        };
+        
+        if (portInfo.label === 'P1') {
+          serialManager.updateStrategy({ p1Config: updatedConfig });
+        } else if (portInfo.label === 'P2') {
+          serialManager.updateStrategy({ p2Config: updatedConfig });
+        }
+      });
+    }
+  }, [settings.defaultBaudRate, settings.defaultDataBits, settings.defaultParity, settings.defaultStopBits, serialManager.ports]);
 
   return (
     <div className="min-h-screen bg-background animate-fade-in">
@@ -118,7 +142,7 @@ const Index = () => {
               <DialogHeader>
                 <DialogTitle>应用设置</DialogTitle>
               </DialogHeader>
-              <SettingsPanel />
+              <SettingsPanel statusMessages={statusMessages} />
             </DialogContent>
           </Dialog>
 

@@ -437,11 +437,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 {testCase.uniqueId}
               </Badge>
 
-              {testCase.commands.length > 0 && (
-                <Badge variant="secondary" className="text-xs flex-shrink-0">
-                  {testCase.commands.length} 条命令
-                </Badge>
-              )}
 
               {testCase.subCases.length > 0 && (
                 <Badge variant="outline" className="text-xs flex-shrink-0">

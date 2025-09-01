@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronDown, Radio, Wand2 } from "lucide-react";
 import { TestCommand } from '../types';
 import { UrcPreview } from '../UrcPreview';
+import { useTranslation } from 'react-i18next';
 
 interface UrcEditorProps {
   command: TestCommand;

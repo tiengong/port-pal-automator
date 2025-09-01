@@ -195,7 +195,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           }
         } catch (error) {
           if ((error as any).name === 'NetworkError') {
-            statusMessages?.addMessage('设备连接已断开', 'error');
+            statusMessages?.addMessage(t('terminal.messages.deviceDisconnected'), 'error');
             // Find the port label and disconnect
             const portLabel = connectedPortLabels[portIndex]?.label;
             if (portLabel) {
@@ -203,12 +203,12 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             }
             break;
           }
-          console.error('读取数据错误:', error);
+          console.error(t('terminal.messages.readDataError'), error);
         }
       }
     } catch (error) {
-      console.error('开始读取失败:', error);
-      statusMessages?.addMessage('无法开始读取数据', 'error');
+      console.error(t('terminal.messages.cannotStartReading'), error);
+      statusMessages?.addMessage(t('terminal.messages.cannotStartReading'), 'error');
     }
   };
 
@@ -220,7 +220,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         await reader.cancel();
         await reader.releaseLock();
       } catch (error) {
-        console.error('停止读取失败:', error);
+        console.error(t('terminal.messages.stopReadingFailed'), error);
       } finally {
         readersRef.current.delete(port);
       }
@@ -259,7 +259,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       for (let i = 0; i < hexData.length; i += 2) {
         const hex = hexData.substr(i, 2);
         if (!/^[0-9A-Fa-f]{2}$/.test(hex)) {
-          throw new Error(`无效的十六进制数据: ${hex}`);
+          throw new Error(t('terminal.messages.invalidHexData', { hex }));
         }
         bytes.push(parseInt(hex, 16));
       }
@@ -299,8 +299,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         return { success: true, portLabel };
         } catch (error) {
         const portLabel = connectedPortLabels[index]?.label || `${t('terminal.port')} ${index + 1}`;
-        console.error(`发送数据到 ${portLabel} 失败:`, error);
-        statusMessages?.addMessage(`发送失败: ${(error as Error).message}`, 'error');
+        console.error(t('terminal.messages.sendFailed', { portLabel }), error);
+        statusMessages?.addMessage(t('terminal.messages.sendFailed', { portLabel, error: (error as Error).message }), 'error');
         return { success: false, portLabel };
       }
     });
@@ -313,15 +313,15 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       if (successCount > 0) {
         const targetPort = strategy.communicationMode === 'MERGED_TXRX' ? strategy.txPort : selectedSendPort;
         const targetDesc = targetPort === 'ALL' 
-          ? `${successCount}/${portsToSend.length} 个端口`
+          ? t('terminal.messages.sentBytesToPorts', { successCount, totalCount: portsToSend.length })
           : targetPort;
         
-        statusMessages?.addMessage(`发送了 ${uint8Array.length} 字节数据到 ${targetDesc}`, 'success');
+        statusMessages?.addMessage(t('terminal.messages.sentBytesToTarget', { bytes: uint8Array.length, target: targetDesc }), 'success');
       } else {
-        statusMessages?.addMessage('所有端口发送失败', 'error');
+        statusMessages?.addMessage(t('terminal.messages.allPortsFailed'), 'error');
       }
     } catch (error) {
-      statusMessages?.addMessage('部分或全部端口发送失败', 'error');
+      statusMessages?.addMessage(t('terminal.messages.partialFailed'), 'error');
     }
   };
 
@@ -333,12 +333,12 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         autoSendTimerRef.current = null;
       }
       setAutoSend(false);
-      statusMessages?.addMessage(t('terminal.autoSendStopped'), 'info');
+      statusMessages?.addMessage(t('terminal.messages.autoSendStopped'), 'info');
     } else {
       if (autoSendInterval < 10) {
         toast({
           title: t('terminal.intervalTooShort'),
-          description: "自动发送间隔不能少于 10ms",
+          description: t('terminal.messages.intervalTooShort'),
           variant: "destructive"
         });
         return;
@@ -349,7 +349,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       }, autoSendInterval);
       
       setAutoSend(true);
-      statusMessages?.addMessage(`已启动自动发送，间隔 ${autoSendInterval}ms`, 'success');
+      statusMessages?.addMessage(t('terminal.messages.autoSendStarted', { interval: autoSendInterval }), 'success');
     }
   };
 
@@ -394,8 +394,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
     const totalLogs = Object.values(logs).reduce((sum, portLogs) => sum + portLogs.length, 0);
     toast({
-      title: "日志已导出",
-      description: t('terminal.exportSuccess', { count: totalLogs }),
+      title: t('terminal.ui.exportLogsTitle'),
+      description: t('terminal.messages.exportSuccess', { count: totalLogs }),
     });
   };
 
@@ -463,7 +463,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     connectedPorts.forEach(({ port }, index) => {
       if (!readersRef.current.has(port)) {
         startReading(port, index);
-        statusMessages?.addMessage(`开始监听端口数据 - 端口 ${index + 1}`, 'info');
+        statusMessages?.addMessage(t('terminal.messages.startListeningPort', { portNumber: index + 1 }), 'info');
       }
     });
 
@@ -472,7 +472,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     for (const [port, reader] of readersRef.current.entries()) {
       if (!connectedPortSet.has(port)) {
         stopReading(port);
-        statusMessages?.addMessage('端口已断开连接', 'warning');
+        statusMessages?.addMessage(t('terminal.messages.portDisconnected'), 'warning');
       }
     }
 
@@ -533,20 +533,20 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                         className="flex items-center gap-1"
                       >
                         {strategy.communicationMode === 'COMPARE' ? (
-                          <>
-                            <Columns className="w-3 h-3" />
-                            分栏
-                          </>
-                        ) : (
-                          <>
-                            <Merge className="w-3 h-3" />
-                            合并
-                          </>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{strategy.communicationMode === 'COMPARE' ? '切换到合并模式' : '切换到分栏模式'}</p>
+                            <>
+                              <Columns className="w-3 h-3" />
+                              {t('terminal.ui.splitView')}
+                            </>
+                          ) : (
+                            <>
+                              <Merge className="w-3 h-3" />
+                              {t('terminal.ui.mergedView')}
+                            </>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{strategy.communicationMode === 'COMPARE' ? t('terminal.ui.toggleToMerged') : t('terminal.ui.toggleToSplit')}</p>
                     </TooltipContent>
                   </Tooltip>
 
@@ -563,7 +563,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ALL">全部</SelectItem>
+                          <SelectItem value="ALL">{t('terminal.ui.allPorts')}</SelectItem>
                           <SelectItem value="P1">P1</SelectItem>
                           <SelectItem value="P2">P2</SelectItem>
                         </SelectContent>
@@ -585,7 +585,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>交换TX/RX</p>
+                          <p>{t('terminal.ui.swapTxRx')}</p>
                         </TooltipContent>
                       </Tooltip>
                     </>
@@ -606,7 +606,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Synchronized Scrolling</p>
+                    <p>{t('terminal.ui.synchronizedScrolling')}</p>
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -651,7 +651,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             {mergedLogs.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p className="text-xs">等待数据...</p>
+                <p className="text-xs">{t('terminal.ui.waitingData')}</p>
               </div>
             ) : (
               mergedLogs.map((log) => (
@@ -678,9 +678,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
                     ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
                   `}>
-                    {log.type === 'sent' ? '发送' : 
-                     log.type === 'received' ? '接收' : 
-                     log.type === 'system' ? '系统' : '错误'}
+                     {log.type === 'sent' ? t('terminal.ui.tx') : 
+                      log.type === 'received' ? t('terminal.ui.rx') : 
+                      log.type === 'system' ? t('terminal.ui.system') : t('terminal.ui.error')}
                   </span>
                   
                   <span className="font-mono break-all">
@@ -696,7 +696,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             {!logs[0] || logs[0].length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p className="text-xs">等待数据...</p>
+                <p className="text-xs">{t('terminal.ui.waitingData')}</p>
               </div>
             ) : (
               logs[0].map((log) => (
@@ -714,9 +714,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
                     ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
                   `}>
-                    {log.type === 'sent' ? '发送' : 
-                     log.type === 'received' ? '接收' : 
-                     log.type === 'system' ? '系统' : '错误'}
+                     {log.type === 'sent' ? t('terminal.ui.tx') : 
+                      log.type === 'received' ? t('terminal.ui.rx') : 
+                      log.type === 'system' ? t('terminal.ui.system') : t('terminal.ui.error')}
                   </span>
                   
                   <span className="font-mono break-all">
@@ -730,7 +730,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           // 双端口分栏模式
           <ResizablePanelGroup direction="horizontal" className="w-full">
             {connectedPorts.map((_, index) => {
-              const portLabel = connectedPortLabels[index]?.label || `端口 ${index + 1}`;
+              const portLabel = connectedPortLabels[index]?.label || `${t('terminal.port')} ${index + 1}`;
               const portStats = stats[index] || { sentBytes: 0, receivedBytes: 0, totalLogs: 0 };
               
               return (
@@ -745,9 +745,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                               {portLabel}
                             </Badge>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <span>↑{portStats.sentBytes}B</span>
-                              <span>↓{portStats.receivedBytes}B</span>
-                              <span>{portStats.totalLogs}条</span>
+                              <span>↑{portStats.sentBytes}{t('terminal.ui.bytes')}</span>
+                              <span>↓{portStats.receivedBytes}{t('terminal.ui.bytes')}</span>
+                              <span>{portStats.totalLogs}{t('terminal.ui.lines')}</span>
                             </div>
                           </div>
                           
@@ -764,7 +764,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>清空此端口日志</p>
+                                <p>{t('terminal.ui.clearPortLogs')}</p>
                               </TooltipContent>
                             </Tooltip>
                           </div>
@@ -793,7 +793,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                         {!logs[index] || logs[index].length === 0 ? (
                           <div className="text-center text-muted-foreground py-8">
                             <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                            <p className="text-xs">等待数据...</p>
+                            <p className="text-xs">{t('terminal.ui.waitingData')}</p>
                           </div>
                         ) : (
                           logs[index].map((log) => (
@@ -811,9 +811,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                                 ${log.type === 'system' ? 'bg-muted text-muted-foreground' : ''}
                                 ${log.type === 'error' ? 'bg-destructive/20 text-destructive' : ''}
                               `}>
-                                {log.type === 'sent' ? '发' : 
-                                 log.type === 'received' ? '收' : 
-                                 log.type === 'system' ? '系' : '错'}
+                                 {log.type === 'sent' ? t('terminal.ui.txShort') : 
+                                  log.type === 'received' ? t('terminal.ui.rxShort') : 
+                                  log.type === 'system' ? t('terminal.ui.systemShort') : t('terminal.ui.errorShort')}
                               </span>
                               
                               <span className="font-mono break-all text-xs">
@@ -841,13 +841,13 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         {/* Port Selection for Sending */}
         {connectedPortLabels.length > 1 && strategy.communicationMode === 'COMPARE' && (
           <div className="flex items-center gap-3 mb-3">
-            <Label className="text-sm">发送到:</Label>
+            <Label className="text-sm">{t('terminal.ui.sendTo')}:</Label>
             <Select value={selectedSendPort} onValueChange={setSelectedSendPort as any}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">全部端口</SelectItem>
+                <SelectItem value="ALL">{t('terminal.ui.allPorts')}</SelectItem>
                 {connectedPortLabels.map((port) => (
                   <SelectItem key={port.label} value={port.label}>
                     {port.label}
@@ -864,7 +864,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             <Input
               value={sendData}
               onChange={(e) => setSendData(e.target.value)}
-              placeholder={sendFormat === 'hex' ? "输入十六进制数据 (如: 48 65 6C 6C 6F)" : "输入要发送的文本数据"}
+              placeholder={sendFormat === 'hex' ? t('terminal.ui.hexPlaceholder') : t('terminal.ui.textPlaceholder')}
               onKeyPress={(e) => {
                 if (e.key === 'Enter' && !autoSend) {
                   sendSerialData();
@@ -890,7 +890,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">无</SelectItem>
+                  <SelectItem value="none">{t('terminal.ui.none')}</SelectItem>
                   <SelectItem value="lf">LF</SelectItem>
                   <SelectItem value="cr">CR</SelectItem>
                   <SelectItem value="crlf">CRLF</SelectItem>
@@ -906,7 +906,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                   disabled={connectedPorts.length === 0}
                   className="scale-75"
                 />
-                <Label htmlFor="autoSendToggle" className="text-xs text-muted-foreground">自动</Label>
+                <Label htmlFor="autoSendToggle" className="text-xs text-muted-foreground">{t('terminal.ui.auto')}</Label>
               </div>
 
               {!autoSend ? (
@@ -937,7 +937,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="w-3 h-3 text-primary" />
-              <span>自动发送间隔:</span>
+              <span>{t('terminal.ui.autoSendInterval')}:</span>
               <Input
                 type="number"
                 min="10"
@@ -951,7 +951,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             
             <div className="flex items-center gap-1 text-xs text-primary">
               <span className="animate-pulse">●</span>
-              <span>正在运行</span>
+              <span>{t('terminal.ui.running')}</span>
             </div>
           </div>
         )}

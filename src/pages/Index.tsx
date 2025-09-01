@@ -140,7 +140,7 @@ const Index = () => {
                 {t('app.settings')}
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90svh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{t('settings.title')}</DialogTitle>
               </DialogHeader>
@@ -157,9 +157,9 @@ const Index = () => {
       </header>
 
       {/* Enhanced Main Content - 2 Column Layout */}
-      <div className="flex h-[calc(100vh-3.5rem)]">
+      <div className="flex flex-col md:flex-row h-[calc(100svh-3.5rem)]">
         {/* Enhanced Left Panel */}
-        <div className="w-96 control-panel flex flex-col">
+        <div className="w-full md:w-96 control-panel flex flex-col min-w-0">
           <Tabs value={leftPanelTab} onValueChange={setLeftPanelTab} className="flex-1 flex flex-col">
             <div className="border-b border-border/50 px-4 py-3">
               <TabsList className="grid w-full grid-cols-2 h-10 bg-secondary/50 p-1 rounded-lg">
@@ -198,7 +198,7 @@ const Index = () => {
         </div>
 
         {/* Enhanced Right Panel - Data Terminal */}
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30 min-w-0">
           <DataTerminal 
             serialManager={serialManager}
             statusMessages={statusMessages}

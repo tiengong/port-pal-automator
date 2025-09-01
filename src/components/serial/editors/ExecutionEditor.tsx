@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronDown, FileCode } from "lucide-react";
 import { TestCommand } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface ExecutionEditorProps {
   command: TestCommand;
@@ -20,6 +21,7 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
   command,
   onUpdate
 }) => {
+  const { t } = useTranslation();
   const [showExamples, setShowExamples] = useState(false);
   
   const updateCommand = (field: keyof TestCommand, value: any) => {
@@ -28,12 +30,12 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
 
   // 执行命令示例
   const executionExamples = [
-    { name: "基础AT测试", command: "AT", expectedResponse: "OK", validationMethod: "contains" },
-    { name: "获取SIM卡状态", command: "AT+CPIN?", expectedResponse: "+CPIN: READY", validationMethod: "contains" },
-    { name: "获取信号强度", command: "AT+CSQ", expectedResponse: "+CSQ:", validationMethod: "contains" },
-    { name: "获取网络注册状态", command: "AT+CREG?", expectedResponse: "+CREG:", validationMethod: "contains" },
-    { name: "十六进制数据发送", command: "1A2B3C", dataFormat: "hex", expectedResponse: "OK", validationMethod: "contains" },
-    { name: "发送短信", command: "AT+CMGS=\"13800000000\"", expectedResponse: ">", validationMethod: "contains" }
+    { name: t('editor.execution.examples.basicAT'), command: "AT", expectedResponse: "OK", validationMethod: "contains" },
+    { name: t('editor.execution.examples.simStatus'), command: "AT+CPIN?", expectedResponse: "+CPIN: READY", validationMethod: "contains" },
+    { name: t('editor.execution.examples.signalStrength'), command: "AT+CSQ", expectedResponse: "+CSQ:", validationMethod: "contains" },
+    { name: t('editor.execution.examples.networkReg'), command: "AT+CREG?", expectedResponse: "+CREG:", validationMethod: "contains" },
+    { name: t('editor.execution.examples.hexData'), command: "1A2B3C", dataFormat: "hex", expectedResponse: "OK", validationMethod: "contains" },
+    { name: t('editor.execution.examples.sendSMS'), command: "AT+CMGS=\"13800000000\"", expectedResponse: ">", validationMethod: "contains" }
   ];
 
   const insertExample = (example: any) => {
@@ -50,20 +52,20 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
     <div className="space-y-4">
       {/* 命令类型显示 */}
       <div className="flex items-center gap-2">
-        <Badge variant="default" className="bg-blue-500">执行命令</Badge>
-        <span className="text-sm text-muted-foreground">Execute Command Configuration</span>
+        <Badge variant="default" className="bg-blue-500">{t('editor.execution.title')}</Badge>
+        <span className="text-sm text-muted-foreground">{t('editor.execution.subtitle')}</span>
       </div>
 
       {/* 快速示例 */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">快速示例模板</CardTitle>
+            <CardTitle className="text-sm">{t('editor.execution.quickExamples')}</CardTitle>
             <Popover open={showExamples} onOpenChange={setShowExamples}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 text-xs">
                   <FileCode className="w-3 h-3 mr-1" />
-                  插入示例
+                  {t('editor.execution.insertExample')}
                   <ChevronDown className="w-3 h-3 ml-1" />
                 </Button>
               </PopoverTrigger>
@@ -93,30 +95,30 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
       {/* 基础设置 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">命令设置</CardTitle>
+          <CardTitle className="text-sm">{t('editor.execution.commandSettings')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label htmlFor="command">命令内容</Label>
+              <Label htmlFor="command">{t('editor.execution.commandContent')}</Label>
               {command.dataFormat === 'hex' && (
-                <Badge variant="secondary" className="text-xs">十六进制格式</Badge>
+                <Badge variant="secondary" className="text-xs">{t('editor.execution.hexFormat')}</Badge>
               )}
             </div>
             <Input
               id="command"
               value={command.command}
               onChange={(e) => updateCommand('command', e.target.value)}
-              placeholder={command.dataFormat === 'hex' ? "输入十六进制数据 (如: 1A 2B 3C)" : "输入AT命令，支持变量如: AT+MIPLOBSERVERSP=0,{msgid},1"}
+              placeholder={command.dataFormat === 'hex' ? t('editor.execution.hexPlaceholder') : t('editor.execution.atPlaceholder')}
               className={command.dataFormat === 'hex' ? "font-mono" : "font-mono"}
             />
             {command.dataFormat === 'hex' ? (
               <p className="text-xs text-muted-foreground mt-1">
-                示例: 1A2B3C 或 1A 2B 3C (空格会被自动移除)
+                {t('editor.execution.hexExample')}
               </p>
             ) : (
               <div className="text-xs text-muted-foreground mt-1">
-                <strong>变量使用格式：</strong>
+                <strong>{t('editor.execution.variableUsage')}:</strong>
                 <code className="bg-muted px-1 rounded ml-1">{'{变量名}'}</code>
                 <code className="bg-muted px-1 rounded ml-1">{'{变量名|默认值}'}</code>
                 <code className="bg-muted px-1 rounded ml-1">{'{P1.变量名}'}</code>
@@ -127,7 +129,7 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="dataFormat">数据格式</Label>
+              <Label htmlFor="dataFormat">{t('editor.execution.dataFormat')}</Label>
               <Select
                 value={command.dataFormat || 'string'}
                 onValueChange={(value) => updateCommand('dataFormat', value)}
@@ -136,17 +138,17 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="string">字符串</SelectItem>
-                  <SelectItem value="hex">十六进制</SelectItem>
+                  <SelectItem value="string">{t('editor.execution.string')}</SelectItem>
+                  <SelectItem value="hex">{t('editor.execution.hex')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="lineEnding">换行符</Label>
+                <Label htmlFor="lineEnding">{t('editor.execution.lineEnding')}</Label>
                 <Badge variant="outline" className="text-xs font-mono">
-                  {command.lineEnding === 'none' && '无'}
+                  {command.lineEnding === 'none' && t('editor.execution.none')}
                   {command.lineEnding === 'lf' && '\\n'}
                   {command.lineEnding === 'cr' && '\\r'}
                   {command.lineEnding === 'crlf' && '\\r\\n'}
@@ -160,10 +162,10 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">无</SelectItem>
-                  <SelectItem value="lf">LF (\n)</SelectItem>
-                  <SelectItem value="cr">CR (\r)</SelectItem>
-                  <SelectItem value="crlf">CRLF (\r\n)</SelectItem>
+                  <SelectItem value="none">{t('editor.execution.none')}</SelectItem>
+                  <SelectItem value="lf">{t('editor.execution.lf')}</SelectItem>
+                  <SelectItem value="cr">{t('editor.execution.cr')}</SelectItem>
+                  <SelectItem value="crlf">{t('editor.execution.crlf')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -174,11 +176,11 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
       {/* 响应验证 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">响应验证</CardTitle>
+          <CardTitle className="text-sm">{t('editor.execution.responseValidation')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="validationMethod">验证方式</Label>
+            <Label htmlFor="validationMethod">{t('editor.execution.validationMethod')}</Label>
             <Select
               value={command.validationMethod || 'none'}
               onValueChange={(value) => updateCommand('validationMethod', value)}
@@ -187,16 +189,16 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">无验证</SelectItem>
-                <SelectItem value="contains">包含</SelectItem>
-                <SelectItem value="equals">完全匹配</SelectItem>
-                <SelectItem value="regex">正则表达式</SelectItem>
+                <SelectItem value="none">{t('editor.execution.noValidation')}</SelectItem>
+                <SelectItem value="contains">{t('editor.execution.contains')}</SelectItem>
+                <SelectItem value="equals">{t('editor.execution.equals')}</SelectItem>
+                <SelectItem value="regex">{t('editor.execution.regex')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           <div>
-            <Label htmlFor="timeout">验证超时时间 (ms)</Label>
+            <Label htmlFor="timeout">{t('editor.execution.timeout')}</Label>
             <Input
               id="timeout"
               type="number"
@@ -210,7 +212,7 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
           {command.validationMethod !== 'none' && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="expectedResponse">期望响应</Label>
+                <Label htmlFor="expectedResponse">{t('editor.execution.expectedResponse')}</Label>
                 <Button
                   variant="outline"
                   size="sm"
@@ -228,19 +230,19 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                     }
                   }}
                 >
-                  自动填充
+                  {t('editor.execution.autoFill')}
                 </Button>
               </div>
               <Input
                 id="expectedResponse"
                 value={command.expectedResponse || ''}
                 onChange={(e) => updateCommand('expectedResponse', e.target.value)}
-                placeholder="输入期望的响应内容，或点击自动填充"
+                placeholder={t('editor.execution.expectedResponsePlaceholder')}
                 className="font-mono"
               />
               {!command.expectedResponse && (
                 <p className="text-xs text-amber-600 mt-1">
-                  ⚠️ 建议填写期望响应以确保命令执行正确
+                  {t('editor.execution.expectedResponseWarning')}
                 </p>
               )}
             </div>
@@ -248,12 +250,12 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
           
           {command.validationMethod === 'regex' && (
             <div>
-              <Label htmlFor="validationPattern">正则表达式</Label>
+              <Label htmlFor="validationPattern">{t('editor.execution.regexPattern')}</Label>
               <Input
                 id="validationPattern"
                 value={command.validationPattern || ''}
                 onChange={(e) => updateCommand('validationPattern', e.target.value)}
-                placeholder="输入正则表达式模式"
+                placeholder={t('editor.execution.regexPatternPlaceholder')}
                 className="font-mono"
               />
             </div>
@@ -262,7 +264,7 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
       </Card>
 
       <div>
-        <Label htmlFor="waitTime">等待时间 (ms)</Label>
+        <Label htmlFor="waitTime">{t('editor.execution.waitTime')}</Label>
         <Input
           id="waitTime"
           type="number"
@@ -272,18 +274,18 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
           placeholder="0"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          发送命令前的等待时间
+          {t('editor.execution.waitTimeDescription')}
         </p>
       </div>
 
       {/* 错误处理 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">错误处理</CardTitle>
+          <CardTitle className="text-sm">{t('editor.execution.errorHandling')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="failureHandling">错误处理</Label>
+            <Label htmlFor="failureHandling">{t('editor.execution.failureHandling')}</Label>
             <Select
               value={command.failureHandling || 'stop'}
               onValueChange={(value) => updateCommand('failureHandling', value)}
@@ -292,15 +294,15 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="stop">停止执行</SelectItem>
-                <SelectItem value="continue">继续执行</SelectItem>
-                <SelectItem value="prompt">提示用户</SelectItem>
+                <SelectItem value="stop">{t('editor.execution.stop')}</SelectItem>
+                <SelectItem value="continue">{t('editor.execution.continue')}</SelectItem>
+                <SelectItem value="prompt">{t('editor.execution.prompt')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
           <div>
-            <Label htmlFor="failureSeverity">失败异常等级</Label>
+            <Label htmlFor="failureSeverity">{t('editor.execution.failureSeverity')}</Label>
             <Select
               value={command.failureSeverity || 'error'}
               onValueChange={(value) => updateCommand('failureSeverity', value)}
@@ -309,8 +311,8 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="warning">警告</SelectItem>
-                <SelectItem value="error">异常</SelectItem>
+                <SelectItem value="warning">{t('editor.execution.warning')}</SelectItem>
+                <SelectItem value="error">{t('editor.execution.error')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -320,7 +322,7 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
       {/* 用户交互 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">用户交互</CardTitle>
+          <CardTitle className="text-sm">{t('editor.execution.userInteraction')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
@@ -329,20 +331,20 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
               checked={command.userActionDialog || false}
               onCheckedChange={(checked) => updateCommand('userActionDialog', checked)}
             />
-            <Label htmlFor="userActionDialog">用户确认弹框开关</Label>
+            <Label htmlFor="userActionDialog">{t('editor.execution.userActionDialog')}</Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            开启后，执行此命令前会弹窗提示用户确认
+            {t('editor.execution.userActionDialogDescription')}
           </p>
           
           {command.userActionDialog && (
             <div>
-              <Label htmlFor="dialogContent">用户确认弹框内容</Label>
+              <Label htmlFor="dialogContent">{t('editor.execution.dialogContent')}</Label>
               <Textarea
                 id="dialogContent"
                 value={command.dialogContent || ''}
                 onChange={(e) => updateCommand('dialogContent', e.target.value)}
-                placeholder="请输入需要提示用户的操作内容"
+                placeholder={t('editor.execution.dialogContentPlaceholder')}
                 rows={3}
               />
             </div>

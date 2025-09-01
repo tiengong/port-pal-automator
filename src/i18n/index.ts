@@ -19,7 +19,7 @@ i18n
   .init({
     resources,
     lng: 'zh-CN', // default language
-    fallbackLng: 'zh-CN',
+    fallbackLng: 'en-US',
     
     interpolation: {
       escapeValue: false, // React already escapes by default

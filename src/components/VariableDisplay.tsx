@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Trash2, Hash } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface VariableDisplayProps {
   storedParameters: { [key: string]: { value: string; timestamp: number } };
@@ -15,6 +16,7 @@ export const VariableDisplay: React.FC<VariableDisplayProps> = ({
   onClearParameter,
   onClearAll
 }) => {
+  const { t } = useTranslation();
   const parameterEntries = Object.entries(storedParameters);
 
   if (parameterEntries.length === 0) {
@@ -24,13 +26,13 @@ export const VariableDisplay: React.FC<VariableDisplayProps> = ({
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
               <Hash className="w-4 h-4" />
-              解析参数
+              {t('variable.title')}
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="text-center text-muted-foreground text-sm py-4">
-            暂无解析的参数
+            {t('variable.empty')}
           </div>
         </CardContent>
       </Card>
@@ -43,7 +45,7 @@ export const VariableDisplay: React.FC<VariableDisplayProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
             <Hash className="w-4 h-4" />
-            解析参数 ({parameterEntries.length})
+            {t('variable.title')} ({parameterEntries.length})
           </CardTitle>
           <Button
             variant="outline"
@@ -52,7 +54,7 @@ export const VariableDisplay: React.FC<VariableDisplayProps> = ({
             className="h-6 text-xs"
           >
             <Trash2 className="w-3 h-3 mr-1" />
-            清空
+            {t('variable.clear')}
           </Button>
         </div>
       </CardHeader>
@@ -67,7 +69,7 @@ export const VariableDisplay: React.FC<VariableDisplayProps> = ({
                       {key}
                     </Badge>
                     <Badge variant="secondary" className="text-xs">
-                      端口内
+                      {t('variable.inPort')}
                     </Badge>
                   </div>
                   <span className="text-sm font-mono truncate">

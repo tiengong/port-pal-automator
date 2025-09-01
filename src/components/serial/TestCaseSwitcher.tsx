@@ -225,26 +225,6 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
 
           {/* 右侧：管理按钮 */}
           <div className="flex items-center gap-1">
-            {/* 新增用例 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={() => setShowNewCaseDialog(true)}
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 px-3 text-xs"
-                  >
-                    <FilePlus className="w-3 h-3 mr-1" />
-                    新增用例
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>创建新的测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
             {/* 删除当前用例 */}
             {currentTestCase && (
               <TooltipProvider>

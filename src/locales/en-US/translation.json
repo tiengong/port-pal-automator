@@ -139,6 +139,11 @@
     "secondPortEnabled": "Second Serial Port Enabled",
     "secondPortEnabledDesc": "Configuration synced with main port, please select device to connect"
   },
+  "caseTree": {
+    "commands": "commands",
+    "subCases": "sub-cases",
+    "addSubCase": "Add Sub-Case"
+  },
   "testCase": {
     "addCommand": "Add Command",
     "addCommandDesc": "Added new command: {{command}}",

@@ -139,6 +139,11 @@
     "secondPortEnabled": "第二路串口已启用",
     "secondPortEnabledDesc": "配置已与主串口同步，请选择设备连接"
   },
+  "caseTree": {
+    "commands": "条命令",
+    "subCases": "个子用例", 
+    "addSubCase": "新增子用例"
+  },
   "testCase": {
     "addCommand": "新增命令",
     "addCommandDesc": "已添加新命令: {{command}}",

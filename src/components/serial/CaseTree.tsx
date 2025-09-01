@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useTranslation } from "react-i18next";
 import {
   ChevronRight,
   ChevronDown,
@@ -48,6 +49,7 @@ export const CaseTree: React.FC<CaseTreeProps> = ({
   onAddSubCase,
   level = 0
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-1">
       {cases.map((testCase) => (
@@ -113,14 +115,14 @@ export const CaseTree: React.FC<CaseTreeProps> = ({
               {/* 命令计数 */}
               {testCase.commands.length > 0 && (
                 <Badge variant="secondary" className="text-xs flex-shrink-0">
-                  {testCase.commands.length} 条命令
+                  {testCase.commands.length} {t("caseTree.commands")}
                 </Badge>
               )}
 
               {/* 子用例计数 */}
               {testCase.subCases.length > 0 && (
                 <Badge variant="outline" className="text-xs flex-shrink-0">
-                  {testCase.subCases.length} 个子用例
+                  {testCase.subCases.length} {t("caseTree.subCases")}
                 </Badge>
               )}
 
@@ -145,7 +147,7 @@ export const CaseTree: React.FC<CaseTreeProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>新增子用例</p>
+                  <p>{t("caseTree.addSubCase")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

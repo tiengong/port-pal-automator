@@ -95,13 +95,13 @@
     --primary-foreground: 210 40% 98%;
     --primary-glow: 221 83% 63%;
 
-    --secondary: 215 28% 17%;
+    --secondary: 215 25% 15%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 215 28% 17%;
-    --muted-foreground: 217 11% 65%;
+    --muted: 215 25% 17%;
+    --muted-foreground: 217 12% 65%;
 
-    --accent: 215 28% 17%;
+    --accent: 215 25% 17%;
     --accent-foreground: 210 40% 98%;
 
     --success: 142 71% 45%;
@@ -169,6 +169,7 @@
     color: hsl(var(--terminal-text));
     box-shadow: inset 0 4px 12px hsl(220 13% 0% / 0.4);
     border-radius: 0.5rem;
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
   .terminal-sent {
@@ -187,6 +188,7 @@
     box-shadow: var(--shadow-primary);
     transition: var(--transition-smooth);
     border: 0;
+    border-radius: 0.5rem;
   }
 
   .btn-connect:hover {
@@ -205,6 +207,7 @@
     box-shadow: var(--shadow-md);
     border-right: 1px solid hsl(var(--border));
     backdrop-filter: blur(10px);
+    border-radius: 0.5rem 0 0 0.5rem;
   }
 
   .panel-card {
@@ -212,6 +215,7 @@
     box-shadow: var(--shadow);
     border: 1px solid hsl(var(--border));
     transition: var(--transition-smooth);
+    border-radius: 0.5rem;
   }
 
   .panel-card:hover {

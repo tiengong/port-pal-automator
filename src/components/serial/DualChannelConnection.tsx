@@ -570,7 +570,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>停止位</Label>
+                    <Label>{t("connection.stopBits")}</Label>
                     <Select
                       value={strategy.p2Config.stopBits.toString()}
                       onValueChange={(value) => 
@@ -583,8 +583,8 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 位</SelectItem>
-                        <SelectItem value="2">2 位</SelectItem>
+                        <SelectItem value="1">1 {t("connection.bits")}</SelectItem>
+                        <SelectItem value="2">2 {t("connection.bits")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -598,10 +598,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   {isConnecting.P2 ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      连接中...
+                      {t("connection.connecting")}
                     </>
                   ) : (
-                    "连接第二路串口"
+                    t("connection.connect")
                   )}
                 </Button>
               </>
@@ -619,11 +619,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     size="sm"
                     onClick={() => disconnectChannel('P2')}
                   >
-                    断开
+                    {t("connection.disconnect")}
                   </Button>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
-                  {p2Port.params.dataBits}位数据 • {p2Port.params.parity === 'none' ? '无校验' : p2Port.params.parity} • {p2Port.params.stopBits}停止位
+                  {p2Port.params.dataBits}{t("connection.bits")} • {p2Port.params.parity === 'none' ? t("connection.noParity") : p2Port.params.parity} • {p2Port.params.stopBits}{t("connection.stopBits")}
                 </div>
               </div>
             )}

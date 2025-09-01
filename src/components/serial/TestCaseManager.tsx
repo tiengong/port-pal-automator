@@ -45,6 +45,7 @@ import { UrcEditor } from './editors/UrcEditor';
 import { VariableDisplay } from '../VariableDisplay';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from '@/lib/eventBus';
+import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace } from './workspace';
 
 interface TestCaseManagerProps {
   connectedPorts: Array<{
@@ -85,6 +86,44 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     targetType: 'case'
   });
   const [nextUniqueId, setNextUniqueId] = useState(1001);
+  const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
+  
+  // Initialize workspace and load test cases
+  useEffect(() => {
+    const initWorkspace = async () => {
+      try {
+        const workspace = await initializeDefaultWorkspace();
+        setCurrentWorkspace(workspace);
+        const cases = await loadCases();
+        setTestCases(cases);
+        if (cases.length > 0 && !selectedTestCaseId) {
+          setSelectedTestCaseId(cases[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to initialize workspace:', error);
+        toast({
+          title: "初始化失败",
+          description: "无法加载工作区",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    initWorkspace();
+  }, []);
+  
+  // Handle workspace changes
+  const handleWorkspaceChange = async () => {
+    try {
+      const workspace = getCurrentWorkspace();
+      setCurrentWorkspace(workspace);
+      const cases = await loadCases();
+      setTestCases(cases);
+      setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
+    } catch (error) {
+      console.error('Failed to reload workspace:', error);
+    }
+  };
   
   // 参数存储系统 - 用于URC解析的参数（端口内作用域）
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
@@ -1095,6 +1134,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         setTestCases={setTestCases}
         onDeleteTestCase={deleteTestCase}
         onSync={handleSync}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       {/* 编辑测试用例对话框 */}

@@ -93,6 +93,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     draggedItem: { caseId: string; commandIndex: number } | null;
     dropTarget: { caseId: string; commandIndex: number; position: 'above' | 'below' } | null;
   }>({ draggedItem: null, dropTarget: null });
+
+  // Inline editing state
+  const [inlineEdit, setInlineEdit] = useState<{
+    commandId: string | null;
+    value: string;
+  }>({ commandId: null, value: '' });
   
   // Initialize workspace and load test cases
   useEffect(() => {
@@ -235,6 +241,33 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     const [movedItem] = newArray.splice(fromIndex, 1);
     newArray.splice(toIndex, 0, movedItem);
     return newArray;
+  };
+
+  // 保存内联编辑
+  const saveInlineEdit = (caseId: string, commandId: string) => {
+    if (inlineEdit.commandId === commandId && inlineEdit.value.trim()) {
+      const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+        ...testCase,
+        commands: testCase.commands.map(cmd =>
+          cmd.id === commandId 
+            ? { ...cmd, [cmd.type === 'urc' ? 'urcPattern' : 'command']: inlineEdit.value.trim() }
+            : cmd
+        )
+      }));
+      setTestCases(updatedTestCases);
+      
+      // 保存更新后的用例
+      const updatedCase = findTestCaseById(caseId, updatedTestCases);
+      if (updatedCase) {
+        saveCase(updatedCase);
+      }
+      
+      toast({
+        title: "修改成功",
+        description: "命令内容已更新"
+      });
+    }
+    setInlineEdit({ commandId: null, value: '' });
   };
 
   // ========== 递归工具函数 ==========
@@ -528,10 +561,33 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           
           {/* 命令内容 */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-sm truncate">
-                {command.type === 'urc' ? command.urcPattern || 'URC校验内容' : command.command}
-              </span>
+            <div 
+              className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded p-1 -m-1 transition-colors"
+              onDoubleClick={() => {
+                const currentValue = command.type === 'urc' ? command.urcPattern || '' : command.command;
+                setInlineEdit({ commandId: command.id, value: currentValue });
+              }}
+            >
+              {inlineEdit.commandId === command.id ? (
+                <Input
+                  value={inlineEdit.value}
+                  onChange={(e) => setInlineEdit(prev => ({ ...prev, value: e.target.value }))}
+                  onBlur={() => saveInlineEdit(caseId, command.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      saveInlineEdit(caseId, command.id);
+                    } else if (e.key === 'Escape') {
+                      setInlineEdit({ commandId: null, value: '' });
+                    }
+                  }}
+                  className="font-mono text-sm h-6 px-1"
+                  autoFocus
+                />
+              ) : (
+                <span className="font-mono text-sm truncate">
+                  {command.type === 'urc' ? command.urcPattern || 'URC校验内容' : command.command}
+                </span>
+              )}
             </div>
             
             {command.expectedResponse && (

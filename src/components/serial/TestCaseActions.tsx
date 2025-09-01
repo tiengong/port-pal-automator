@@ -299,18 +299,6 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               <Radio className="w-3 h-3 mr-2" />
               新增URC
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start h-8 px-2 text-sm"
-              onClick={() => {
-                setShowAddMenu(false);
-                setShowPresetDialog(true);
-              }}
-            >
-              <Package className="w-3 h-3 mr-2" />
-              预设用例
-            </Button>
             {testCases.some(tc => tc.isPreset) && (
               <Button
                 variant="ghost"

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronDown, Radio } from "lucide-react";
+import { ChevronDown, Radio, Wand2 } from "lucide-react";
 import { TestCommand } from '../types';
 import { UrcPreview } from '../UrcPreview';
 
@@ -22,9 +22,48 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
   onUpdate
 }) => {
   const [showExamples, setShowExamples] = useState(false);
+  const [parameterMapText, setParameterMapText] = useState('');
+  const [parameterMapError, setParameterMapError] = useState<string | null>(null);
   
   const updateCommand = (field: keyof TestCommand, value: any) => {
     onUpdate({ [field]: value });
+  };
+
+  // Sync parameterMapText with external changes
+  useEffect(() => {
+    const parameterMap = command.dataParseConfig?.parameterMap || {};
+    const newText = JSON.stringify(parameterMap, null, 2);
+    if (newText !== parameterMapText) {
+      setParameterMapText(newText);
+      setParameterMapError(null);
+    }
+  }, [command.dataParseConfig?.parameterMap]);
+
+  const handleParameterMapChange = (text: string) => {
+    setParameterMapText(text);
+    
+    try {
+      const parameterMap = JSON.parse(text);
+      const newConfig = { 
+        ...command.dataParseConfig, 
+        parameterMap 
+      };
+      updateCommand('dataParseConfig', newConfig);
+      setParameterMapError(null);
+    } catch (err) {
+      setParameterMapError(err instanceof Error ? err.message : 'Invalid JSON format');
+    }
+  };
+
+  const formatParameterMap = () => {
+    try {
+      const parsed = JSON.parse(parameterMapText);
+      const formatted = JSON.stringify(parsed, null, 2);
+      setParameterMapText(formatted);
+      setParameterMapError(null);
+    } catch (err) {
+      // Keep current text if parsing fails
+    }
   };
 
   // URC监听示例
@@ -376,29 +415,35 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="parameterMap">变量映射 (JSON格式)</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="parameterMap">变量映射 (JSON格式)</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatParameterMap}
+                className="h-6 px-2 text-xs"
+              >
+                <Wand2 className="w-3 h-3 mr-1" />
+                格式化
+              </Button>
+            </div>
             <Textarea
               id="parameterMap"
-              value={JSON.stringify(command.dataParseConfig?.parameterMap || {}, null, 2)}
-              onChange={(e) => {
-                try {
-                  const parameterMap = JSON.parse(e.target.value);
-                  const newConfig = { 
-                    ...command.dataParseConfig, 
-                    parameterMap 
-                  };
-                  updateCommand('dataParseConfig', newConfig);
-                } catch (err) {
-                  // 忽略JSON解析错误，让用户继续编辑
-                }
-              }}
+              value={parameterMapText}
+              onChange={(e) => handleParameterMapChange(e.target.value)}
               placeholder={command.dataParseConfig?.parseType === 'regex' 
                 ? '{\n  "1": "msgid",\n  "code": "statusCode"\n}'
                 : '{\n  "1": "msgid",\n  "2": "status"\n}'
               }
               rows={4}
-              className="font-mono text-xs"
+              className={`font-mono text-xs ${parameterMapError ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {parameterMapError && (
+              <p className="text-xs text-red-600 mt-1 bg-red-50 border border-red-200 rounded px-2 py-1">
+                JSON错误: {parameterMapError}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
               {command.dataParseConfig?.parseType === 'regex' 
                 ? '键为捕获组号(1,2,...)或命名捕获组名，值为变量名'

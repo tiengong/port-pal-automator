@@ -78,7 +78,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
   const [waitingForUser, setWaitingForUser] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
-  const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number; } }>({});
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
     x: 0,
@@ -89,39 +88,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   
-  // 查找测试用例
-  const findTestCaseById = (id: string): TestCase | null => {
-    const findInCases = (cases: TestCase[]): TestCase | null => {
-      for (const testCase of cases) {
-        if (testCase.id === id) {
-          return testCase;
-        }
-        if (testCase.subCases) {
-          const found = findInCases(testCase.subCases);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    return findInCases(testCases);
-  };
-
-  // 计算当前测试用例
-  const currentTestCase = selectedTestCaseId ? findTestCaseById(selectedTestCaseId) : null;
-  const visibleRootCase = currentTestCase;
-
-  // 生成唯一ID
-  const generateUniqueId = () => {
-    const newId = nextUniqueId;
-    setNextUniqueId(prev => prev + 1);
-    return newId.toString();
-  };
-
-  // 工作空间变更处理
-  const handleWorkspaceChange = (workspace: any) => {
-    setCurrentWorkspace(workspace);
-  };
-  
   // Initialize workspace and load test cases
   useEffect(() => {
     const initWorkspace = async () => {
@@ -129,143 +95,152 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         const workspace = await initializeDefaultWorkspace();
         setCurrentWorkspace(workspace);
         const cases = await loadCases();
-        
-        if (cases.length > 0) {
-          // 如果从workspace加载到用例，使用加载的用例
-          setTestCases(cases);
-          if (!selectedTestCaseId) {
-            setSelectedTestCaseId(cases[0].id);
-          }
-        } else {
-          // 如果没有保存的用例，使用示例数据
-          const sampleTestCases: TestCase[] = [
-            {
-              id: 'case1',
-              uniqueId: '1001',
-              name: 'AT指令基础测试',
-              description: '测试基本AT指令响应',
-              isExpanded: false,
-              isRunning: false,
-              currentCommand: -1,
-              selected: false,
-              status: 'pending',
-              subCases: [],
-              commands: [
-                {
-                  id: 'cmd1',
-                  type: 'execution',
-                  command: 'AT',
-                  expectedResponse: 'OK',
-                  validationMethod: 'contains',
-                  validationPattern: 'OK',
-                  waitTime: 2000,
-                  stopOnFailure: true,
-                  lineEnding: 'crlf',
-                  selected: false,
-                  status: 'pending'
-                },
-                {
-                  id: 'cmd2',
-                  type: 'execution',
-                  command: 'AT+CGMR',
-                  validationMethod: 'none',
-                  waitTime: 3000,
-                  stopOnFailure: false,
-                  lineEnding: 'crlf',
-                  selected: false,
-                  status: 'pending'
-                }
-              ]
-            },
-            {
-              id: 'case2',
-              uniqueId: '1002',
-              name: '网络连接测试',
-              description: '测试网络连接相关指令',
-              isExpanded: false,
-              isRunning: false,
-              currentCommand: -1,
-              selected: false,
-              status: 'pending',
-              subCases: [],
-              commands: [
-                {
-                  id: 'cmd3',
-                  type: 'execution',
-                  command: 'AT+CREG?',
-                  validationMethod: 'contains',
-                  validationPattern: '+CREG:',
-                  waitTime: 2000,
-                  stopOnFailure: true,
-                  lineEnding: 'crlf',
-                  selected: false,
-                  status: 'pending'
-                },
-                {
-                  id: 'cmd4',
-                  type: 'execution',
-                  command: 'AT+CSQ',
-                  validationMethod: 'regex',
-                  validationPattern: '\\+CSQ: \\d+,\\d+',
-                  waitTime: 2000,
-                  stopOnFailure: false,
-                  lineEnding: 'crlf',
-                  selected: false,
-                  status: 'pending'
-                }
-              ]
-            }
-          ];
-          setTestCases(sampleTestCases);
-          setSelectedTestCaseId('case1');
+        setTestCases(cases);
+        if (cases.length > 0 && !selectedTestCaseId) {
+          setSelectedTestCaseId(cases[0].id);
         }
-        setNextUniqueId(1003);
       } catch (error) {
         console.error('Failed to initialize workspace:', error);
+        toast({
+          title: "初始化失败",
+          description: "无法加载工作区",
+          variant: "destructive"
+        });
       }
     };
     
     initWorkspace();
   }, []);
-
-  // URC数据解析
-  const parseUrcData = (data: string): { [key: string]: string } => {
-    const parameters: { [key: string]: string } = {};
+  
+  // Handle workspace changes
+  const handleWorkspaceChange = async () => {
+    try {
+      const workspace = getCurrentWorkspace();
+      setCurrentWorkspace(workspace);
+      const cases = await loadCases();
+      setTestCases(cases);
+      setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
+    } catch (error) {
+      console.error('Failed to reload workspace:', error);
+    }
+  };
+  
+  // 参数存储系统 - 用于URC解析的参数（端口内作用域）
+  const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
+  
+  // URC解析和变量替换系统
+  const parseUrcData = (data: string, command: TestCommand): { [key: string]: { value: string; timestamp: number } } => {
+    if (!command.dataParseConfig || !command.dataParseConfig.enabled) return {};
     
-    // 尝试解析标准AT响应格式
-    const patterns = [
-      /\+(\w+):\s*(.+)/g,  // +CMD: value
-      /(\w+):\s*(.+)/g,    // CMD: value
-      /OK/g,               // OK
-      /ERROR/g             // ERROR
-    ];
+    const { parseType, parsePattern, parameterMap } = command.dataParseConfig;
+    const extractedParams: { [key: string]: { value: string; timestamp: number } } = {};
+    const timestamp = Date.now();
     
-    patterns.forEach(pattern => {
-      let match;
-      while ((match = pattern.exec(data)) !== null) {
-        if (match.length > 2) {
-          parameters[match[1]] = match[2];
+    switch (parseType) {
+      case 'regex':
+        try {
+          const regex = new RegExp(parsePattern);
+          const match = data.match(regex);
+          if (match) {
+            Object.entries(parameterMap).forEach(([groupKey, varName]) => {
+              if (typeof varName === 'string') {
+                // 支持捕获组索引和命名捕获组
+                const value = isNaN(Number(groupKey)) 
+                  ? match.groups?.[groupKey] 
+                  : match[Number(groupKey)];
+                if (value) {
+                  extractedParams[varName] = { value, timestamp };
+                }
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Regex parsing error:', error);
         }
-      }
+        break;
+      case 'split':
+        const parts = data.split(parsePattern);
+        Object.entries(parameterMap).forEach(([indexKey, varName]) => {
+          if (typeof varName === 'string') {
+            const index = Number(indexKey);
+            if (!isNaN(index) && parts[index] !== undefined) {
+              extractedParams[varName] = { value: parts[index].trim(), timestamp };
+            }
+          }
+        });
+        break;
+    }
+    
+    return extractedParams;
+  };
+  
+  // 变量替换函数
+  const substituteVariables = (command: string): string => {
+    let substituted = command;
+    
+    Object.entries(storedParameters).forEach(([varName, varData]) => {
+      // 支持多种变量格式: {var}, {var|default}, {P1.var}, {P2.var}
+      const patterns = [
+        `{${varName}}`,
+        `{${varName}\\|[^}]*}`, // 带默认值
+        `{P1\\.${varName}}`,
+        `{P2\\.${varName}}`
+      ];
+      
+      patterns.forEach(pattern => {
+        const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        substituted = substituted.replace(regex, varData.value);
+      });
     });
     
-    return parameters;
+    return substituted;
+  };
+  
+
+  // 更新命令选中状态（支持嵌套）
+  const updateCommandSelection = (caseId: string, commandId: string, selected: boolean) => {
+    const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+      ...testCase,
+      commands: testCase.commands.map(cmd =>
+        cmd.id === commandId ? { ...cmd, selected } : cmd
+      )
+    }));
+    setTestCases(updatedTestCases);
   };
 
-  // 变量替换
-  const substituteVariables = (text: string): string => {
-    return text.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-      return storedParameters[key]?.value || match;
-    });
+  // 格式化命令索引（支持子用例嵌套）
+  const formatCommandIndex = (index: number, subIndex?: number): string => {
+    return subIndex !== undefined ? `${index + 1}.${subIndex + 1}` : `${index + 1}`;
+  };
+
+  // 生成唯一编号
+  const generateUniqueId = () => {
+    const id = nextUniqueId.toString();
+    setNextUniqueId(prev => prev + 1);
+    return id;
+  };
+
+  // ========== 递归工具函数 ==========
+  
+  // 根据ID查找测试用例
+  const findTestCaseById = (id: string, cases: TestCase[] = testCases): TestCase | null => {
+    for (const testCase of cases) {
+      if (testCase.id === id || testCase.uniqueId === id) {
+        return testCase;
+      }
+      const found = findTestCaseById(id, testCase.subCases);
+      if (found) return found;
+    }
+    return null;
   };
 
   // 递归更新测试用例
-  const updateCaseById = (cases: TestCase[], id: string, updater: (tc: TestCase) => TestCase): TestCase[] => {
+  const updateCaseById = (cases: TestCase[], id: string, updater: (testCase: TestCase) => TestCase): TestCase[] => {
     return cases.map(testCase => {
       if (testCase.id === id) {
         return updater(testCase);
       }
-      if (testCase.subCases && testCase.subCases.length > 0) {
+      if (testCase.subCases.length > 0) {
         return {
           ...testCase,
           subCases: updateCaseById(testCase.subCases, id, updater)
@@ -275,32 +250,33 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
-  // 添加子用例
-  const addSubCaseById = (cases: TestCase[], parentId: string, newSubCase: TestCase): TestCase[] => {
+  // 递归添加子用例
+  const addSubCaseById = (cases: TestCase[], parentId: string, newCase: TestCase): TestCase[] => {
     return cases.map(testCase => {
       if (testCase.id === parentId) {
         return {
           ...testCase,
-          subCases: [...testCase.subCases, newSubCase]
+          subCases: [...testCase.subCases, newCase],
+          isExpanded: true // 自动展开以显示新添加的子用例
         };
       }
-      if (testCase.subCases && testCase.subCases.length > 0) {
+      if (testCase.subCases.length > 0) {
         return {
           ...testCase,
-          subCases: addSubCaseById(testCase.subCases, parentId, newSubCase)
+          subCases: addSubCaseById(testCase.subCases, parentId, newCase)
         };
       }
       return testCase;
     });
   };
 
-  // 切换展开状态
+  // 递归展开/折叠
   const toggleExpandById = (cases: TestCase[], id: string): TestCase[] => {
     return cases.map(testCase => {
       if (testCase.id === id) {
         return { ...testCase, isExpanded: !testCase.isExpanded };
       }
-      if (testCase.subCases && testCase.subCases.length > 0) {
+      if (testCase.subCases.length > 0) {
         return {
           ...testCase,
           subCases: toggleExpandById(testCase.subCases, id)
@@ -310,6 +286,322 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  // 查找用例路径（从根到目标节点的完整路径）
+  const findCasePath = (targetId: string, cases: TestCase[] = testCases, path: TestCase[] = []): TestCase[] | null => {
+    for (const testCase of cases) {
+      const currentPath = [...path, testCase];
+      
+      if (testCase.id === targetId) {
+        return currentPath;
+      }
+      
+      const found = findCasePath(targetId, testCase.subCases, currentPath);
+      if (found) return found;
+    }
+    return null;
+  };
+
+  // 获取可见的根用例（当前选中用例的顶层祖先）
+  const getVisibleRootCase = (): TestCase | null => {
+    if (selectedTestCaseId) {
+      const casePath = findCasePath(selectedTestCaseId);
+      if (casePath && casePath.length > 0) {
+        return casePath[0]; // 返回路径的第一个元素（顶层祖先）
+      }
+    }
+    return testCases[0] || null;
+  };
+
+  // 获取当前选中的测试用例（支持嵌套查找）
+  const getCurrentTestCase = () => {
+    if (selectedTestCaseId) {
+      return findTestCaseById(selectedTestCaseId);
+    }
+    return testCases[0] || null;
+  };
+  
+  const currentTestCase = getCurrentTestCase();
+  const visibleRootCase = getVisibleRootCase();
+
+  // ========== 递归渲染函数 ==========
+  
+  // 获取状态图标
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      case 'running':
+        return <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />;
+      case 'partial':
+        return <AlertCircle className="w-4 h-4 text-blue-500" />;
+      default:
+        return null;
+    }
+  };
+
+  // 渲染命令行
+  const renderCommandRow = (command: TestCommand, caseId: string, commandIndex: number, level: number) => (
+    <div key={command.id} className="p-3 hover:bg-muted/50 transition-colors">
+      <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+        {/* 复选框 */}
+        <Checkbox
+          checked={command.selected}
+          onCheckedChange={(checked) => updateCommandSelection(caseId, command.id, checked as boolean)}
+          className="flex-shrink-0"
+        />
+        
+        {/* 命令内容 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm truncate">
+              {command.command}
+            </span>
+          </div>
+          
+          {command.expectedResponse && (
+            <div className="text-xs text-muted-foreground truncate mt-1">
+              期望: {command.expectedResponse}
+            </div>
+          )}
+        </div>
+        
+        {/* 状态指示器 */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {getStatusIcon(command.status)}
+        </div>
+        
+        {/* 操作按钮 */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => runCommand(caseId, commandIndex)}
+                  disabled={connectedPorts.length === 0}
+                >
+                  <PlayCircle className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>运行</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    setSelectedTestCaseId(caseId);
+                    setEditingCommandIndex(commandIndex);
+                  }}
+                >
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>设置</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 渲染测试用例节点
+  const renderCaseNode = (testCase: TestCase, level: number): React.ReactNode[] => {
+    const elements: React.ReactNode[] = [];
+    
+    // 渲染用例行
+    elements.push(
+      <div key={testCase.id} className="p-3 hover:bg-muted/50 transition-colors">
+        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+          {/* 展开/折叠按钮 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 flex-shrink-0"
+            onClick={() => {
+              const updatedTestCases = toggleExpandById(testCases, testCase.id);
+              setTestCases(updatedTestCases);
+            }}
+          >
+            {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
+              testCase.isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )
+            ) : (
+              <div className="w-4 h-4" />
+            )}
+          </Button>
+
+          {/* 复选框 */}
+          <Checkbox
+            checked={testCase.selected}
+            onCheckedChange={(checked) => {
+              const updatedTestCases = updateCaseById(testCases, testCase.id, (tc) => ({
+                ...tc,
+                selected: checked as boolean
+              }));
+              setTestCases(updatedTestCases);
+            }}
+            className="flex-shrink-0"
+          />
+          
+          {/* 用例内容 */}
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => setSelectedTestCaseId(testCase.id)}
+          >
+            <div className="flex items-center gap-2">
+              <span className={`font-medium text-sm truncate ${
+                selectedTestCaseId === testCase.id ? 'text-primary' : ''
+              }`}>
+                {testCase.name}
+              </span>
+               
+
+             </div>
+          </div>
+          
+          {/* 状态指示器 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {getStatusIcon(testCase.status)}
+          </div>
+          
+          {/* 操作按钮 */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => runTestCase(testCase.id)}
+                    disabled={connectedPorts.length === 0}
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>运行</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleEditCase(testCase)}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>设置</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+    );
+
+    // 渲染展开的内容（命令和子用例）
+    if (testCase.isExpanded) {
+      // 先渲染命令
+      testCase.commands.forEach((command, index) => {
+        elements.push(renderCommandRow(command, testCase.id, index, level + 1));
+      });
+      
+      // 再渲染子用例
+      testCase.subCases.forEach((subCase) => {
+        elements.push(...renderCaseNode(subCase, level + 1));
+      });
+    }
+    
+    return elements;
+  };
+
+  // 渲染统一树结构（顶级用例不显示，直接显示内容）
+  const renderUnifiedTree = (cases: TestCase[], level: number): React.ReactNode[] => {
+    const elements: React.ReactNode[] = [];
+    
+    cases.forEach((testCase) => {
+      // 对于顶级用例（level === 0），不渲染用例行本身，直接渲染其内容
+      if (level === 0) {
+        // 直接渲染命令
+        testCase.commands.forEach((command, index) => {
+          elements.push(renderCommandRow(command, testCase.id, index, 0));
+        });
+        
+        // 直接渲染子用例
+        testCase.subCases.forEach((subCase) => {
+          elements.push(...renderCaseNode(subCase, 0));
+        });
+      } else {
+        // 对于非顶级用例，正常渲染
+        elements.push(...renderCaseNode(testCase, level));
+      }
+    });
+    
+    return elements;
+  };
+
+  // 监听串口数据接收事件
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe(EVENTS.SERIAL_DATA_RECEIVED, (event: SerialDataEvent) => {
+      if (event.type === 'received') {
+        // 检查是否有活跃的URC监听器
+        if (currentTestCase) {
+          currentTestCase.commands.forEach((command) => {
+            if (command.type === 'urc' && command.selected && command.urcPattern) {
+              const matches = checkUrcMatch(event.data, command);
+              if (matches) {
+                const extractedParams = parseUrcData(event.data, command);
+                if (Object.keys(extractedParams).length > 0) {
+                  // 更新存储的参数，同名变量使用最新值
+                  setStoredParameters(prev => {
+                    return { ...prev, ...extractedParams };
+                  });
+                  
+                  eventBus.emit(EVENTS.PARAMETER_EXTRACTED, { 
+                    commandId: command.id, 
+                    parameters: extractedParams 
+                  });
+                  
+                  toast({
+                    title: "参数解析成功",
+                    description: `提取参数: ${Object.entries(extractedParams).map(([k, v]) => `${k}=${v.value}`).join(', ')}`,
+                  });
+                }
+              }
+            }
+          });
+        }
+      }
+    });
+    
+    return unsubscribe;
+  }, [currentTestCase]);
+  
   // URC匹配检查
   const checkUrcMatch = (data: string, command: TestCommand): boolean => {
     if (!command.urcPattern) return false;
@@ -335,83 +627,91 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
   };
 
-  // 监听URC数据
+  // 初始化示例数据
   useEffect(() => {
-    const unsubscribe = eventBus.subscribe(EVENTS.SERIAL_DATA_RECEIVED, (event: SerialDataEvent) => {
-      const receivedData = event.data;
-      
-      // 解析参数并存储
-      const parameters = parseUrcData(receivedData);
-      if (Object.keys(parameters).length > 0) {
-        setStoredParameters(prev => ({
-          ...prev,
-          ...Object.fromEntries(Object.entries(parameters).map(([key, value]) => [key, { value, timestamp: Date.now() }]))
-        }));
-      }
-      
-      // 检查URC匹配
-      if (currentTestCase) {
-        currentTestCase.commands.forEach((command, index) => {
-          if (command.type === 'urc' && command.selected && checkUrcMatch(receivedData, command)) {
-            setStoredParameters(prev => ({
-              ...prev,
-              [`urc_${command.id}`]: { value: receivedData, timestamp: Date.now() }
-            }));
-            
-            const updatedCommands = currentTestCase.commands.map((cmd, idx) =>
-              idx === index ? { ...cmd, status: 'success' as const, selected: false } : cmd
-            );
-            
-            const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
-              ...testCase,
-              commands: updatedCommands
-            }));
-            setTestCases(updatedTestCases);
-            
-            toast({
-              title: "URC匹配成功",
-              description: `模式 ${command.urcPattern} 匹配到数据`,
-            });
-          }
-        });
-      }
-    });
-    
-    return unsubscribe;
-  }, [currentTestCase]);
-
-  // 渲染统一层级树
-  const renderUnifiedTree = (cases: TestCase[], depth: number = 0): React.ReactNode => {
-    return (
-      <CaseTree
-        cases={cases}
-        selectedId={selectedTestCaseId}
-        onSelect={handleSelectTestCase}
-        onToggleExpand={(id) => {
-          const updatedTestCases = toggleExpandById(testCases, id);
-          setTestCases(updatedTestCases);
-        }}
-        onAddSubCase={(parentId) => {
-          const newSubCase: TestCase = {
-            id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            uniqueId: generateUniqueId(),
-            name: '新建子用例',
-            description: '',
-            commands: [],
-            subCases: [],
-            isExpanded: false,
-            isRunning: false,
-            currentCommand: -1,
+    const sampleTestCases: TestCase[] = [
+      {
+        id: 'case1',
+        uniqueId: '1001',
+        name: 'AT指令基础测试',
+        description: '测试基本AT指令响应',
+        isExpanded: false,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: 'pending',
+        subCases: [],
+        commands: [
+          {
+            id: 'cmd1',
+            type: 'execution',
+            command: 'AT',
+            expectedResponse: 'OK',
+            validationMethod: 'contains',
+            validationPattern: 'OK',
+            waitTime: 2000,
+            stopOnFailure: true,
+            lineEnding: 'crlf',
             selected: false,
             status: 'pending'
-          };
-          
-          const updatedTestCases = addSubCaseById(testCases, parentId, newSubCase);
-          setTestCases(updatedTestCases);
-        }}
-      />
-    );
-  };
+          },
+          {
+            id: 'cmd2',
+            type: 'execution',
+            command: 'AT+CGMR',
+            validationMethod: 'none',
+            waitTime: 3000,
+            stopOnFailure: false,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          }
+        ]
+      },
+      {
+        id: 'case2',
+        uniqueId: '1002',
+        name: '网络连接测试',
+        description: '测试网络连接相关指令',
+        isExpanded: false,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: 'pending',
+        subCases: [],
+        commands: [
+          {
+            id: 'cmd3',
+            type: 'execution',
+            command: 'AT+CREG?',
+            validationMethod: 'contains',
+            validationPattern: '+CREG:',
+            waitTime: 2000,
+            stopOnFailure: true,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          },
+          {
+            id: 'cmd4',
+            type: 'execution',
+            command: 'AT+CSQ',
+            validationMethod: 'regex',
+            validationPattern: '\\+CSQ: \\d+,\\d+',
+            waitTime: 2000,
+            stopOnFailure: false,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          }
+        ]
+      }
+    ];
+    setTestCases(sampleTestCases);
+    setNextUniqueId(1003);
+    setSelectedTestCaseId('case1'); // 自动选择第一个测试用例
+  }, []);
+
 
   console.log('TestCaseManager rendered with modular layout', { currentTestCase, testCases });
 
@@ -834,7 +1134,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         setTestCases={setTestCases}
         onDeleteTestCase={deleteTestCase}
         onSync={handleSync}
-        onWorkspaceChange={() => handleWorkspaceChange}
+        onWorkspaceChange={handleWorkspaceChange}
       />
 
       {/* 编辑测试用例对话框 */}

@@ -625,15 +625,17 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Switch
-                    id="autoScroll"
-                    checked={autoScrollEnabled}
-                    onCheckedChange={setAutoScrollEnabled}
-                    className="data-[state=checked]:bg-primary"
-                  />
+                  <Button
+                    variant={autoScrollEnabled ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Auto Scroll</p>
+                  <p>自动滚动</p>
                 </TooltipContent>
               </Tooltip>
               

@@ -217,11 +217,22 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         正在请求设备访问权限...
                       </SelectItem>
                     ) : (
-                      availablePorts.map((port, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          串口设备 #{index + 1}
-                        </SelectItem>
-                      ))
+                      availablePorts.map((port, index) => {
+                        // Try to get port info from the port object
+                        const getPortInfo = () => {
+                          const info = (port as any).getInfo?.() || {};
+                          if (info.usbVendorId && info.usbProductId) {
+                            return `USB设备 (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
+                          }
+                          return `COM${index + 1}`;
+                        };
+                        
+                        return (
+                          <SelectItem key={index} value={index.toString()}>
+                            {getPortInfo()}
+                          </SelectItem>
+                        );
+                      })
                     )}
                   </SelectContent>
                 </Select>
@@ -461,11 +472,22 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                           正在请求设备访问权限...
                         </SelectItem>
                       ) : (
-                        availablePorts.map((port, index) => (
-                          <SelectItem key={index} value={index.toString()}>
-                            串口设备 #{index + 1}
-                          </SelectItem>
-                        ))
+                        availablePorts.map((port, index) => {
+                          // Try to get port info from the port object
+                          const getPortInfo = () => {
+                            const info = (port as any).getInfo?.() || {};
+                            if (info.usbVendorId && info.usbProductId) {
+                              return `USB设备 (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
+                            }
+                            return `COM${index + 1}`;
+                          };
+                          
+                          return (
+                            <SelectItem key={index} value={index.toString()}>
+                              {getPortInfo()}
+                            </SelectItem>
+                          );
+                        })
                       )}
                     </SelectContent>
                   </Select>

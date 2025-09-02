@@ -51,12 +51,12 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   };
 
   return (
-    <footer className="h-12 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
+    <footer className="h-6 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
       {/* Left: Status Message */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
         {/* Scrollable Messages Area */}
         <div className="flex-1 min-w-0">
-          <ScrollArea className="h-10 w-full">
+          <ScrollArea className="h-5 w-full">
             <div className="flex items-center gap-2 py-2">
               {messages.length === 0 ? (
                 <span className="text-muted-foreground/70 text-sm">{t('status.ready')}</span>
@@ -96,11 +96,11 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
             >
               <History className="w-4 h-4" />
               {messages.length > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
+                <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 text-xs bg-primary">
                   {messages.length > 99 ? '99+' : messages.length}
                 </Badge>
               )}
@@ -113,7 +113,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onClearAllMessages}
-                className="h-8 w-8 p-0"
+                className="h-6 w-6 p-0"
               >
                 <Trash className="w-4 h-4" />
               </Button>

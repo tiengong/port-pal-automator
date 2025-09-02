@@ -401,7 +401,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             
             <Button variant="outline" size="sm" onClick={() => setConfirmNewWorkspace(true)} className="flex items-center gap-2">
               <FolderOpen className="w-4 h-4" />
-              打开新工作区
+              新建并切换工作区
             </Button>
             
             <Button variant="outline" size="sm" onClick={onSync} className="flex items-center gap-2">
@@ -498,11 +498,9 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
         <AlertDialog open={confirmNewWorkspace} onOpenChange={setConfirmNewWorkspace}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>确认创建新工作区</AlertDialogTitle>
+              <AlertDialogTitle>创建并切换到新工作区</AlertDialogTitle>
               <AlertDialogDescription>
-                创建新工作区将清空当前的所有测试用例。未保存的更改将会丢失。
-                <br />
-                在桌面版中，您需要选择一个文件夹用于存放测试用例。
+                将创建一个新工作区，并自动切换到它。当前工作区的数据不会被清空或删除，您可随时切换回来。在桌面版中，您需要选择一个文件夹用于存放测试用例。
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

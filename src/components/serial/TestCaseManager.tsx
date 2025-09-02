@@ -48,7 +48,7 @@ import { VariableDisplay } from '../VariableDisplay';
 import { RunResultDialog, TestRunResult } from './RunResultDialog';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from '@/lib/eventBus';
-import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace, fromPersistedCase } from './workspace';
+import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace, fromPersistedCase, scheduleAutoSave, getLastOpenedTestCase, setLastOpenedTestCase } from './workspace';
 
 interface TestCaseManagerProps {
   connectedPorts: Array<{
@@ -130,8 +130,17 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         const cases = await loadCases();
         // Ensure cases is always an array
         setTestCases(Array.isArray(cases) ? cases : []);
-        if (cases.length > 0 && !selectedTestCaseId) {
+        
+        // Load last opened test case
+        const lastTestCaseId = getLastOpenedTestCase();
+        if (lastTestCaseId && cases.find(c => c.uniqueId === lastTestCaseId)) {
+          const lastCase = cases.find(c => c.uniqueId === lastTestCaseId);
+          if (lastCase) {
+            setSelectedTestCaseId(lastCase.id);
+          }
+        } else if (cases.length > 0 && !selectedTestCaseId) {
           setSelectedTestCaseId(cases[0].id);
+          setLastOpenedTestCase(cases[0].uniqueId);
         }
       } catch (error) {
         console.error('Failed to initialize workspace:', error);
@@ -151,14 +160,34 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     try {
       const workspace = getCurrentWorkspace();
       setCurrentWorkspace(workspace);
-        const cases = await loadCases();
-        // Ensure cases is always an array
-        setTestCases(Array.isArray(cases) ? cases : []);
-      setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
+      const cases = await loadCases();
+      // Ensure cases is always an array
+      setTestCases(Array.isArray(cases) ? cases : []);
+      
+      // Load last opened test case for new workspace
+      const lastTestCaseId = getLastOpenedTestCase();
+      if (lastTestCaseId && cases.find(c => c.uniqueId === lastTestCaseId)) {
+        const lastCase = cases.find(c => c.uniqueId === lastTestCaseId);
+        if (lastCase) {
+          setSelectedTestCaseId(lastCase.id);
+        }
+      } else {
+        setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
+      }
     } catch (error) {
       console.error('Failed to reload workspace:', error);
     }
   };
+  
+  // Track selected test case changes and save last opened
+  useEffect(() => {
+    if (selectedTestCaseId && testCases.length > 0) {
+      const selectedCase = testCases.find(c => c.id === selectedTestCaseId);
+      if (selectedCase) {
+        setLastOpenedTestCase(selectedCase.uniqueId);
+      }
+    }
+  }, [selectedTestCaseId, testCases]);
   
   // 参数存储系统 - 用于URC解析的参数（端口内作用域）
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
@@ -279,10 +308,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       }));
       setTestCases(updatedTestCases);
       
-      // 保存更新后的用例
+      // 自动保存更新后的用例
       const updatedCase = findTestCaseById(caseId, updatedTestCases);
       if (updatedCase) {
-        saveCase(updatedCase);
+        scheduleAutoSave(updatedCase);
       }
       
       toast({
@@ -652,10 +681,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               
               setTestCases(updatedTestCases);
               
-              // 保存更新后的用例
+              // 自动保存更新后的用例
               const updatedCase = findTestCaseById(dropTarget.caseId, updatedTestCases);
               if (updatedCase) {
-                saveCase(updatedCase);
+                scheduleAutoSave(updatedCase);
               }
               
               toast({

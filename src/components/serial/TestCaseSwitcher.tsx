@@ -58,7 +58,8 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   // Handle new workspace creation
   const handleOpenNewWorkspace = async () => {
     try {
-      const workspace = await createWorkspace('新工作区');
+      // For Tauri desktop mode, use file system selection
+      const workspace = await createWorkspace('新工作区', true);
       if (onWorkspaceChange) {
         onWorkspaceChange();
       }
@@ -67,12 +68,14 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
         description: `已切换到工作区: ${workspace.name}`
       });
     } catch (error) {
+      console.error('Create workspace error:', error);
       toast({
         title: "创建失败",
-        description: "无法创建新工作区",
+        description: error instanceof Error ? error.message : "无法创建新工作区",
         variant: "destructive"
       });
     }
+    setConfirmNewWorkspace(false);
   };
 
   // Handle new case creation
@@ -491,26 +494,29 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
          </AlertDialogContent>
        </AlertDialog>
 
-       {/* 新工作区确认对话框 */}
-      <AlertDialog open={confirmNewWorkspace} onOpenChange={setConfirmNewWorkspace}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认创建新工作区</AlertDialogTitle>
-            <AlertDialogDescription>
-              创建新工作区将清空当前的所有测试用例。未保存的更改将会丢失。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleOpenNewWorkspace}>
-              确认创建
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* 新工作区确认对话框 */}
+        <AlertDialog open={confirmNewWorkspace} onOpenChange={setConfirmNewWorkspace}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认创建新工作区</AlertDialogTitle>
+              <AlertDialogDescription>
+                创建新工作区将清空当前的所有测试用例。未保存的更改将会丢失。
+                <br />
+                在桌面版中，您需要选择一个文件夹用于存放测试用例。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction onClick={handleOpenNewWorkspace}>
+                确认创建
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        </AlertDialog>
 
-      {/* 新增用例对话框 */}
-      <Dialog open={showNewCaseDialog} onOpenChange={setShowNewCaseDialog}>
+        {/* 新增用例对话框 */}
+        <Dialog open={showNewCaseDialog} onOpenChange={setShowNewCaseDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>新增测试用例</DialogTitle>
@@ -536,8 +542,8 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* 克隆用例对话框 */}
-      <Dialog open={showCloneDialog} onOpenChange={setShowCloneDialog}>
+        {/* 克隆用例对话框 */}
+        <Dialog open={showCloneDialog} onOpenChange={setShowCloneDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>克隆测试用例</DialogTitle>
@@ -566,6 +572,6 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             </div>
           </div>
         </DialogContent>
-      </Dialog>
-    </>;
-};
+        </Dialog>
+      </>;
+    };

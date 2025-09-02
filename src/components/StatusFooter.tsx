@@ -75,18 +75,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
           </div>
         ) : (
           <div className="flex items-center gap-6">
-            <span className="font-medium text-muted-foreground">{t('status.serialTool')}</span>
-            {isSerialSupported ? (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
-                <span className="text-success font-medium">{t('status.webSerialSupported')}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
-                <span className="text-warning font-medium">{t('status.webSerialNotSupported')}</span>
-              </div>
-            )}
+            <span className="font-medium text-muted-foreground">Ready</span>
           </div>
         )}
       </div>

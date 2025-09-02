@@ -1849,7 +1849,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       />
 
       {/* 底部控制栏 */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg">
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg mx-4">
         <div className="flex items-center justify-between gap-4">
           {/* 左侧：用例选择 */}
           <div className="flex items-center gap-2">

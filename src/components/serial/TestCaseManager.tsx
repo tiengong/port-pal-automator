@@ -306,6 +306,27 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     return null;
   };
 
+  // 获取测试用例的顶层父用例
+  const getTopLevelParent = (targetId: string, cases: TestCase[] = testCases): TestCase | null => {
+    if (!Array.isArray(cases)) {
+      return null;
+    }
+    
+    for (const testCase of cases) {
+      // 如果是顶层用例，直接返回
+      if (testCase.id === targetId || testCase.uniqueId === targetId) {
+        return testCase;
+      }
+      
+      // 如果在子用例中找到，返回顶层父用例
+      const found = findTestCaseById(targetId, testCase.subCases);
+      if (found) {
+        return testCase; // 返回顶层父用例
+      }
+    }
+    return null;
+  };
+
   // 递归更新测试用例
   const updateCaseById = (cases: TestCase[], id: string, updater: (testCase: TestCase) => TestCase): TestCase[] => {
     // Ensure cases is always an array to prevent iteration errors
@@ -1541,7 +1562,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         {/* 🎯 新模块化布局已激活 - 2024版本 */}
         <div className="flex items-center justify-between mb-4">
           <TestCaseHeader 
-            currentTestCase={currentTestCase} 
+            currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id) || currentTestCase) : currentTestCase} 
             onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
               const updatedTestCases = updateCaseById(testCases, caseId, updater);
               setTestCases(updatedTestCases);
@@ -1551,7 +1572,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
         {/* 2. 操作栏 */}
         <TestCaseActions 
-          currentTestCase={currentTestCase}
+          currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id) || currentTestCase) : currentTestCase}
           testCases={testCases}
           setTestCases={setTestCases}
           connectedPorts={connectedPorts}

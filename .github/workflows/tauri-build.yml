@@ -44,6 +44,22 @@ jobs:
         with:
           toolchain: stable
 
+      # 步骤4.5：安装Windows构建依赖（NSIS和WiX用于打包）
+      - name: Install Windows build dependencies
+        run: |
+          choco install nsis -y
+          choco install wixtoolset -y
+        shell: pwsh
+
+      # 步骤4.6：验证图标文件存在性（Windows需要icon.ico）
+      - name: Verify required icons
+        run: |
+          echo "=== Checking required icons ==="
+          if (Test-Path src-tauri/icons/icon.ico) { echo "✅ icon.ico exists" } else { echo "❌ icon.ico missing"; exit 1; }
+          if (Test-Path src-tauri/icons/32x32.png) { echo "✅ 32x32.png exists" } else { echo "⚠️ 32x32.png missing"; }
+          if (Test-Path src-tauri/icons/128x128.png) { echo "✅ 128x128.png exists" } else { echo "⚠️ 128x128.png missing"; }
+        shell: pwsh
+
       # 步骤5：安装前端依赖（ci模式更严格，确保依赖一致性）
       - name: Install frontend dependencies
         run: npm ci --no-cache

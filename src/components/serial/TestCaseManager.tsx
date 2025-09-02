@@ -327,6 +327,41 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     return null;
   };
 
+  // 查找指定用例的直接父用例
+  const findParentCase = (targetId: string): TestCase | null => {
+    const findParent = (cases: TestCase[]): TestCase | null => {
+      for (const testCase of cases) {
+        // 检查直接子用例
+        if (testCase.subCases.some(subCase => subCase.id === targetId)) {
+          return testCase;
+        }
+        // 递归检查更深层的子用例
+        const found = findParent(testCase.subCases);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    return findParent(testCases);
+  };
+
+  // 判断是否为统计用例（根据名称判断）
+  const isStatsCase = (testCase: TestCase): boolean => {
+    return testCase.name.includes('统计') || testCase.name.includes('统计用例');
+  };
+
+  // 获取用于操作的目标用例（统计用例使用其父用例）
+  const getTargetCaseForActions = (selectedCase: TestCase | null): TestCase | null => {
+    if (!selectedCase) return null;
+    
+    if (isStatsCase(selectedCase)) {
+      const parent = findParentCase(selectedCase.id);
+      return parent || selectedCase;
+    }
+    
+    return selectedCase;
+  };
+
   // 递归更新测试用例
   const updateCaseById = (cases: TestCase[], id: string, updater: (testCase: TestCase) => TestCase): TestCase[] => {
     // Ensure cases is always an array to prevent iteration errors
@@ -1572,7 +1607,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
         {/* 2. 操作栏 */}
         <TestCaseActions 
-          currentTestCase={currentTestCase}
+          currentTestCase={getTargetCaseForActions(currentTestCase)}
           testCases={testCases}
           setTestCases={setTestCases}
           connectedPorts={connectedPorts}

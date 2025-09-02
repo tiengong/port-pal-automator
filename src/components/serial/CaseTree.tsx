@@ -24,6 +24,7 @@ interface CaseTreeProps {
   onToggleExpand: (caseId: string) => void;
   onAddSubCase: (parentId: string) => void;
   level?: number;
+  parentId?: string;
 }
 
 const getStatusIcon = (status: string) => {
@@ -47,7 +48,8 @@ export const CaseTree: React.FC<CaseTreeProps> = ({
   onSelect,
   onToggleExpand,
   onAddSubCase,
-  level = 0
+  level = 0,
+  parentId
 }) => {
   const { t } = useTranslation();
   return (
@@ -114,14 +116,32 @@ export const CaseTree: React.FC<CaseTreeProps> = ({
 
               {/* 命令计数 */}
               {testCase.commands.length > 0 && (
-                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                <Badge 
+                  variant="secondary" 
+                  className="text-xs flex-shrink-0 cursor-pointer hover:bg-secondary/80 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (parentId) {
+                      onSelect(parentId);
+                    }
+                  }}
+                >
                   {testCase.commands.length} {t("caseTree.commands")}
                 </Badge>
               )}
 
               {/* 子用例计数 */}
               {testCase.subCases.length > 0 && (
-                <Badge variant="outline" className="text-xs flex-shrink-0">
+                <Badge 
+                  variant="outline" 
+                  className="text-xs flex-shrink-0 cursor-pointer hover:bg-accent/80 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (parentId) {
+                      onSelect(parentId);
+                    }
+                  }}
+                >
                   {testCase.subCases.length} {t("caseTree.subCases")}
                 </Badge>
               )}
@@ -162,6 +182,7 @@ export const CaseTree: React.FC<CaseTreeProps> = ({
               onToggleExpand={onToggleExpand}
               onAddSubCase={onAddSubCase}
               level={level + 1}
+              parentId={testCase.id}
             />
           )}
         </div>

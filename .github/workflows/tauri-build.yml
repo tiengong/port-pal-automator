@@ -44,20 +44,56 @@ jobs:
         with:
           toolchain: stable
 
-      # 步骤4.5：安装Windows构建依赖（NSIS和WiX用于打包）
+      # 步骤4.5：安装Windows构建依赖（NSIS、WiX、ImageMagick）
       - name: Install Windows build dependencies
         run: |
           choco install nsis -y
           choco install wixtoolset -y
+          choco install imagemagick -y
         shell: pwsh
 
-      # 步骤4.6：验证图标文件存在性（Windows需要icon.ico）
-      - name: Verify required icons
+      # 步骤4.6：验证并修复图标文件
+      - name: Validate and repair icon files
         run: |
-          echo "=== Checking required icons ==="
-          if (Test-Path src-tauri/icons/icon.ico) { echo "✅ icon.ico exists" } else { echo "❌ icon.ico missing"; exit 1; }
-          if (Test-Path src-tauri/icons/32x32.png) { echo "✅ 32x32.png exists" } else { echo "⚠️ 32x32.png missing"; }
-          if (Test-Path src-tauri/icons/128x128.png) { echo "✅ 128x128.png exists" } else { echo "⚠️ 128x128.png missing"; }
+          echo "=== Icon validation and repair ==="
+          
+          # Check if required PNGs exist
+          if (-not (Test-Path "src-tauri/icons/32x32.png")) { 
+            echo "❌ 32x32.png missing - cannot generate ICO"; exit 1 
+          }
+          if (-not (Test-Path "src-tauri/icons/128x128.png")) { 
+            echo "❌ 128x128.png missing - cannot generate ICO"; exit 1 
+          }
+          
+          # Validate existing ICO or regenerate if invalid/missing
+          $icoValid = $false
+          if (Test-Path "src-tauri/icons/icon.ico") {
+            try {
+              # Check ICO signature (first 4 bytes should be: 00 00 01 00)
+              $bytes = [System.IO.File]::ReadAllBytes("src-tauri/icons/icon.ico")
+              if ($bytes.Length -gt 4 -and $bytes[0] -eq 0 -and $bytes[1] -eq 0 -and $bytes[2] -eq 1 -and $bytes[3] -eq 0) {
+                echo "✅ icon.ico exists and has valid signature"
+                $icoValid = $true
+              } else {
+                echo "⚠️ icon.ico has invalid signature - will regenerate"
+              }
+            } catch {
+              echo "⚠️ icon.ico validation failed - will regenerate"
+            }
+          } else {
+            echo "⚠️ icon.ico missing - will generate"
+          }
+          
+          # Regenerate ICO if invalid or missing
+          if (-not $icoValid) {
+            echo "🔧 Generating new icon.ico from PNG sources..."
+            magick convert "src-tauri/icons/32x32.png" "src-tauri/icons/128x128.png" "src-tauri/icons/icon.ico"
+            if ($LASTEXITCODE -eq 0) {
+              echo "✅ Successfully generated icon.ico"
+            } else {
+              echo "❌ Failed to generate icon.ico"; exit 1
+            }
+          }
         shell: pwsh
 
       # 步骤5：安装前端依赖（ci模式更严格，确保依赖一致性）

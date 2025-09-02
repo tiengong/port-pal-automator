@@ -1230,10 +1230,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       <div className="flex-shrink-0 p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         <TestCaseHeader 
           currentTestCase={currentTestCase}
-          onUpdateCase={(caseId, updater) => {
-            const updatedTestCases = updateCaseById(testCases, caseId, updater);
-            setTestCases(updatedTestCases);
-          }}
+          connectedPorts={connectedPorts}
+          onRunTestCase={runTestCase}
         />
       </div>
 
@@ -1275,28 +1273,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         <div className="w-80 space-y-4">
           {/* Variable Display */}
           <div className="bg-card/50 rounded-lg border border-border/30 p-4">
-            <VariableDisplay 
-              storedParameters={storedParameters}
-              onClearParameter={(key) => {
-                setStoredParameters(prev => {
-                  const newParams = { ...prev };
-                  delete newParams[key];
-                  return newParams;
-                });
-              }}
-              onClearAll={() => setStoredParameters({})}
-            />
+            <VariableDisplay parameters={storedParameters} />
           </div>
 
           {/* Test Case Switcher */}
           <div className="bg-card/50 rounded-lg border border-border/30">
             <TestCaseSwitcher 
               testCases={testCases}
-              currentTestCase={currentTestCase}
+              selectedTestCaseId={selectedTestCaseId}
               onSelectTestCase={setSelectedTestCaseId}
-              setTestCases={setTestCases}
-              onDeleteTestCase={deleteTestCase}
-              onSync={handleSync}
             />
           </div>
         </div>

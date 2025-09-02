@@ -59,7 +59,7 @@ const Index = () => {
   }, [settings.defaultBaudRate, settings.defaultDataBits, settings.defaultParity, settings.defaultStopBits, serialManager.ports]);
 
   return (
-    <div className="min-h-screen bg-background animate-fade-in">
+    <div className="min-h-screen bg-background animate-fade-in flex flex-col">
       {/* Enhanced Header */}
       <header className="h-14 app-header px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -157,10 +157,10 @@ const Index = () => {
       </header>
 
       {/* Enhanced Main Content - 2 Column Layout */}
-      <div className="flex flex-col md:flex-row h-[calc(100svh-3.5rem)]">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row">
         {/* Enhanced Left Panel */}
         <div className="w-full md:w-96 control-panel flex flex-col min-w-0">
-          <Tabs value={leftPanelTab} onValueChange={setLeftPanelTab} className="flex-1 flex flex-col">
+          <Tabs value={leftPanelTab} onValueChange={setLeftPanelTab} className="flex-1 flex flex-col min-h-0">
             <div className="border-b border-border/50 px-4 py-3">
               <TabsList className="grid w-full grid-cols-2 h-10 bg-secondary/50 p-1 rounded-lg">
                 <TabsTrigger 
@@ -187,7 +187,7 @@ const Index = () => {
               />
             </TabsContent>
 
-            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up">
+            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up flex flex-col min-h-0">
               <TestCaseManager 
                 connectedPorts={serialManager.getConnectedPorts()}
                 receivedData={receivedData}
@@ -198,7 +198,7 @@ const Index = () => {
         </div>
 
         {/* Enhanced Right Panel - Data Terminal */}
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30 min-w-0">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30 min-w-0 min-h-0">
           <DataTerminal 
             serialManager={serialManager}
             statusMessages={statusMessages}

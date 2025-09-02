@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Serial Debug Tool",
+    "title": "Serial Pilot",
     "version": "Version 2.2.0",
     "notSupported": "Your browser does not support Web Serial API",
     "connecting": "Connecting...",
@@ -14,7 +14,7 @@
     "testCase": "Test Cases"
   },
   "status": {
-    "serialTool": "Serial Debug Tool v2.2.0",
+    "serialTool": "Serial Pilot v2.2.0",
     "webSerialSupported": "Web Serial API Supported",
     "webSerialNotSupported": "Web Serial API Not Supported",
     "activeConnections": "Active Connections",

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "串口调试工具",
+    "title": "Serial Pilot",
     "version": "版本 2.2.0",
     "notSupported": "您的浏览器不支持 Web Serial API",
     "connecting": "连接中...",
@@ -14,7 +14,7 @@
     "testCase": "测试"
   },
   "status": {
-    "serialTool": "串口调试工具 v2.2.0",
+    "serialTool": "Serial Pilot v2.2.0",
     "webSerialSupported": "Web Serial API 已支持",
     "webSerialNotSupported": "Web Serial API 不支持",
     "activeConnections": "活跃连接",

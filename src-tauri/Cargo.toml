@@ -1,7 +1,7 @@
 [package]
-name = "serial-wiz"
+name = "serial-pilot"
 version = "0.1.0"
-description = "Serial communication debugging tool"
+description = "Serial Pilot - Professional serial communication debugging tool"
 authors = ["you"]
 license = ""
 repository = ""

@@ -8,7 +8,6 @@ import { CheckCircle, AlertCircle, XCircle, Info, X, Wifi, WifiOff, History, Tra
 import { StatusMessage } from '@/hooks/useStatusMessages';
 import { useSerialManager } from '@/hooks/useSerialManager';
 import { useTranslation } from 'react-i18next';
-
 interface StatusFooterProps {
   currentMessage: StatusMessage | null;
   onClearMessage: () => void;
@@ -16,7 +15,6 @@ interface StatusFooterProps {
   messages: StatusMessage[];
   onClearAllMessages: () => void;
 }
-
 export const StatusFooter: React.FC<StatusFooterProps> = ({
   currentMessage,
   onClearMessage,
@@ -24,10 +22,11 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   messages,
   onClearAllMessages
 }) => {
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const serialManager = useSerialManager();
   const connectionStatus = serialManager.getConnectionStatus();
-
   const getMessageIcon = (type: StatusMessage['type']) => {
     switch (type) {
       case 'success':
@@ -40,7 +39,6 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
         return <Info className="w-4 h-4 text-primary" />;
     }
   };
-
   const getMessageStyles = (type: StatusMessage['type']) => {
     switch (type) {
       case 'success':
@@ -53,84 +51,61 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
         return 'text-primary border-primary/20 bg-primary/10';
     }
   };
-
-  return (
-    <footer className="h-12 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
+  return <footer className="h-12 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
       {/* Left: Status Message */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        {currentMessage ? (
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${getMessageStyles(currentMessage.type)}`}>
+        {currentMessage ? <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${getMessageStyles(currentMessage.type)}`}>
             {getMessageIcon(currentMessage.type)}
             <span className="font-medium truncate max-w-md" title={currentMessage.message}>
               {currentMessage.message}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 w-5 p-0 hover:bg-transparent"
-              onClick={onClearMessage}
-            >
+            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-transparent" onClick={onClearMessage}>
               <X className="w-3 h-3" />
             </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-6">
-            <span className="font-medium text-muted-foreground">Ready</span>
-          </div>
-        )}
+          </div> : <div className="flex items-center gap-6">
+            
+            {isSerialSupported ? <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                <span className="text-success font-medium">{t('status.webSerialSupported')}</span>
+              </div> : <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
+                <span className="text-warning font-medium">{t('status.webSerialNotSupported')}</span>
+              </div>}
+          </div>}
       </div>
 
       {/* Right: Connection Status & History */}
       <div className="flex items-center gap-6">
-        {connectionStatus.count > 0 && (
-          <div className="flex items-center gap-2">
+        {connectionStatus.count > 0 && <div className="flex items-center gap-2">
             <span className="text-muted-foreground">{t('status.activeConnections')}:</span>
-            {serialManager.ports.filter(p => p.connected).map((p, i) => (
-              <span key={i} className="text-success font-medium">
+            {serialManager.ports.filter(p => p.connected).map((p, i) => <span key={i} className="text-success font-medium">
                 {p.label}({p.params.baudRate}bps)
                 {i < connectionStatus.count - 1 && <span className="text-muted-foreground mx-1">,</span>}
-              </span>
-            ))}
-          </div>
-        )}
+              </span>)}
+          </div>}
         
         {/* Message History */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            >
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
               <History className="w-4 h-4" />
-              {messages.length > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
+              {messages.length > 0 && <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
                   {messages.length > 99 ? '99+' : messages.length}
-                </Badge>
-              )}
+                </Badge>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-96 p-0" align="end">
             <div className="flex items-center justify-between p-3 border-b">
               <h4 className="font-medium text-sm">{t('status.history')}</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearAllMessages}
-                className="h-8 w-8 p-0"
-              >
+              <Button variant="ghost" size="sm" onClick={onClearAllMessages} className="h-8 w-8 p-0">
                 <Trash className="w-4 h-4" />
               </Button>
             </div>
             <ScrollArea className="h-64">
-              {messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+              {messages.length === 0 ? <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
                   {t('status.noMessages')}
-                </div>
-              ) : (
-                <div className="p-2">
-                  {messages.slice().reverse().map((msg) => (
-                    <div key={msg.id} className="mb-2 p-2 rounded bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                </div> : <div className="p-2">
+                  {messages.slice().reverse().map(msg => <div key={msg.id} className="mb-2 p-2 rounded bg-secondary/30 hover:bg-secondary/50 transition-colors">
                       <div className="flex items-start gap-2">
                         {getMessageIcon(msg.type)}
                         <div className="flex-1 min-w-0">
@@ -140,16 +115,13 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
                           </p>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </div>)}
+                </div>}
             </ScrollArea>
           </PopoverContent>
         </Popover>
         
         <span className="text-muted-foreground/70">© 2024</span>
       </div>
-    </footer>
-  );
+    </footer>;
 };

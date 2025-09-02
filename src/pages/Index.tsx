@@ -64,7 +64,7 @@ const Index = () => {
       <header className="h-14 app-header px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <img src="/app-icon-flat.png" alt="Serial Pilot" className="w-6 h-6" />
+            <Terminal className="w-6 h-6 text-primary" />
             <h1 className="text-lg font-semibold text-foreground">{t('app.title')}</h1>
           </div>
           <Badge variant="secondary" className="text-xs px-2 py-1 bg-primary/10 text-primary border-primary/20">

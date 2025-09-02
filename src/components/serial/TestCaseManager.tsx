@@ -1633,7 +1633,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
+    <div className="relative flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
       {/* ========== 模块化测试页面布局 - 2024年版本 ========== */}
       
       {/* 1. 当前测试用例信息显示 */}
@@ -1694,7 +1694,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {/* 3. 中间测试用例展示区 */}
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3 pb-24">
             {testCases.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
@@ -1849,7 +1849,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       />
 
       {/* 底部控制栏 */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg mx-4">
+      <div className="absolute bottom-0 inset-x-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg mx-4">
         <div className="flex items-center justify-between gap-4">
           {/* 左侧：用例选择 */}
           <div className="flex items-center gap-2">

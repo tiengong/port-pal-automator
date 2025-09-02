@@ -1,0 +1,70 @@
+name: Tauri Build for Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      # 步骤1：拉取代码（包含完整历史，确保依赖解析正确）
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 步骤2：验证核心文件存在性（提前排查路径问题）
+      - name: Verify critical files/directories
+        run: |
+          echo "=== Root directory files ==="
+          dir
+          echo "=== Check src-tauri (Tauri core) ==="
+          if (Test-Path src-tauri) { echo "✅ src-tauri exists" } else { echo "❌ src-tauri missing"; exit 1; }
+          echo "=== Check package-lock.json (npm deps) ==="
+          if (Test-Path package-lock.json) { echo "✅ package-lock.json exists" } else { echo "❌ package-lock.json missing"; exit 1; }
+          echo "=== Check src-tauri/Cargo.toml (Rust deps) ==="
+          if (Test-Path src-tauri/Cargo.toml) { echo "✅ Cargo.toml exists" } else { echo "❌ Cargo.toml missing"; exit 1; }
+        shell: pwsh
+
+      # 步骤3：安装Node.js（匹配项目依赖，缓存npm依赖）
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"  # 兼容@tauri-apps/cli@2.8.4（需Node>=10）
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json  # 根目录锁文件路径正确
+
+      # 步骤4：安装前端依赖（ci模式更严格，确保依赖一致性）
+      - name: Install frontend dependencies
+        run: npm ci --no-cache
+        env:
+          npm_config_registry: https://registry.npmjs.org
+
+      # 步骤5：验证Tauri CLI安装
+      - name: Verify Tauri CLI installation
+        run: |
+          npx tauri --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+        shell: pwsh
+
+      # 步骤6：构建Tauri应用
+      - name: Build Tauri app (release mode)
+        run: npm run tauri:build
+        env:
+          TAURI_BUILD_MODE: release
+        working-directory: ./  # 确保在项目根目录执行（npx找node_modules）
+
+      # 步骤7：上传构建产物（按平台分类，保留7天）
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-wiz-windows
+          path: |
+            ./src-tauri/target/release/bundle/**/*
+            !./src-tauri/target/release/bundle/**/temp/
+          retention-days: 7
+          compression-level: 6

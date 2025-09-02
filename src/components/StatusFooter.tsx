@@ -51,100 +51,25 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   };
 
   return (
-    <footer className="h-12 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
-      {/* Left: Status Message */}
+    <footer className="h-6 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center text-sm backdrop-blur-sm">
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        {/* Scrollable Messages Area */}
-        <div className="flex-1 min-w-0">
-          <ScrollArea className="h-10 w-full">
-            <div className="flex items-center gap-2 py-2">
-              {messages.length === 0 ? (
-                <span className="text-muted-foreground/70 text-sm">{t('status.ready')}</span>
-              ) : (
-                messages.slice(-3).map((msg) => (
-                  <div key={msg.id} className={`flex items-center gap-2 px-3 py-1 rounded-md border text-xs whitespace-nowrap ${getMessageStyles(msg.type)}`}>
-                    {getMessageIcon(msg.type)}
-                    <span className="font-medium">{msg.message}</span>
-                    <span className="text-muted-foreground text-xs">
-                      {msg.timestamp.toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      </div>
-
-      {/* Right: Connection Status & History */}
-      <div className="flex items-center gap-6">
-        {connectionStatus.count > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">{t('status.activeConnections')}:</span>
-            {serialManager.ports.filter(p => p.connected).map((p, i) => (
-              <span key={i} className="text-success font-medium">
-                {p.label}({p.params.baudRate}bps)
-                {i < connectionStatus.count - 1 && <span className="text-muted-foreground mx-1">,</span>}
-              </span>
-            ))}
+        <ScrollArea className="h-5 w-full">
+          <div className="flex items-center gap-2 py-1 select-none">
+            {messages.length === 0 ? (
+              <span className="text-muted-foreground/50 text-xs">{t('status.ready')}</span>
+            ) : (
+              messages.slice(-3).map((msg) => (
+                <div key={msg.id} className={`flex items-center gap-2 px-2 py-0.5 rounded text-xs whitespace-nowrap ${getMessageStyles(msg.type)} select-none`}>
+                  {getMessageIcon(msg.type)}
+                  <span className="text-muted-foreground/70">{msg.message}</span>
+                  <span className="text-muted-foreground/50 text-xs">
+                    {msg.timestamp.toLocaleTimeString()}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
-        )}
-        
-        {/* Message History */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-            >
-              <History className="w-4 h-4" />
-              {messages.length > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
-                  {messages.length > 99 ? '99+' : messages.length}
-                </Badge>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 p-0" align="end">
-            <div className="flex items-center justify-between p-3 border-b">
-              <h4 className="font-medium text-sm">{t('status.history')}</h4>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearAllMessages}
-                className="h-8 w-8 p-0"
-              >
-                <Trash className="w-4 h-4" />
-              </Button>
-            </div>
-            <ScrollArea className="h-64">
-              {messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                  {t('status.noMessages')}
-                </div>
-              ) : (
-                <div className="p-2">
-                  {messages.slice().reverse().map((msg) => (
-                    <div key={msg.id} className="mb-2 p-2 rounded bg-secondary/30 hover:bg-secondary/50 transition-colors">
-                      <div className="flex items-start gap-2">
-                        {getMessageIcon(msg.type)}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm break-words">{msg.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {msg.timestamp.toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </PopoverContent>
-        </Popover>
-        
-        <span className="text-muted-foreground/70">© 2024</span>
+        </ScrollArea>
       </div>
     </footer>
   );

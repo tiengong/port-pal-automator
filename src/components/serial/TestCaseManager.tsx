@@ -1572,7 +1572,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
         {/* 2. 操作栏 */}
         <TestCaseActions 
-          currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id) || currentTestCase) : currentTestCase}
+          currentTestCase={currentTestCase}
           testCases={testCases}
           setTestCases={setTestCases}
           connectedPorts={connectedPorts}

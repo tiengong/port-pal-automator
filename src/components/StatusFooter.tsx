@@ -51,7 +51,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
         return 'text-primary border-primary/20 bg-primary/10';
     }
   };
-  return <footer className="h-12 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
+  return <footer className="h-6 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
       {/* Left: Status Message */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
         {currentMessage ? <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${getMessageStyles(currentMessage.type)}`}>

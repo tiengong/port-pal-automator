@@ -20,7 +20,8 @@
     "activeConnections": "Active Connections",
     "history": "System Message History",
     "clearAll": "Clear All",
-    "noMessages": "No system messages"
+    "noMessages": "No system messages",
+    "ready": "Ready"
   },
   "settings": {
     "title": "Settings",

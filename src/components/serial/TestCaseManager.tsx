@@ -36,6 +36,7 @@ import {
   Hash
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { globalToast } from "@/hooks/useGlobalMessages";
 import { useTranslation } from "react-i18next";
 import { TestCaseHeader } from './TestCaseHeader';
 import { TestCaseActions } from './TestCaseActions';
@@ -129,7 +130,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         }
       } catch (error) {
         console.error('Failed to initialize workspace:', error);
-        toast({
+        globalToast({
           title: t("testCase.initFailed"),
           description: t("testCase.initFailedDesc"),
           variant: "destructive"
@@ -1293,9 +1294,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     if (selectedTestCaseId === caseId) {
       setSelectedTestCaseId(testCases.length > 1 ? testCases.find(tc => tc.id !== caseId)?.id || '' : '');
     }
-    toast({
+    globalToast({
       title: "删除成功",
-      description: "测试用例已删除",
+      description: "测试用例已删除"
     });
   };
 
@@ -1325,9 +1326,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       }
     }
     
-    toast({
+    globalToast({
       title: "删除成功",
-      description: `已删除 ${presetCases.length} 个预设用例`,
+      description: `已删除 ${presetCases.length} 个预设用例`
     });
   };
 
@@ -1562,9 +1563,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }));
     setTestCases(updatedTestCases);
 
-    toast({
+    globalToast({
       title: "删除成功",
-      description: `已删除 ${selectedCommands.length} 个命令`,
+      description: `已删除 ${selectedCommands.length} 个命令`
     });
   };
 

@@ -11,14 +11,14 @@ import { StatusFooter } from "@/components/StatusFooter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSerialManager } from "@/hooks/useSerialManager";
-import { useStatusMessages } from "@/hooks/useStatusMessages";
+import { useGlobalMessages } from "@/hooks/useGlobalMessages";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
 
 const Index = () => {
   const { t } = useTranslation();
   const serialManager = useSerialManager();
-  const statusMessages = useStatusMessages();
+  const globalMessages = useGlobalMessages();
   const { settings } = useSettings();
   const [leftPanelTab, setLeftPanelTab] = useState("connection");
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -144,7 +144,7 @@ const Index = () => {
               <DialogHeader>
                 <DialogTitle>{t('settings.title')}</DialogTitle>
               </DialogHeader>
-              <SettingsPanel statusMessages={statusMessages} />
+              <SettingsPanel statusMessages={globalMessages} />
             </DialogContent>
           </Dialog>
 
@@ -191,7 +191,7 @@ const Index = () => {
               <TestCaseManager 
                 connectedPorts={serialManager.getConnectedPorts()}
                 receivedData={receivedData}
-                statusMessages={statusMessages}
+                statusMessages={globalMessages}
               />
             </TabsContent>
           </Tabs>
@@ -201,18 +201,16 @@ const Index = () => {
         <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30 min-w-0 min-h-0">
           <DataTerminal 
             serialManager={serialManager}
-            statusMessages={statusMessages}
+            statusMessages={globalMessages}
           />
         </div>
       </div>
 
       {/* Enhanced Status Bar */}
       <StatusFooter 
-        currentMessage={statusMessages.currentMessage}
-        onClearMessage={statusMessages.clearMessage}
         isSerialSupported={isSerialSupported}
-        messages={statusMessages.messages}
-        onClearAllMessages={statusMessages.clearAllMessages}
+        messages={globalMessages.messages}
+        onClearAllMessages={globalMessages.clearAllMessages}
       />
     </div>
   );

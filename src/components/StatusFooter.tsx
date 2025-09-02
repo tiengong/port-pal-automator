@@ -5,21 +5,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, AlertCircle, XCircle, Info, X, Wifi, WifiOff, History, Trash } from 'lucide-react';
-import { StatusMessage } from '@/hooks/useStatusMessages';
+import { GlobalMessage } from '@/hooks/useGlobalMessages';
 import { useSerialManager } from '@/hooks/useSerialManager';
 import { useTranslation } from 'react-i18next';
 
 interface StatusFooterProps {
-  currentMessage: StatusMessage | null;
-  onClearMessage: () => void;
   isSerialSupported: boolean;
-  messages: StatusMessage[];
+  messages: GlobalMessage[];
   onClearAllMessages: () => void;
 }
 
 export const StatusFooter: React.FC<StatusFooterProps> = ({
-  currentMessage,
-  onClearMessage,
   isSerialSupported,
   messages,
   onClearAllMessages
@@ -28,7 +24,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   const serialManager = useSerialManager();
   const connectionStatus = serialManager.getConnectionStatus();
 
-  const getMessageIcon = (type: StatusMessage['type']) => {
+  const getMessageIcon = (type: GlobalMessage['type']) => {
     switch (type) {
       case 'success':
         return <CheckCircle className="w-4 h-4 text-success" />;
@@ -41,7 +37,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
     }
   };
 
-  const getMessageStyles = (type: StatusMessage['type']) => {
+  const getMessageStyles = (type: GlobalMessage['type']) => {
     switch (type) {
       case 'success':
         return 'text-success border-success/20 bg-success/10';
@@ -58,37 +54,26 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
     <footer className="h-12 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
       {/* Left: Status Message */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        {currentMessage ? (
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${getMessageStyles(currentMessage.type)}`}>
-            {getMessageIcon(currentMessage.type)}
-            <span className="font-medium truncate max-w-md" title={currentMessage.message}>
-              {currentMessage.message}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 w-5 p-0 hover:bg-transparent"
-              onClick={onClearMessage}
-            >
-              <X className="w-3 h-3" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-6">
-            <span className="font-medium text-muted-foreground">{t('status.serialTool')}</span>
-            {isSerialSupported ? (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
-                <span className="text-success font-medium">{t('status.webSerialSupported')}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
-                <span className="text-warning font-medium">{t('status.webSerialNotSupported')}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Scrollable Messages Area */}
+        <div className="flex-1 min-w-0">
+          <ScrollArea className="h-10 w-full">
+            <div className="flex items-center gap-2 py-2">
+              {messages.length === 0 ? (
+                <span className="text-muted-foreground/70 text-sm">{t('status.ready')}</span>
+              ) : (
+                messages.slice(-3).map((msg) => (
+                  <div key={msg.id} className={`flex items-center gap-2 px-3 py-1 rounded-md border text-xs whitespace-nowrap ${getMessageStyles(msg.type)}`}>
+                    {getMessageIcon(msg.type)}
+                    <span className="font-medium">{msg.message}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {msg.timestamp.toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Right: Connection Status & History */}

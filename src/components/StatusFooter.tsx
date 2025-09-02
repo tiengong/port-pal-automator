@@ -59,9 +59,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
             <span className="font-medium truncate max-w-md" title={currentMessage.message}>
               {currentMessage.message}
             </span>
-            <Button variant="ghost" size="sm" className="h-5 w-5 p-0 hover:bg-transparent" onClick={onClearMessage}>
-              <X className="w-3 h-3" />
-            </Button>
+            
           </div> : <div className="flex items-center gap-6">
             
             {isSerialSupported ? <div className="flex items-center gap-2">

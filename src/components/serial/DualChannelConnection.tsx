@@ -256,10 +256,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                           
                           if (info.usbVendorId && info.usbProductId) {
                             const deviceName = getDeviceName(info.usbVendorId, info.usbProductId);
-                            return `${portNumber} - ${deviceName}`;
+                            return `${portNumber} (${deviceName})`;
                           }
                           
-                          return `${portNumber} - Serial Device`;
+                          return `${portNumber} (Serial Device)`;
                         };
                         
                         return (
@@ -512,10 +512,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                             
                             if (info.usbVendorId && info.usbProductId) {
                               const deviceName = getDeviceName(info.usbVendorId, info.usbProductId);
-                              return `${portNumber} - ${deviceName}`;
+                              return `${portNumber} (${deviceName})`;
                             }
                             
-                            return `${portNumber} - Serial Device`;
+                            return `${portNumber} (Serial Device)`;
                           };
                           
                           return (

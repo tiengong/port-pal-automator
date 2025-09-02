@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +97,50 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   
+  // Persist selected test case to localStorage
+  const persistSelectedTestCase = useCallback((caseId: string) => {
+    if (caseId) {
+      localStorage.setItem('lastSelectedTestCaseId', caseId);
+    } else {
+      localStorage.removeItem('lastSelectedTestCaseId');
+    }
+  }, []);
+
+  // Enhanced state setter for selectedTestCaseId with persistence
+  const setSelectedTestCaseIdWithPersistence = useCallback((caseId: string) => {
+    setSelectedTestCaseId(caseId);
+    persistSelectedTestCase(caseId);
+  }, [persistSelectedTestCase]);
+
+  // Debounced autosave function
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autosave = useCallback((testCase: TestCase) => {
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+    
+    autosaveTimeoutRef.current = setTimeout(() => {
+      saveCase(testCase).catch(console.error);
+    }, 1000); // 1 second debounce
+  }, []);
+
+  // Enhanced setTestCases with autosave
+  const setTestCasesWithAutosave = useCallback((updater: React.SetStateAction<TestCase[]>) => {
+    setTestCases(prevCases => {
+      const newCases = typeof updater === 'function' ? updater(prevCases) : updater;
+      
+      // Find the currently selected case and autosave it if it exists
+      if (selectedTestCaseId && Array.isArray(newCases)) {
+        const selectedCase = findTestCaseById(selectedTestCaseId, newCases);
+        if (selectedCase) {
+          autosave(selectedCase);
+        }
+      }
+      
+      return newCases;
+    });
+  }, [selectedTestCaseId, autosave]);
+  
   // Drag and drop state
   const [dragInfo, setDragInfo] = useState<{
     draggedItem: { caseId: string; commandIndex: number } | null;
@@ -124,8 +168,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         const cases = await loadCases();
         // Ensure cases is always an array
         setTestCases(Array.isArray(cases) ? cases : []);
-        if (cases.length > 0 && !selectedTestCaseId) {
-          setSelectedTestCaseId(cases[0].id);
+        
+        // Restore last selected test case from localStorage
+        const lastSelectedCaseId = localStorage.getItem('lastSelectedTestCaseId');
+        if (cases.length > 0) {
+          if (lastSelectedCaseId && cases.find(c => c.id === lastSelectedCaseId || c.uniqueId === lastSelectedCaseId)) {
+            setSelectedTestCaseIdWithPersistence(lastSelectedCaseId);
+          } else {
+            setSelectedTestCaseIdWithPersistence(cases[0].id);
+          }
         }
       } catch (error) {
         console.error('Failed to initialize workspace:', error);
@@ -145,10 +196,21 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     try {
       const workspace = getCurrentWorkspace();
       setCurrentWorkspace(workspace);
-        const cases = await loadCases();
-        // Ensure cases is always an array
-        setTestCases(Array.isArray(cases) ? cases : []);
-      setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
+      const cases = await loadCases();
+      // Ensure cases is always an array
+      setTestCases(Array.isArray(cases) ? cases : []);
+      
+      // Restore last selected test case from localStorage after workspace change
+      const lastSelectedCaseId = localStorage.getItem('lastSelectedTestCaseId');
+      if (cases.length > 0) {
+        if (lastSelectedCaseId && cases.find(c => c.id === lastSelectedCaseId || c.uniqueId === lastSelectedCaseId)) {
+          setSelectedTestCaseIdWithPersistence(lastSelectedCaseId);
+        } else {
+          setSelectedTestCaseIdWithPersistence(cases[0].id);
+        }
+      } else {
+        setSelectedTestCaseIdWithPersistence('');
+      }
     } catch (error) {
       console.error('Failed to reload workspace:', error);
     }
@@ -237,7 +299,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         cmd.id === commandId ? { ...cmd, selected } : cmd
       )
     }));
-    setTestCases(updatedTestCases);
+    setTestCasesWithAutosave(updatedTestCases);
   };
 
   // 格式化命令索引（支持子用例嵌套）
@@ -271,13 +333,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             : cmd
         )
       }));
-      setTestCases(updatedTestCases);
-      
-      // 保存更新后的用例
-      const updatedCase = findTestCaseById(caseId, updatedTestCases);
-      if (updatedCase) {
-        saveCase(updatedCase);
-      }
+      setTestCasesWithAutosave(updatedTestCases);
       
       toast({
         title: t("testCase.modifySuccess"),
@@ -588,7 +644,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 commands: reorderedCommands
               }));
               
-              setTestCases(updatedTestCases);
+              setTestCasesWithAutosave(updatedTestCases);
               
               // 保存更新后的用例
               const updatedCase = findTestCaseById(dropTarget.caseId, updatedTestCases);
@@ -698,7 +754,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     size="sm"
                     className="h-8 w-8 p-0"
                     onClick={() => {
-                      setSelectedTestCaseId(caseId);
+                      setSelectedTestCaseIdWithPersistence(caseId);
                       setEditingCommandIndex(commandIndex);
                     }}
                   >
@@ -731,7 +787,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             className="h-6 w-6 p-0 flex-shrink-0"
             onClick={() => {
               const updatedTestCases = toggleExpandById(testCases, testCase.id);
-              setTestCases(updatedTestCases);
+              setTestCasesWithAutosave(updatedTestCases);
             }}
           >
             {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
@@ -753,15 +809,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 ...tc,
                 selected: checked as boolean
               }));
-              setTestCases(updatedTestCases);
+              setTestCasesWithAutosave(updatedTestCases);
             }}
             className="flex-shrink-0"
           />
           
-          {/* 用例内容 */}
+           {/* 用例内容 */}
           <div
             className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => setSelectedTestCaseId(testCase.id)}
+            onClick={() => setSelectedTestCaseIdWithPersistence(testCase.id)}
           >
             <div className="flex items-center gap-2">
               <span className={`font-medium text-sm truncate ${
@@ -914,7 +970,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   ...testCase,
                   commands: updatedCommands
                 }));
-                setTestCases(updatedTestCases);
+                setTestCasesWithAutosave(updatedTestCases);
                 
                 // 处理跳转逻辑（只有在未触发过或once模式下才执行）
                 if (!isUrcAlreadyTriggered || command.urcListenMode === 'once') {
@@ -1000,89 +1056,103 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
   };
 
-  // 初始化示例数据
+  // Initialize sample data only if no test cases exist
   useEffect(() => {
-    const sampleTestCases: TestCase[] = [
-      {
-        id: 'case1',
-        uniqueId: '1001',
-        name: 'AT指令基础测试',
-        description: '测试基本AT指令响应',
-        isExpanded: false,
-        isRunning: false,
-        currentCommand: -1,
-        selected: false,
-        status: 'pending',
-        subCases: [],
-        commands: [
-          {
-            id: 'cmd1',
-            type: 'execution',
-            command: 'AT',
-            expectedResponse: 'OK',
-            validationMethod: 'contains',
-            validationPattern: 'OK',
-            waitTime: 2000,
-            stopOnFailure: true,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          },
-          {
-            id: 'cmd2',
-            type: 'execution',
-            command: 'AT+CGMR',
-            validationMethod: 'none',
-            waitTime: 3000,
-            stopOnFailure: false,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          }
-        ]
-      },
-      {
-        id: 'case2',
-        uniqueId: '1002',
-        name: '网络连接测试',
-        description: '测试网络连接相关指令',
-        isExpanded: false,
-        isRunning: false,
-        currentCommand: -1,
-        selected: false,
-        status: 'pending',
-        subCases: [],
-        commands: [
-          {
-            id: 'cmd3',
-            type: 'execution',
-            command: 'AT+CREG?',
-            validationMethod: 'contains',
-            validationPattern: '+CREG:',
-            waitTime: 2000,
-            stopOnFailure: true,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          },
-          {
-            id: 'cmd4',
-            type: 'execution',
-            command: 'AT+CSQ',
-            validationMethod: 'regex',
-            validationPattern: '\\+CSQ: \\d+,\\d+',
-            waitTime: 2000,
-            stopOnFailure: false,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          }
-        ]
+    // Only create sample data if workspace is loaded but no test cases exist
+    if (currentWorkspace && testCases.length === 0) {
+      const sampleTestCases: TestCase[] = [
+        {
+          id: 'case1',
+          uniqueId: '1001',
+          name: 'AT指令基础测试',
+          description: '测试基本AT指令响应',
+          isExpanded: false,
+          isRunning: false,
+          currentCommand: -1,
+          selected: false,
+          status: 'pending',
+          commands: [
+            {
+              id: 'cmd1',
+              type: 'execution',
+              command: 'AT',
+              expectedResponse: 'OK',
+              validationMethod: 'contains',
+              validationPattern: '',
+              waitTime: 1000,
+              stopOnFailure: true,
+              lineEnding: 'crlf',
+              selected: false,
+              status: 'pending'
+            },
+            {
+              id: 'cmd2', 
+              type: 'execution',
+              command: 'AT+CGMR',
+              expectedResponse: '',
+              validationMethod: 'none',
+              validationPattern: '',
+              waitTime: 2000,
+              stopOnFailure: false,
+              lineEnding: 'crlf',
+              selected: false,
+              status: 'pending'
+            }
+          ],
+          subCases: [],
+          failureHandling: 'stop',
+          runCount: 1
+        },
+        {
+          id: 'case2',
+          uniqueId: '1002', 
+          name: 'URC监听测试',
+          description: '测试URC主动上报监听',
+          isExpanded: false,
+          isRunning: false,
+          currentCommand: -1,
+          selected: false,
+          status: 'pending',
+          commands: [
+            {
+              id: 'urc1',
+              type: 'urc',
+              command: '',
+              urcPattern: '+CREG:',
+              urcMatchMode: 'contains',
+              urcListenMode: 'permanent',
+              urcListenTimeout: 5000,
+              urcFailureHandling: 'continue',
+              validationMethod: 'none',
+              validationPattern: '',
+              waitTime: 2000,
+              stopOnFailure: false,
+              lineEnding: 'crlf',
+              selected: false,
+              status: 'pending'
+            }
+          ],
+          subCases: []
+        }
+      ];
+      setTestCases(sampleTestCases);
+      setNextUniqueId(1003);
+      setSelectedTestCaseIdWithPersistence('case1');
+      
+      // Save sample cases to persistent storage
+      sampleTestCases.forEach(testCase => {
+        saveCase(testCase).catch(console.error);
+      });
+    }
+  }, [currentWorkspace, testCases.length]);
+  
+  // Cleanup autosave timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
       }
-    ];
-    setTestCases(sampleTestCases);
-    setNextUniqueId(1003);
-    setSelectedTestCaseId('case1'); // 自动选择第一个测试用例
+    };
   }, []);
 
 
@@ -1101,7 +1171,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         isRunning: false,
         status: 'pending'
       }));
-      setTestCases(updatedTestCases);
+      setTestCasesWithAutosave(updatedTestCases);
       statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
       return;
     }
@@ -1120,7 +1190,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       status: 'running',
       currentCommand: 0
     }));
-    setTestCases(updatedTestCases);
+    setTestCasesWithAutosave(updatedTestCases);
     
     statusMessages?.addMessage(`开始执行测试用例: ${testCase.name}`, 'info');
 
@@ -1232,16 +1302,48 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   // 删除测试用例
-  const deleteTestCase = (caseId: string) => {
-    setTestCases(prev => prev.filter(tc => tc.id !== caseId));
-    if (selectedTestCaseId === caseId) {
-      setSelectedTestCaseId(testCases.length > 1 ? testCases.find(tc => tc.id !== caseId)?.id || '' : '');
+  const deleteTestCase = async (caseId: string) => {
+    try {
+      // Find the case to get uniqueId for workspace deletion
+      const caseToDelete = findTestCaseById(caseId);
+      if (caseToDelete?.uniqueId) {
+        // Delete from persistent storage
+        const { deleteCase } = await import('./workspace');
+        await deleteCase(caseToDelete.uniqueId);
+      }
+      
+      // Remove from local state
+      setTestCases(prev => prev.filter(tc => tc.id !== caseId));
+      
+      // Update selected case if deleted case was selected
+      if (selectedTestCaseId === caseId) {
+        const remainingCases = testCases.filter(tc => tc.id !== caseId);
+        if (remainingCases.length > 0) {
+          setSelectedTestCaseIdWithPersistence(remainingCases[0].id);
+        } else {
+          setSelectedTestCaseIdWithPersistence('');
+        }
+      }
+      
+      toast({
+        title: "删除成功",
+        description: "测试用例已永久删除",
+      });
+    } catch (error) {
+      console.error('Failed to delete test case:', error);
+      toast({
+        title: "删除失败",
+        description: "删除测试用例时出现错误",
+        variant: "destructive"
+      });
     }
-    toast({
-      title: "删除成功",
-      description: "测试用例已删除",
-    });
   };
+
+  // Handle test case selection
+  const handleSelectTestCase = useCallback((caseIdOrTestCase: string | TestCase) => {
+    const caseId = typeof caseIdOrTestCase === 'string' ? caseIdOrTestCase : caseIdOrTestCase.id;
+    setSelectedTestCaseIdWithPersistence(caseId);
+  }, [setSelectedTestCaseIdWithPersistence]);
 
   // 删除预设用例
   const deletePresetCases = () => {
@@ -1257,7 +1359,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
     
     const updatedTestCases = testCases.filter(tc => !tc.isPreset);
-    setTestCases(updatedTestCases);
+    setTestCasesWithAutosave(updatedTestCases);
     
     // 如果当前选中的是预设用例，切换到第一个非预设用例
     if (currentTestCase && currentTestCase.isPreset) {
@@ -1297,11 +1399,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setIsEditDialogOpen(true);
   };
 
-  // 选择测试用例
-  const handleSelectTestCase = (caseId: string) => {
-    setSelectedTestCaseId(caseId);
-  };
-
   // 右击菜单功能
   const addCommandViaContextMenu = () => {
     if (!currentTestCase) return;
@@ -1323,7 +1420,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCases(updatedTestCases);
+    setTestCasesWithAutosave(updatedTestCases);
 
     toast({
       title: "新增命令",
@@ -1356,7 +1453,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCases(updatedTestCases);
+    setTestCasesWithAutosave(updatedTestCases);
 
     toast({
       title: "新增URC",
@@ -1379,7 +1476,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCases(updatedTestCases);
+    setTestCasesWithAutosave(updatedTestCases);
 
     toast({
       title: "载入成功",
@@ -1504,7 +1601,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCases(updatedTestCases);
+    setTestCasesWithAutosave(updatedTestCases);
 
     toast({
       title: "删除成功",
@@ -1544,7 +1641,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             currentTestCase={currentTestCase} 
             onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
               const updatedTestCases = updateCaseById(testCases, caseId, updater);
-              setTestCases(updatedTestCases);
+              setTestCasesWithAutosave(updatedTestCases);
             }}
           />
         </div>
@@ -1577,7 +1674,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             };
 
             const updatedTestCases = addSubCaseById(testCases, parentId, newSubCase);
-            setTestCases(updatedTestCases);
+            setTestCasesWithAutosave(updatedTestCases);
 
             toast({
               title: "新增子用例",
@@ -1586,7 +1683,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           }}
           onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
             const updatedTestCases = updateCaseById(testCases, caseId, updater);
-            setTestCases(updatedTestCases);
+            setTestCasesWithAutosave(updatedTestCases);
           }}
         />
       </div>
@@ -1833,7 +1930,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 </Button>
                 <Button onClick={() => {
                   const updatedTestCases = updateCaseById(testCases, editingCase.id, () => editingCase);
-                  setTestCases(updatedTestCases);
+                  setTestCasesWithAutosave(updatedTestCases);
                   setIsEditDialogOpen(false);
                   setEditingCase(null);
                   toast({
@@ -1879,7 +1976,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       ...testCase,
                       commands: updatedCommands
                     }));
-                    setTestCases(updatedTestCases);
+                    setTestCasesWithAutosave(updatedTestCases);
                   }}
                 />
               )}
@@ -1896,7 +1993,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       ...testCase,
                       commands: updatedCommands
                     }));
-                    setTestCases(updatedTestCases);
+                    setTestCasesWithAutosave(updatedTestCases);
                   }}
                   jumpOptions={{
                     commandOptions: buildCommandOptionsFromCase(currentTestCase)

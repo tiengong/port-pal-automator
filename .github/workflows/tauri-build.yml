@@ -38,27 +38,33 @@ jobs:
           cache: "npm"
           cache-dependency-path: ./package-lock.json  # 根目录锁文件路径正确
 
-      # 步骤4：安装前端依赖（ci模式更严格，确保依赖一致性）
+      # 步骤4：设置Rust工具链（Tauri构建必需）
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      # 步骤5：安装前端依赖（ci模式更严格，确保依赖一致性）
       - name: Install frontend dependencies
         run: npm ci --no-cache
         env:
           npm_config_registry: https://registry.npmjs.org
 
-      # 步骤5：验证Tauri CLI安装
+      # 步骤6：验证Tauri CLI安装
       - name: Verify Tauri CLI installation
         run: |
           npx tauri --version
           if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: pwsh
 
-      # 步骤6：构建Tauri应用
+      # 步骤7：构建Tauri应用
       - name: Build Tauri app (release mode)
-        run: npm run tauri:build
+        run: npx tauri build
         env:
           TAURI_BUILD_MODE: release
         working-directory: ./  # 确保在项目根目录执行（npx找node_modules）
 
-      # 步骤7：上传构建产物（按平台分类，保留7天）
+      # 步骤8：上传构建产物（按平台分类，保留7天）
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

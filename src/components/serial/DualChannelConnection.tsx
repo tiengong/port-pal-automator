@@ -76,10 +76,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     if (!isSupported) return;
 
     try {
-      await refreshPorts();
-      const ports = await (navigator as any).serial.getPorts();
-      
-      // 自动请求新设备访问权限
+      // 仅请求新设备访问权限
       const port = await (navigator as any).serial.requestPort();
       await refreshPorts();
       
@@ -97,6 +94,36 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         });
       }
     }
+  };
+
+  // USB设备名称映射
+  const getDeviceName = (vendorId?: number, productId?: number): string => {
+    if (!vendorId) return "";
+    
+    const deviceMap: { [key: string]: string } = {
+      // Silicon Labs
+      "10c4:ea60": "Silicon Labs CP210x USB to UART Bridge",
+      "10c4:ea70": "Silicon Labs CP210x USB to UART Bridge",
+      // FTDI
+      "0403:6001": "FTDI FT232R USB UART",
+      "0403:6015": "FTDI FT230X USB UART",
+      "0403:6014": "FTDI FT232H USB UART",
+      // CH340/CH341
+      "1a86:7523": "QinHeng CH340 USB Serial",
+      "1a86:5523": "QinHeng CH341 USB Serial",
+      // Prolific
+      "067b:2303": "Prolific PL2303 USB Serial",
+      // Arduino
+      "2341:0043": "Arduino Uno Rev3",
+      "2341:0001": "Arduino Uno",
+      "1b4f:9206": "Arduino Leonardo",
+      // ESP32
+      "303a:1001": "Espressif ESP32-S2",
+      "303a:0002": "Espressif ESP32-S3",
+    };
+    
+    const key = `${vendorId.toString(16).padStart(4, '0')}:${productId?.toString(16).padStart(4, '0') || '0000'}`;
+    return deviceMap[key] || `USB Device (${key})`;
   };
 
   // 连接指定通道
@@ -188,7 +215,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 <Label>{t("connection.selectPort")}</Label>
                 <Select
                   value={selectedIndex.P1}
-                  onValueChange={(value) => {
+                  onValueChange={async (value) => {
+                    if (value === "add-port") {
+                      await requestPortAndRefresh();
+                      return;
+                    }
                     const port = availablePorts[parseInt(value)];
                     setSelectedPorts(prev => ({ ...prev, P1: port }));
                     setSelectedIndex(prev => ({ ...prev, P1: value }));
@@ -197,20 +228,6 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     if (isOpen) {
                       // 每次打开时都刷新串口列表
                       await refreshPorts();
-                      
-                      // 如果没有可用端口，提示并尝试请求新设备
-                      if (availablePorts.length === 0) {
-                        toast({
-                          title: t("connection.scanningPorts"),
-                          description: t("connection.autoRequestDesc"),
-                        });
-                        await requestPortAndRefresh();
-                      } else {
-                        toast({
-                          title: t("connection.portsUpdated"),
-                          description: t("connection.portsFoundDesc", { count: availablePorts.length }),
-                        });
-                      }
                     }
                   }}
                 >
@@ -219,18 +236,30 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     {availablePorts.length === 0 ? (
-                      <SelectItem value="no-ports" disabled>
-                        {t("connection.requestingAccess")}
-                      </SelectItem>
+                      <>
+                        <SelectItem value="no-ports" disabled>
+                          {t("connection.noPortsAvailable")}
+                        </SelectItem>
+                        <SelectItem value="add-port">
+                          <div className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            {t("connection.addNewDevice")}
+                          </div>
+                        </SelectItem>
+                      </>
                     ) : (
                       availablePorts.map((port, index) => {
                         // Try to get port info from the port object
                         const getPortInfo = () => {
                           const info = (port as any).getInfo?.() || {};
+                          const portNumber = `COM${index + 1}`;
+                          
                           if (info.usbVendorId && info.usbProductId) {
-                            return `${t("connection.usbDevice")} (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
+                            const deviceName = getDeviceName(info.usbVendorId, info.usbProductId);
+                            return `${portNumber} - ${deviceName}`;
                           }
-                          return `COM${index + 1}`;
+                          
+                          return `${portNumber} - Serial Device`;
                         };
                         
                         return (
@@ -442,7 +471,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   <Label>{t("connection.selectPort")}</Label>
                   <Select
                     value={selectedIndex.P2}
-                    onValueChange={(value) => {
+                    onValueChange={async (value) => {
+                      if (value === "add-port") {
+                        await requestPortAndRefresh();
+                        return;
+                      }
                       const port = availablePorts[parseInt(value)];
                       setSelectedPorts(prev => ({ ...prev, P2: port }));
                       setSelectedIndex(prev => ({ ...prev, P2: value }));
@@ -451,20 +484,6 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       if (isOpen) {
                         // 每次打开时都刷新串口列表
                         await refreshPorts();
-                        
-                        // 如果没有可用端口，提示并尝试请求新设备
-                        if (availablePorts.length === 0) {
-                          toast({
-                            title: t("connection.scanningPorts"),
-                            description: t("connection.autoRequestDesc"),
-                          });
-                          await requestPortAndRefresh();
-                        } else {
-                          toast({
-                            title: t("connection.portsUpdated"),
-                            description: t("connection.portsFoundDesc", { count: availablePorts.length }),
-                          });
-                        }
                       }
                     }}
                   >
@@ -473,18 +492,30 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {availablePorts.length === 0 ? (
-                        <SelectItem value="no-ports" disabled>
-                          {t("connection.requestingAccess")}
-                        </SelectItem>
+                        <>
+                          <SelectItem value="no-ports" disabled>
+                            {t("connection.noPortsAvailable")}
+                          </SelectItem>
+                          <SelectItem value="add-port">
+                            <div className="flex items-center gap-2">
+                              <Plus className="w-4 h-4" />
+                              {t("connection.addNewDevice")}
+                            </div>
+                          </SelectItem>
+                        </>
                       ) : (
                         availablePorts.map((port, index) => {
                           // Try to get port info from the port object
                           const getPortInfo = () => {
                             const info = (port as any).getInfo?.() || {};
+                            const portNumber = `COM${index + 1}`;
+                            
                             if (info.usbVendorId && info.usbProductId) {
-                              return `${t("connection.usbDevice")} (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
+                              const deviceName = getDeviceName(info.usbVendorId, info.usbProductId);
+                              return `${portNumber} - ${deviceName}`;
                             }
-                            return `COM${index + 1}`;
+                            
+                            return `${portNumber} - Serial Device`;
                           };
                           
                           return (

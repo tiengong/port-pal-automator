@@ -168,6 +168,8 @@
     "deviceAddedDesc": "串口设备已成功添加到列表",
     "requestFailed": "请求失败",
     "requestFailedDesc": "无法请求串口访问权限",
+    "noPortsAvailable": "没有可用的串口",
+    "addNewDevice": "添加新设备",
     "connectSuccess": "连接成功",
     "connectSuccessDesc": "{{port}} 端口已连接 ({{baudRate}} bps)",
     "connectFailed": "连接失败",

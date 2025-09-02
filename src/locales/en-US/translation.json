@@ -168,6 +168,8 @@
     "deviceAddedDesc": "Serial device has been successfully added to the list",
     "requestFailed": "Request Failed",
     "requestFailedDesc": "Unable to request serial port access permission",
+    "noPortsAvailable": "No serial ports available",
+    "addNewDevice": "Add New Device",
     "connectSuccess": "Connected Successfully",
     "connectSuccessDesc": "{{port}} port connected ({{baudRate}} bps)",
     "connectFailed": "Connection Failed",

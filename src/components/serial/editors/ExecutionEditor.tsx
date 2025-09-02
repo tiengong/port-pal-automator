@@ -297,9 +297,27 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectItem value="stop">{t('editor.execution.stop')}</SelectItem>
                 <SelectItem value="continue">{t('editor.execution.continue')}</SelectItem>
                 <SelectItem value="prompt">{t('editor.execution.prompt')}</SelectItem>
+                <SelectItem value="retry">{t('editor.execution.retry')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {command.failureHandling === 'retry' && (
+            <div>
+              <Label htmlFor="maxAttempts">{t('editor.execution.maxAttempts')}</Label>
+              <Input
+                id="maxAttempts"
+                type="number"
+                value={command.maxAttempts || 3}
+                onChange={(e) => updateCommand('maxAttempts', parseInt(e.target.value) || 3)}
+                min="1"
+                placeholder="3"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {t('editor.execution.maxAttemptsDescription')}
+              </p>
+            </div>
+          )}
           
           <div>
             <Label htmlFor="failureSeverity">{t('editor.execution.failureSeverity')}</Label>

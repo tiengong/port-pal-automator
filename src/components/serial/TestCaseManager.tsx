@@ -1225,7 +1225,31 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           const commandIndex = testCase.commands.indexOf(command);
           
           console.log(`Executing command ${j + 1}/${commandsToRun.length}: ${command.command}`);
-          await runCommand(caseId, commandIndex);
+          
+          // 运行命令并获取结果
+          const commandSuccess = await runCommand(caseId, commandIndex);
+          
+          // 根据命令结果和失败处理策略决定是否继续
+          if (!commandSuccess) {
+            // 命令失败，根据失败处理策略决定下一步
+            if (command.failureHandling === 'stop') {
+              statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
+              return;
+            } else if (command.failureHandling === 'retry') {
+              // 重试已在runCommand中处理，这里检查用例级失败策略
+              if (command.failureSeverity === 'error' && testCase.failureHandling === 'stop') {
+                statusMessages?.addMessage(`命令执行失败（严重错误），停止执行测试用例`, 'error');
+                return;
+              }
+              // 否则继续执行下一条命令
+            } else if (command.failureHandling === 'continue') {
+              // 继续执行下一条命令
+              statusMessages?.addMessage(`命令失败，但继续执行下一条`, 'warning');
+            } else if (command.failureHandling === 'prompt') {
+              // TODO: 实现用户提示逻辑，当前按继续处理
+              statusMessages?.addMessage(`命令失败，等待用户确认（暂时继续执行）`, 'warning');
+            }
+          }
           
           // 命令间等待时间
           if (command.waitTime > 0) {
@@ -1260,10 +1284,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
   };
 
-  // 运行单个命令
-  const runCommand = async (caseId: string, commandIndex: number) => {
+  // 运行单个命令 - 返回是否成功
+  const runCommand = async (caseId: string, commandIndex: number): Promise<boolean> => {
     const targetCase = findTestCaseById(caseId);
-    if (!targetCase) return;
+    if (!targetCase) return false;
     
     const command = targetCase.commands[commandIndex];
     
@@ -1274,25 +1298,127 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       // 执行命令前进行变量替换
       const substitutedCommand = substituteVariables(command.command);
       
-      const sendEvent: SendCommandEvent = {
-        command: substitutedCommand,
-        format: command.dataFormat === 'hex' ? 'hex' : 'utf8',
-        lineEnding: command.lineEnding,
-        targetPort: 'ALL'
-      };
-      
-      console.log('Emitting SEND_COMMAND', sendEvent);
-      eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
-      
-      statusMessages?.addMessage(`执行命令: ${substitutedCommand}`, 'info');
+      // 如果有验证方法且不是none，使用重试逻辑
+      if (command.validationMethod && command.validationMethod !== 'none') {
+        const maxAttempts = command.failureHandling === 'retry' ? (command.maxAttempts || 3) : 1;
+        let success = false;
+        
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          // 发送命令
+          const sendEvent: SendCommandEvent = {
+            command: substitutedCommand,
+            format: command.dataFormat === 'hex' ? 'hex' : 'utf8',
+            lineEnding: command.lineEnding,
+            targetPort: 'ALL'
+          };
+          
+          console.log(`Attempt ${attempt}/${maxAttempts}: Emitting SEND_COMMAND`, sendEvent);
+          eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
+          
+          // 等待响应并验证
+          const timeout = command.timeout || 5000;
+          const responsePromise = new Promise<boolean>((resolve) => {
+            let responseData = '';
+            const timeoutId = setTimeout(() => resolve(false), timeout);
+            
+            const unsubscribe = eventBus.subscribe(EVENTS.SERIAL_DATA_RECEIVED, (data: any) => {
+              if (data.type === 'received') {
+                responseData += data.data;
+                
+                // 根据验证方法检查响应
+                let isValid = false;
+                const expectedResponse = command.expectedResponse || '';
+                
+                switch (command.validationMethod) {
+                  case 'contains':
+                    isValid = responseData.includes(expectedResponse);
+                    break;
+                  case 'equals':
+                    isValid = responseData.trim() === expectedResponse.trim();
+                    break;
+                  case 'regex':
+                    try {
+                      const pattern = command.validationPattern || expectedResponse;
+                      const regex = new RegExp(pattern);
+                      isValid = regex.test(responseData);
+                    } catch (e) {
+                      console.error('Invalid regex pattern:', e);
+                      isValid = false;
+                    }
+                    break;
+                }
+                
+                if (isValid) {
+                  clearTimeout(timeoutId);
+                  unsubscribe();
+                  resolve(true);
+                }
+              }
+            });
+          });
+          
+          const attemptSuccess = await responsePromise;
+          if (attemptSuccess) {
+            success = true;
+            break;
+          } else if (attempt < maxAttempts) {
+            statusMessages?.addMessage(`命令执行失败，正在重试 (${attempt}/${maxAttempts})`, 'warning');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 重试间隔
+          }
+        }
+        
+        if (success) {
+          // 更新命令状态为成功
+          const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+            ...tc,
+            commands: tc.commands.map((cmd, idx) => 
+              idx === commandIndex ? { ...cmd, status: 'success' } : cmd
+            )
+          }));
+          setTestCases(updatedTestCases);
+          statusMessages?.addMessage(`执行命令: ${substitutedCommand} - 成功`, 'success');
+        } else {
+          // 更新命令状态为失败
+          const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+            ...tc,
+            commands: tc.commands.map((cmd, idx) => 
+              idx === commandIndex ? { ...cmd, status: 'failed' } : cmd
+            )
+          }));
+          setTestCases(updatedTestCases);
+          
+          // 根据失败严重性显示提示
+          const severity = command.failureSeverity || 'error';
+          const message = `命令执行失败: ${substitutedCommand}`;
+          statusMessages?.addMessage(message, severity === 'error' ? 'error' : 'warning');
+        }
+        
+        return success;
+      } else {
+        // 无验证的命令，直接发送
+        const sendEvent: SendCommandEvent = {
+          command: substitutedCommand,
+          format: command.dataFormat === 'hex' ? 'hex' : 'utf8',
+          lineEnding: command.lineEnding,
+          targetPort: 'ALL'
+        };
+        
+        console.log('Emitting SEND_COMMAND', sendEvent);
+        eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
+        statusMessages?.addMessage(`执行命令: ${substitutedCommand}`, 'info');
+        return true;
+      }
     } else if (command.type === 'urc') {
       statusMessages?.addMessage(`URC监听: ${command.urcPattern}`, 'info');
+      return true;
     }
     
     // 模拟执行时间后清除高亮
     setTimeout(() => {
       setExecutingCommand({ caseId: null, commandIndex: null });
     }, command.waitTime || 1000);
+    
+    return true;
   };
 
   // 删除测试用例

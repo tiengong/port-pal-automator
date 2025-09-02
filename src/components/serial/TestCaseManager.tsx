@@ -190,6 +190,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     
     initWorkspace();
   }, []);
+
+  // Add state for bottom control bar dialog
+  const [showCaseSelectorFromBar, setShowCaseSelectorFromBar] = useState(false);
   
   // Handle workspace changes
   const handleWorkspaceChange = async () => {
@@ -1845,6 +1848,103 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         onWorkspaceChange={handleWorkspaceChange}
       />
 
+      {/* 底部控制栏 */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg">
+        <div className="flex items-center justify-between gap-3">
+          {/* 左侧：用例选择 */}
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowCaseSelectorFromBar(true)}
+              className="flex items-center gap-2 min-w-[120px] h-8"
+            >
+              <TestTube2 className="w-3 h-3" />
+              <span className="text-xs">
+                {currentTestCase ? `#${currentTestCase.uniqueId}` : '选择测试用例'}
+              </span>
+            </Button>
+          </div>
+
+          {/* 右侧：管理按钮 */}
+          <div className="flex items-center gap-2">
+            {/* 删除当前用例 */}
+            {currentTestCase && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => deleteTestCase(currentTestCase.id)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>删除当前测试用例</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            
+            {/* 分隔线 */}
+            <div className="w-px h-4 bg-border mx-1" />
+            
+            {/* 同步 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={handleSync} 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>同步测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            {/* 导入 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.json';
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) {
+                          // 处理文件导入逻辑
+                          importFromFile('merge');
+                        }
+                      };
+                      input.click();
+                    }}
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>导入测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+
       {/* 编辑测试用例对话框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -2017,6 +2117,55 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 底部控制栏的测试用例选择对话框 */}
+      <Dialog open={showCaseSelectorFromBar} onOpenChange={setShowCaseSelectorFromBar}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>选择测试用例</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto max-h-[400px]">
+            {testCases.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                暂无测试用例
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {testCases.map(testCase => (
+                  <div 
+                    key={testCase.id} 
+                    className={`p-3 rounded border hover:bg-accent/50 cursor-pointer transition-colors ${
+                      currentTestCase?.id === testCase.id ? 'bg-accent/30 border-primary' : 'border-border'
+                    }`}
+                    onClick={() => {
+                      handleSelectTestCase(testCase.id);
+                      setShowCaseSelectorFromBar(false);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">#{testCase.uniqueId}</span>
+                          <span className="font-medium">{testCase.name}</span>
+                        </div>
+                        {testCase.description && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {testCase.description}
+                          </p>
+                        )}
+                      </div>
+                      {currentTestCase?.id === testCase.id && (
+                        <CheckCircle className="w-4 h-4 text-primary" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

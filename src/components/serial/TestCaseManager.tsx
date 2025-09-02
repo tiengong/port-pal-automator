@@ -1694,7 +1694,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {/* 3. 中间测试用例展示区 */}
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className="flex-1 overflow-y-auto p-3 pb-24">
+          <div className="flex-1 overflow-y-auto p-3 pb-16">
             {testCases.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <TestTube2 className="w-12 h-12 mb-4 opacity-30" />

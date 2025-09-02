@@ -1850,24 +1850,22 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       {/* 底部控制栏 */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-4">
           {/* 左侧：用例选择 */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => setShowCaseSelectorFromBar(true)}
-              className="flex items-center gap-2 min-w-[120px] h-8"
+              className="flex items-center gap-2 h-9 px-3 rounded-lg text-xs font-medium"
             >
-              <TestTube2 className="w-3 h-3" />
-              <span className="text-xs">
-                {currentTestCase ? `#${currentTestCase.uniqueId}` : '选择测试用例'}
-              </span>
+              <TestTube2 className="w-3.5 h-3.5" />
+              {currentTestCase ? `#${currentTestCase.uniqueId}` : '选择测试用例'}
             </Button>
           </div>
 
-          {/* 右侧：管理按钮 */}
-          <div className="flex items-center gap-2">
+          {/* 右侧：操作按钮组 */}
+          <div className="flex items-center gap-1">
             {/* 删除当前用例 */}
             {currentTestCase && (
               <TooltipProvider>
@@ -1877,7 +1875,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       onClick={() => deleteTestCase(currentTestCase.id)} 
                       variant="outline" 
                       size="sm" 
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="h-8 w-8 p-0 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -1889,9 +1887,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </TooltipProvider>
             )}
             
-            {/* 分隔线 */}
-            <div className="w-px h-4 bg-border mx-1" />
-            
             {/* 同步 */}
             <TooltipProvider>
               <Tooltip>
@@ -1900,7 +1895,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     onClick={handleSync} 
                     variant="outline" 
                     size="sm" 
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 border-primary/20"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </Button>
@@ -1923,7 +1918,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       input.onchange = (e) => {
                         const file = (e.target as HTMLInputElement).files?.[0];
                         if (file) {
-                          // 处理文件导入逻辑
                           importFromFile('merge');
                         }
                       };
@@ -1931,7 +1925,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     }}
                     variant="outline" 
                     size="sm" 
-                    className="h-8 w-8 p-0"
+                    className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 border-primary/20"
                   >
                     <Download className="w-4 h-4" />
                   </Button>

@@ -187,17 +187,12 @@ const Index = () => {
               />
             </TabsContent>
 
-            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up flex flex-col" forceMount>
-              <div 
-                className="flex-1 flex flex-col pb-20" 
-                style={{ display: leftPanelTab === "testcase" ? "flex" : "none" }}
-              >
-                <TestCaseManager 
-                  connectedPorts={serialManager.getConnectedPorts()}
-                  receivedData={receivedData}
-                  statusMessages={statusMessages}
-                />
-              </div>
+            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up">
+              <TestCaseManager 
+                connectedPorts={serialManager.getConnectedPorts()}
+                receivedData={receivedData}
+                statusMessages={statusMessages}
+              />
             </TabsContent>
           </Tabs>
         </div>

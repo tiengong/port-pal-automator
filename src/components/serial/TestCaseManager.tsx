@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,50 +97,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   
-  // Persist selected test case to localStorage
-  const persistSelectedTestCase = useCallback((caseId: string) => {
-    if (caseId) {
-      localStorage.setItem('lastSelectedTestCaseId', caseId);
-    } else {
-      localStorage.removeItem('lastSelectedTestCaseId');
-    }
-  }, []);
-
-  // Enhanced state setter for selectedTestCaseId with persistence
-  const setSelectedTestCaseIdWithPersistence = useCallback((caseId: string) => {
-    setSelectedTestCaseId(caseId);
-    persistSelectedTestCase(caseId);
-  }, [persistSelectedTestCase]);
-
-  // Debounced autosave function
-  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autosave = useCallback((testCase: TestCase) => {
-    if (autosaveTimeoutRef.current) {
-      clearTimeout(autosaveTimeoutRef.current);
-    }
-    
-    autosaveTimeoutRef.current = setTimeout(() => {
-      saveCase(testCase).catch(console.error);
-    }, 1000); // 1 second debounce
-  }, []);
-
-  // Enhanced setTestCases with autosave
-  const setTestCasesWithAutosave = useCallback((updater: React.SetStateAction<TestCase[]>) => {
-    setTestCases(prevCases => {
-      const newCases = typeof updater === 'function' ? updater(prevCases) : updater;
-      
-      // Find the currently selected case and autosave it if it exists
-      if (selectedTestCaseId && Array.isArray(newCases)) {
-        const selectedCase = findTestCaseById(selectedTestCaseId, newCases);
-        if (selectedCase) {
-          autosave(selectedCase);
-        }
-      }
-      
-      return newCases;
-    });
-  }, [selectedTestCaseId, autosave]);
-  
   // Drag and drop state
   const [dragInfo, setDragInfo] = useState<{
     draggedItem: { caseId: string; commandIndex: number } | null;
@@ -168,15 +124,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         const cases = await loadCases();
         // Ensure cases is always an array
         setTestCases(Array.isArray(cases) ? cases : []);
-        
-        // Restore last selected test case from localStorage
-        const lastSelectedCaseId = localStorage.getItem('lastSelectedTestCaseId');
-        if (cases.length > 0) {
-          if (lastSelectedCaseId && cases.find(c => c.id === lastSelectedCaseId || c.uniqueId === lastSelectedCaseId)) {
-            setSelectedTestCaseIdWithPersistence(lastSelectedCaseId);
-          } else {
-            setSelectedTestCaseIdWithPersistence(cases[0].id);
-          }
+        if (cases.length > 0 && !selectedTestCaseId) {
+          setSelectedTestCaseId(cases[0].id);
         }
       } catch (error) {
         console.error('Failed to initialize workspace:', error);
@@ -190,30 +139,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     
     initWorkspace();
   }, []);
-
-  // Add state for bottom control bar dialog
-  const [showCaseSelectorFromBar, setShowCaseSelectorFromBar] = useState(false);
   
   // Handle workspace changes
   const handleWorkspaceChange = async () => {
     try {
       const workspace = getCurrentWorkspace();
       setCurrentWorkspace(workspace);
-      const cases = await loadCases();
-      // Ensure cases is always an array
-      setTestCases(Array.isArray(cases) ? cases : []);
-      
-      // Restore last selected test case from localStorage after workspace change
-      const lastSelectedCaseId = localStorage.getItem('lastSelectedTestCaseId');
-      if (cases.length > 0) {
-        if (lastSelectedCaseId && cases.find(c => c.id === lastSelectedCaseId || c.uniqueId === lastSelectedCaseId)) {
-          setSelectedTestCaseIdWithPersistence(lastSelectedCaseId);
-        } else {
-          setSelectedTestCaseIdWithPersistence(cases[0].id);
-        }
-      } else {
-        setSelectedTestCaseIdWithPersistence('');
-      }
+        const cases = await loadCases();
+        // Ensure cases is always an array
+        setTestCases(Array.isArray(cases) ? cases : []);
+      setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
     } catch (error) {
       console.error('Failed to reload workspace:', error);
     }
@@ -302,7 +237,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         cmd.id === commandId ? { ...cmd, selected } : cmd
       )
     }));
-    setTestCasesWithAutosave(updatedTestCases);
+    setTestCases(updatedTestCases);
   };
 
   // 格式化命令索引（支持子用例嵌套）
@@ -336,7 +271,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             : cmd
         )
       }));
-      setTestCasesWithAutosave(updatedTestCases);
+      setTestCases(updatedTestCases);
+      
+      // 保存更新后的用例
+      const updatedCase = findTestCaseById(caseId, updatedTestCases);
+      if (updatedCase) {
+        saveCase(updatedCase);
+      }
       
       toast({
         title: t("testCase.modifySuccess"),
@@ -647,7 +588,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 commands: reorderedCommands
               }));
               
-              setTestCasesWithAutosave(updatedTestCases);
+              setTestCases(updatedTestCases);
               
               // 保存更新后的用例
               const updatedCase = findTestCaseById(dropTarget.caseId, updatedTestCases);
@@ -757,7 +698,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     size="sm"
                     className="h-8 w-8 p-0"
                     onClick={() => {
-                      setSelectedTestCaseIdWithPersistence(caseId);
+                      setSelectedTestCaseId(caseId);
                       setEditingCommandIndex(commandIndex);
                     }}
                   >
@@ -790,7 +731,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             className="h-6 w-6 p-0 flex-shrink-0"
             onClick={() => {
               const updatedTestCases = toggleExpandById(testCases, testCase.id);
-              setTestCasesWithAutosave(updatedTestCases);
+              setTestCases(updatedTestCases);
             }}
           >
             {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
@@ -812,15 +753,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 ...tc,
                 selected: checked as boolean
               }));
-              setTestCasesWithAutosave(updatedTestCases);
+              setTestCases(updatedTestCases);
             }}
             className="flex-shrink-0"
           />
           
-           {/* 用例内容 */}
+          {/* 用例内容 */}
           <div
             className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => setSelectedTestCaseIdWithPersistence(testCase.id)}
+            onClick={() => setSelectedTestCaseId(testCase.id)}
           >
             <div className="flex items-center gap-2">
               <span className={`font-medium text-sm truncate ${
@@ -973,7 +914,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   ...testCase,
                   commands: updatedCommands
                 }));
-                setTestCasesWithAutosave(updatedTestCases);
+                setTestCases(updatedTestCases);
                 
                 // 处理跳转逻辑（只有在未触发过或once模式下才执行）
                 if (!isUrcAlreadyTriggered || command.urcListenMode === 'once') {
@@ -1059,103 +1000,89 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
   };
 
-  // Initialize sample data only if no test cases exist
+  // 初始化示例数据
   useEffect(() => {
-    // Only create sample data if workspace is loaded but no test cases exist
-    if (currentWorkspace && testCases.length === 0) {
-      const sampleTestCases: TestCase[] = [
-        {
-          id: 'case1',
-          uniqueId: '1001',
-          name: 'AT指令基础测试',
-          description: '测试基本AT指令响应',
-          isExpanded: false,
-          isRunning: false,
-          currentCommand: -1,
-          selected: false,
-          status: 'pending',
-          commands: [
-            {
-              id: 'cmd1',
-              type: 'execution',
-              command: 'AT',
-              expectedResponse: 'OK',
-              validationMethod: 'contains',
-              validationPattern: '',
-              waitTime: 1000,
-              stopOnFailure: true,
-              lineEnding: 'crlf',
-              selected: false,
-              status: 'pending'
-            },
-            {
-              id: 'cmd2', 
-              type: 'execution',
-              command: 'AT+CGMR',
-              expectedResponse: '',
-              validationMethod: 'none',
-              validationPattern: '',
-              waitTime: 2000,
-              stopOnFailure: false,
-              lineEnding: 'crlf',
-              selected: false,
-              status: 'pending'
-            }
-          ],
-          subCases: [],
-          failureHandling: 'stop',
-          runCount: 1
-        },
-        {
-          id: 'case2',
-          uniqueId: '1002', 
-          name: 'URC监听测试',
-          description: '测试URC主动上报监听',
-          isExpanded: false,
-          isRunning: false,
-          currentCommand: -1,
-          selected: false,
-          status: 'pending',
-          commands: [
-            {
-              id: 'urc1',
-              type: 'urc',
-              command: '',
-              urcPattern: '+CREG:',
-              urcMatchMode: 'contains',
-              urcListenMode: 'permanent',
-              urcListenTimeout: 5000,
-              urcFailureHandling: 'continue',
-              validationMethod: 'none',
-              validationPattern: '',
-              waitTime: 2000,
-              stopOnFailure: false,
-              lineEnding: 'crlf',
-              selected: false,
-              status: 'pending'
-            }
-          ],
-          subCases: []
-        }
-      ];
-      setTestCases(sampleTestCases);
-      setNextUniqueId(1003);
-      setSelectedTestCaseIdWithPersistence('case1');
-      
-      // Save sample cases to persistent storage
-      sampleTestCases.forEach(testCase => {
-        saveCase(testCase).catch(console.error);
-      });
-    }
-  }, [currentWorkspace, testCases.length]);
-  
-  // Cleanup autosave timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (autosaveTimeoutRef.current) {
-        clearTimeout(autosaveTimeoutRef.current);
+    const sampleTestCases: TestCase[] = [
+      {
+        id: 'case1',
+        uniqueId: '1001',
+        name: 'AT指令基础测试',
+        description: '测试基本AT指令响应',
+        isExpanded: false,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: 'pending',
+        subCases: [],
+        commands: [
+          {
+            id: 'cmd1',
+            type: 'execution',
+            command: 'AT',
+            expectedResponse: 'OK',
+            validationMethod: 'contains',
+            validationPattern: 'OK',
+            waitTime: 2000,
+            stopOnFailure: true,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          },
+          {
+            id: 'cmd2',
+            type: 'execution',
+            command: 'AT+CGMR',
+            validationMethod: 'none',
+            waitTime: 3000,
+            stopOnFailure: false,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          }
+        ]
+      },
+      {
+        id: 'case2',
+        uniqueId: '1002',
+        name: '网络连接测试',
+        description: '测试网络连接相关指令',
+        isExpanded: false,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: 'pending',
+        subCases: [],
+        commands: [
+          {
+            id: 'cmd3',
+            type: 'execution',
+            command: 'AT+CREG?',
+            validationMethod: 'contains',
+            validationPattern: '+CREG:',
+            waitTime: 2000,
+            stopOnFailure: true,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          },
+          {
+            id: 'cmd4',
+            type: 'execution',
+            command: 'AT+CSQ',
+            validationMethod: 'regex',
+            validationPattern: '\\+CSQ: \\d+,\\d+',
+            waitTime: 2000,
+            stopOnFailure: false,
+            lineEnding: 'crlf',
+            selected: false,
+            status: 'pending'
+          }
+        ]
       }
-    };
+    ];
+    setTestCases(sampleTestCases);
+    setNextUniqueId(1003);
+    setSelectedTestCaseId('case1'); // 自动选择第一个测试用例
   }, []);
 
 
@@ -1174,7 +1101,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         isRunning: false,
         status: 'pending'
       }));
-      setTestCasesWithAutosave(updatedTestCases);
+      setTestCases(updatedTestCases);
       statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
       return;
     }
@@ -1193,7 +1120,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       status: 'running',
       currentCommand: 0
     }));
-    setTestCasesWithAutosave(updatedTestCases);
+    setTestCases(updatedTestCases);
     
     statusMessages?.addMessage(`开始执行测试用例: ${testCase.name}`, 'info');
 
@@ -1305,48 +1232,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   // 删除测试用例
-  const deleteTestCase = async (caseId: string) => {
-    try {
-      // Find the case to get uniqueId for workspace deletion
-      const caseToDelete = findTestCaseById(caseId);
-      if (caseToDelete?.uniqueId) {
-        // Delete from persistent storage
-        const { deleteCase } = await import('./workspace');
-        await deleteCase(caseToDelete.uniqueId);
-      }
-      
-      // Remove from local state
-      setTestCases(prev => prev.filter(tc => tc.id !== caseId));
-      
-      // Update selected case if deleted case was selected
-      if (selectedTestCaseId === caseId) {
-        const remainingCases = testCases.filter(tc => tc.id !== caseId);
-        if (remainingCases.length > 0) {
-          setSelectedTestCaseIdWithPersistence(remainingCases[0].id);
-        } else {
-          setSelectedTestCaseIdWithPersistence('');
-        }
-      }
-      
-      toast({
-        title: "删除成功",
-        description: "测试用例已永久删除",
-      });
-    } catch (error) {
-      console.error('Failed to delete test case:', error);
-      toast({
-        title: "删除失败",
-        description: "删除测试用例时出现错误",
-        variant: "destructive"
-      });
+  const deleteTestCase = (caseId: string) => {
+    setTestCases(prev => prev.filter(tc => tc.id !== caseId));
+    if (selectedTestCaseId === caseId) {
+      setSelectedTestCaseId(testCases.length > 1 ? testCases.find(tc => tc.id !== caseId)?.id || '' : '');
     }
+    toast({
+      title: "删除成功",
+      description: "测试用例已删除",
+    });
   };
-
-  // Handle test case selection
-  const handleSelectTestCase = useCallback((caseIdOrTestCase: string | TestCase) => {
-    const caseId = typeof caseIdOrTestCase === 'string' ? caseIdOrTestCase : caseIdOrTestCase.id;
-    setSelectedTestCaseIdWithPersistence(caseId);
-  }, [setSelectedTestCaseIdWithPersistence]);
 
   // 删除预设用例
   const deletePresetCases = () => {
@@ -1362,7 +1257,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
     
     const updatedTestCases = testCases.filter(tc => !tc.isPreset);
-    setTestCasesWithAutosave(updatedTestCases);
+    setTestCases(updatedTestCases);
     
     // 如果当前选中的是预设用例，切换到第一个非预设用例
     if (currentTestCase && currentTestCase.isPreset) {
@@ -1402,6 +1297,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setIsEditDialogOpen(true);
   };
 
+  // 选择测试用例
+  const handleSelectTestCase = (caseId: string) => {
+    setSelectedTestCaseId(caseId);
+  };
+
   // 右击菜单功能
   const addCommandViaContextMenu = () => {
     if (!currentTestCase) return;
@@ -1423,7 +1323,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCasesWithAutosave(updatedTestCases);
+    setTestCases(updatedTestCases);
 
     toast({
       title: "新增命令",
@@ -1456,7 +1356,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCasesWithAutosave(updatedTestCases);
+    setTestCases(updatedTestCases);
 
     toast({
       title: "新增URC",
@@ -1479,7 +1379,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCasesWithAutosave(updatedTestCases);
+    setTestCases(updatedTestCases);
 
     toast({
       title: "载入成功",
@@ -1604,7 +1504,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ...testCase,
       commands: updatedCommands
     }));
-    setTestCasesWithAutosave(updatedTestCases);
+    setTestCases(updatedTestCases);
 
     toast({
       title: "删除成功",
@@ -1633,7 +1533,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
       {/* ========== 模块化测试页面布局 - 2024年版本 ========== */}
       
       {/* 1. 当前测试用例信息显示 */}
@@ -1644,7 +1544,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             currentTestCase={currentTestCase} 
             onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
               const updatedTestCases = updateCaseById(testCases, caseId, updater);
-              setTestCasesWithAutosave(updatedTestCases);
+              setTestCases(updatedTestCases);
             }}
           />
         </div>
@@ -1677,7 +1577,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             };
 
             const updatedTestCases = addSubCaseById(testCases, parentId, newSubCase);
-            setTestCasesWithAutosave(updatedTestCases);
+            setTestCases(updatedTestCases);
 
             toast({
               title: "新增子用例",
@@ -1686,7 +1586,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           }}
           onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
             const updatedTestCases = updateCaseById(testCases, caseId, updater);
-            setTestCasesWithAutosave(updatedTestCases);
+            setTestCases(updatedTestCases);
           }}
         />
       </div>
@@ -1694,7 +1594,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {/* 3. 中间测试用例展示区 */}
       <ContextMenu>
         <ContextMenuTrigger asChild>
-          <div className="flex-1 overflow-y-auto p-3 pb-16">
+          <div className="flex-1 overflow-y-auto p-3">
             {testCases.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
@@ -1848,97 +1748,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         onWorkspaceChange={handleWorkspaceChange}
       />
 
-      {/* 底部控制栏 */}
-      <div className="absolute bottom-0 inset-x-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg mx-4">
-        <div className="flex items-center justify-between gap-4">
-          {/* 左侧：用例选择 */}
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowCaseSelectorFromBar(true)}
-              className="flex items-center gap-2 h-9 px-3 rounded-lg text-xs font-medium"
-            >
-              <TestTube2 className="w-3.5 h-3.5" />
-              {currentTestCase ? `#${currentTestCase.uniqueId}` : '选择测试用例'}
-            </Button>
-          </div>
-
-          {/* 右侧：操作按钮组 */}
-          <div className="flex items-center gap-1">
-            {/* 删除当前用例 */}
-            {currentTestCase && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => deleteTestCase(currentTestCase.id)} 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 w-8 p-0 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>删除当前测试用例</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-            
-            {/* 同步 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={handleSync} 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 border-primary/20"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>同步测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            {/* 导入 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = '.json';
-                      input.onchange = (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (file) {
-                          importFromFile('merge');
-                        }
-                      };
-                      input.click();
-                    }}
-                    variant="outline" 
-                    size="sm" 
-                    className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 border-primary/20"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>导入测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </div>
-
       {/* 编辑测试用例对话框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -2024,7 +1833,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 </Button>
                 <Button onClick={() => {
                   const updatedTestCases = updateCaseById(testCases, editingCase.id, () => editingCase);
-                  setTestCasesWithAutosave(updatedTestCases);
+                  setTestCases(updatedTestCases);
                   setIsEditDialogOpen(false);
                   setEditingCase(null);
                   toast({
@@ -2070,7 +1879,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       ...testCase,
                       commands: updatedCommands
                     }));
-                    setTestCasesWithAutosave(updatedTestCases);
+                    setTestCases(updatedTestCases);
                   }}
                 />
               )}
@@ -2087,7 +1896,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       ...testCase,
                       commands: updatedCommands
                     }));
-                    setTestCasesWithAutosave(updatedTestCases);
+                    setTestCases(updatedTestCases);
                   }}
                   jumpOptions={{
                     commandOptions: buildCommandOptionsFromCase(currentTestCase)
@@ -2111,55 +1920,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* 底部控制栏的测试用例选择对话框 */}
-      <Dialog open={showCaseSelectorFromBar} onOpenChange={setShowCaseSelectorFromBar}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>选择测试用例</DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto max-h-[400px]">
-            {testCases.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                暂无测试用例
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {testCases.map(testCase => (
-                  <div 
-                    key={testCase.id} 
-                    className={`p-3 rounded border hover:bg-accent/50 cursor-pointer transition-colors ${
-                      currentTestCase?.id === testCase.id ? 'bg-accent/30 border-primary' : 'border-border'
-                    }`}
-                    onClick={() => {
-                      handleSelectTestCase(testCase.id);
-                      setShowCaseSelectorFromBar(false);
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">#{testCase.uniqueId}</span>
-                          <span className="font-medium">{testCase.name}</span>
-                        </div>
-                        {testCase.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {testCase.description}
-                          </p>
-                        )}
-                      </div>
-                      {currentTestCase?.id === testCase.id && (
-                        <CheckCircle className="w-4 h-4 text-primary" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </DialogContent>
       </Dialog>
     </div>

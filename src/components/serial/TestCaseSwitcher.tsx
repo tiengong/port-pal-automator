@@ -315,6 +315,67 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
     }
   };
   return <>
+      {/* 底部工具栏 */}
+      <div className="flex-shrink-0 p-3 border-t border-border/50 bg-card/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-3">
+          {/* 左侧：用例选择 */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowCaseSelector(true)} className="flex items-center gap-2 min-w-[120px] h-8">
+              <TestTube2 className="w-3 h-3" />
+              <span className="text-xs">
+                {currentTestCase ? `#${currentTestCase.uniqueId}` : '选择测试用例'}
+              </span>
+            </Button>
+          </div>
+
+          {/* 右侧：管理按钮 */}
+          <div className="flex items-center gap-1">
+            {/* 删除当前用例 */}
+            {currentTestCase && <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>删除当前测试用例</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>}
+            
+            {/* 分隔线 */}
+            <div className="w-px h-4 bg-border mx-1" />
+            
+            {/* 同步 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={onSync} variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>同步测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            {/* 导入 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleUpload} variant="outline" size="sm" className="h-8 w-8 p-0">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>导入测试用例</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+
       {/* 测试用例选择窗口 */}
       <Dialog open={showCaseSelector} onOpenChange={setShowCaseSelector}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">

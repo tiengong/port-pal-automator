@@ -513,65 +513,66 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        </AlertDialog>
 
         {/* 新增用例对话框 */}
         <Dialog open={showNewCaseDialog} onOpenChange={setShowNewCaseDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>新增测试用例</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">用例名称</label>
-              <Input value={newCaseName} onChange={e => setNewCaseName(e.target.value)} placeholder="请输入用例名称" className="mt-1" />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>新增测试用例</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">用例名称</label>
+                <Input value={newCaseName} onChange={e => setNewCaseName(e.target.value)} placeholder="请输入用例名称" className="mt-1" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">用例描述</label>
+                <Input value={newCaseDescription} onChange={e => setNewCaseDescription(e.target.value)} placeholder="请输入用例描述（可选）" className="mt-1" />
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowNewCaseDialog(false)}>
+                  取消
+                </Button>
+                <Button onClick={handleCreateNewCase} disabled={!newCaseName.trim()}>
+                  创建
+                </Button>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">用例描述</label>
-              <Input value={newCaseDescription} onChange={e => setNewCaseDescription(e.target.value)} placeholder="请输入用例描述（可选）" className="mt-1" />
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setShowNewCaseDialog(false)}>
-                取消
-              </Button>
-              <Button onClick={handleCreateNewCase} disabled={!newCaseName.trim()}>
-                创建
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
 
         {/* 克隆用例对话框 */}
         <Dialog open={showCloneDialog} onOpenChange={setShowCloneDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>克隆测试用例</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">选择源用例</label>
-              <select value={cloneSourceId} onChange={e => setCloneSourceId(e.target.value)} className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background">
-                <option value="">请选择要克隆的用例</option>
-                {testCases.map(testCase => <option key={testCase.id} value={testCase.id}>
-                    #{testCase.uniqueId} - {testCase.name}
-                  </option>)}
-              </select>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>克隆测试用例</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">选择源用例</label>
+                <select value={cloneSourceId} onChange={e => setCloneSourceId(e.target.value)} className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background">
+                  <option value="">请选择要克隆的用例</option>
+                  {testCases.map(testCase => (
+                    <option key={testCase.id} value={testCase.id}>
+                      #{testCase.uniqueId} - {testCase.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">新用例名称</label>
+                <Input value={cloneNewName} onChange={e => setCloneNewName(e.target.value)} placeholder="请输入新用例名称" className="mt-1" />
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowCloneDialog(false)}>
+                  取消
+                </Button>
+                <Button onClick={handleCloneCase} disabled={!cloneSourceId || !cloneNewName.trim()}>
+                  克隆
+                </Button>
+              </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">新用例名称</label>
-              <Input value={cloneNewName} onChange={e => setCloneNewName(e.target.value)} placeholder="请输入新用例名称" className="mt-1" />
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setShowCloneDialog(false)}>
-                取消
-              </Button>
-              <Button onClick={handleCloneCase} disabled={!cloneSourceId || !cloneNewName.trim()}>
-                克隆
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
+          </DialogContent>
         </Dialog>
-      </>;
-    };
+      </>
+}

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Serial Debug Tool",
+    "title": "Serial Pilot",
     "version": "Version 2.2.0",
     "notSupported": "Your browser does not support Web Serial API",
     "connecting": "Connecting...",

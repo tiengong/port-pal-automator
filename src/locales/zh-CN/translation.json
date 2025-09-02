@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "串口调试工具",
+    "title": "Serial Pilot",
     "version": "版本 2.2.0",
     "notSupported": "您的浏览器不支持 Web Serial API",
     "connecting": "连接中...",

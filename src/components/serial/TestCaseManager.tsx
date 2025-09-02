@@ -668,11 +668,18 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           setDragInfo({ draggedItem: null, dropTarget: null });
         }}
       >
-        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+        <div 
+          className="flex items-center gap-3 cursor-pointer" 
+          style={{ paddingLeft: `${level * 16}px` }}
+          onClick={() => setSelectedTestCaseId(caseId)}
+        >
           {/* 复选框 */}
           <Checkbox
             checked={command.selected}
-            onCheckedChange={(checked) => updateCommandSelection(caseId, command.id, checked as boolean)}
+            onCheckedChange={(checked) => {
+              setSelectedTestCaseId(caseId);
+              updateCommandSelection(caseId, command.id, checked as boolean);
+            }}
             className="flex-shrink-0"
           />
           
@@ -874,6 +881,27 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            
+            {/* Delete button for subcases (level > 0) */}
+            {level > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      onClick={() => deleteCaseById(testCase.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>删除子用例</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
       </div>
@@ -1297,6 +1325,39 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     globalToast({
       title: "删除成功",
       description: "测试用例已删除"
+    });
+  };
+
+  // 递归删除测试用例（支持删除嵌套的子用例）
+  const deleteCaseById = (caseId: string) => {
+    const deleteCaseFromArray = (cases: TestCase[]): TestCase[] => {
+      return cases.filter(testCase => {
+        if (testCase.id === caseId) {
+          return false;
+        }
+        testCase.subCases = deleteCaseFromArray(testCase.subCases);
+        return true;
+      });
+    };
+
+    const updatedTestCases = deleteCaseFromArray(testCases);
+    setTestCases(updatedTestCases);
+
+    // 如果删除的是当前选中的用例，切换到父用例或第一个可用用例
+    if (selectedTestCaseId === caseId) {
+      const parentCase = findParentCase(caseId);
+      if (parentCase) {
+        setSelectedTestCaseId(parentCase.id);
+      } else if (updatedTestCases.length > 0) {
+        setSelectedTestCaseId(updatedTestCases[0].id);
+      } else {
+        setSelectedTestCaseId('');
+      }
+    }
+
+    globalToast({
+      title: "删除成功",
+      description: "子用例已删除"
     });
   };
 

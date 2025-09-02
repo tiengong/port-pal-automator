@@ -316,7 +316,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   };
   return <>
       {/* 底部工具栏 */}
-      <div className="fixed bottom-6 left-0 right-0 z-50 p-3 border-t border-border/50 bg-card/90 backdrop-blur-md shadow-lg">
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-card/95 backdrop-blur-md shadow-lg rounded-t-lg">
         <div className="flex items-center justify-between gap-3">
           {/* 左侧：用例选择 */}
           <div className="flex items-center gap-2">

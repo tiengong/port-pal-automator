@@ -881,27 +881,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
-            {/* Delete button for subcases (level > 0) */}
-            {level > 0 && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      onClick={() => deleteCaseById(testCase.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>删除子用例</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
           </div>
         </div>
       </div>
@@ -1605,28 +1584,64 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
 
+  // 检查是否有选中的命令或子用例
+  const hasSelectedItems = (testCase: TestCase): boolean => {
+    const hasSelectedCommands = testCase.commands.some(cmd => cmd.selected);
+    const hasSelectedSubCases = testCase.subCases.some(subCase => subCase.selected);
+    const hasSelectedInSubCases = testCase.subCases.some(subCase => hasSelectedItems(subCase));
+    return hasSelectedCommands || hasSelectedSubCases || hasSelectedInSubCases;
+  };
+
   const deleteSelectedCommands = () => {
     if (!currentTestCase) return;
 
-    const selectedCommands = currentTestCase.commands.filter(cmd => cmd.selected);
-    if (selectedCommands.length === 0) {
+    const countSelectedItems = (testCase: TestCase): { commands: number; cases: number } => {
+      const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
+      const selectedSubCases = testCase.subCases.filter(subCase => subCase.selected);
+      let totalCommands = selectedCommands.length;
+      let totalCases = selectedSubCases.length;
+      
+      testCase.subCases.forEach(subCase => {
+        const subCounts = countSelectedItems(subCase);
+        totalCommands += subCounts.commands;
+        totalCases += subCounts.cases;
+      });
+      
+      return { commands: totalCommands, cases: totalCases };
+    };
+
+    const counts = countSelectedItems(currentTestCase);
+    if (counts.commands === 0 && counts.cases === 0) {
       toast({
         title: "提示",
-        description: "请先勾选要删除的命令",
+        description: "请先勾选要删除的命令或子用例",
       });
       return;
     }
 
-    const updatedCommands = currentTestCase.commands.filter(cmd => !cmd.selected);
-    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
+    const removeSelectedItems = (testCase: TestCase): TestCase => ({
       ...testCase,
-      commands: updatedCommands
-    }));
+      commands: testCase.commands.filter(cmd => !cmd.selected),
+      subCases: testCase.subCases
+        .filter(subCase => !subCase.selected)
+        .map(subCase => removeSelectedItems(subCase))
+    });
+
+    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, removeSelectedItems);
     setTestCases(updatedTestCases);
+
+    let description = "";
+    if (counts.commands > 0 && counts.cases > 0) {
+      description = `已删除 ${counts.commands} 个命令和 ${counts.cases} 个子用例`;
+    } else if (counts.commands > 0) {
+      description = `已删除 ${counts.commands} 个命令`;
+    } else {
+      description = `已删除 ${counts.cases} 个子用例`;
+    }
 
     globalToast({
       title: "删除成功",
-      description: `已删除 ${selectedCommands.length} 个命令`
+      description: description
     });
   };
 
@@ -1707,6 +1722,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             const updatedTestCases = updateCaseById(testCases, caseId, updater);
             setTestCases(updatedTestCases);
           }}
+          hasSelectedItems={hasSelectedItems}
         />
       </div>
 

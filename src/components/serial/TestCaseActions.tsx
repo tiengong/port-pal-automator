@@ -43,6 +43,7 @@ interface TestCaseActionsProps {
   onAddSubCase?: (parentId: string) => void;
   onUpdateCase?: (caseId: string, updater: (c: TestCase) => TestCase) => void;
   onSelectTestCase?: (caseId: string) => void;
+  hasSelectedItems?: (testCase: TestCase) => boolean;
 }
 
 export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
@@ -59,7 +60,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onDeletePresetCases,
   onAddSubCase,
   onUpdateCase,
-  onSelectTestCase
+  onSelectTestCase,
+  hasSelectedItems
 }) => {
   console.log('TestCaseActions rendered', { currentTestCase });
   
@@ -550,8 +552,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         </TooltipProvider>
       )}
       
-      {/* 删除选中命令按钮 */}
-      {currentTestCase && currentTestCase.commands.some(cmd => cmd.selected) && (
+      {/* 删除选中命令和子用例按钮 */}
+      {currentTestCase && hasSelectedItems && hasSelectedItems(currentTestCase) && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -565,7 +567,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{t("testCase.deleteSelected")}</p>
+              <p>删除选中项</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

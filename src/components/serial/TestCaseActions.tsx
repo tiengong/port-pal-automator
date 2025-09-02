@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { OneNetTestCase } from "./OneNetTestCase";
 import { normalizeImportedCases, ensureUniqueIds } from "@/lib/testCaseUtils";
+import { scheduleAutoSave } from './workspace';
 
 interface TestCaseActionsProps {
   currentTestCase: TestCase | null;
@@ -99,6 +100,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         tc.id === currentTestCase.id ? updatedCase : tc
       );
       setTestCases(updatedTestCases);
+      
+      // 兜底自动保存
+      scheduleAutoSave(updatedCase);
     }
 
     toast({
@@ -142,6 +146,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         tc.id === currentTestCase.id ? updatedCase : tc
       );
       setTestCases(updatedTestCases);
+      
+      // 兜底自动保存
+      scheduleAutoSave(updatedCase);
     }
 
     toast({
@@ -385,13 +392,16 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       return;
     }
     
-    // 删除选中的命令
-    const updatedCommands = currentTestCase.commands.filter(cmd => !cmd.selected);
-    const updatedCase = { ...currentTestCase, commands: updatedCommands };
-    const updatedTestCases = testCases.map(tc => 
-      tc.id === currentTestCase.id ? updatedCase : tc
-    );
-    setTestCases(updatedTestCases);
+      // 回退到顶层更新
+      const updatedCommands = currentTestCase.commands.filter(cmd => !cmd.selected);
+      const updatedCase = { ...currentTestCase, commands: updatedCommands };
+      const updatedTestCases = testCases.map(tc => 
+        tc.id === currentTestCase.id ? updatedCase : tc
+      );
+      setTestCases(updatedTestCases);
+      
+      // 兜底自动保存
+      scheduleAutoSave(updatedCase);
     
     toast({
       title: t("testCase.deleteSuccess"),
@@ -451,6 +461,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         tc.id === currentTestCase.id ? updatedCase : tc
       );
       setTestCases(updatedTestCases);
+      
+      // 兜底自动保存
+      scheduleAutoSave(updatedCase);
     }
     
     toast({

@@ -1604,6 +1604,18 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  // 统一自动保存入口（核心）
+  const applyUpdateAndAutoSave = (caseId: string, updater: (c: TestCase) => TestCase) => {
+    const updatedTestCases = updateCaseById(testCases, caseId, updater);
+    setTestCases(updatedTestCases);
+    
+    // 找到被更新用例的顶层父用例
+    const topLevelCase = getTopLevelParent(caseId, updatedTestCases);
+    if (topLevelCase) {
+      scheduleAutoSave(topLevelCase);
+    }
+  };
+
   // 编辑测试用例
   const handleEditCase = (testCase: TestCase) => {
     setEditingCase(testCase);
@@ -1891,10 +1903,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         <div className="flex items-center justify-between mb-4">
           <TestCaseHeader 
             currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id) || currentTestCase) : currentTestCase} 
-            onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
-              const updatedTestCases = updateCaseById(testCases, caseId, updater);
-              setTestCases(updatedTestCases);
-            }}
+            onUpdateCase={applyUpdateAndAutoSave}
           />
         </div>
 
@@ -1934,10 +1943,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               description: `已添加子用例: ${newSubCase.name}`,
             });
           }}
-          onUpdateCase={(caseId: string, updater: (c: TestCase) => TestCase) => {
-            const updatedTestCases = updateCaseById(testCases, caseId, updater);
-            setTestCases(updatedTestCases);
-          }}
+          onUpdateCase={applyUpdateAndAutoSave}
           hasSelectedItems={hasSelectedItems}
         />
       </div>
@@ -2183,8 +2189,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   取消
                 </Button>
                 <Button onClick={() => {
-                  const updatedTestCases = updateCaseById(testCases, editingCase.id, () => editingCase);
-                  setTestCases(updatedTestCases);
+                  applyUpdateAndAutoSave(editingCase.id, () => editingCase);
                   setIsEditDialogOpen(false);
                   setEditingCase(null);
                   toast({
@@ -2231,6 +2236,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       commands: updatedCommands
                     }));
                     setTestCases(updatedTestCases);
+                    
+                    // 自动保存更新后的用例
+                    const topLevelCase = getTopLevelParent(currentTestCase.id, updatedTestCases);
+                    if (topLevelCase) {
+                      scheduleAutoSave(topLevelCase);
+                    }
                   }}
                 />
               )}
@@ -2248,6 +2259,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       commands: updatedCommands
                     }));
                     setTestCases(updatedTestCases);
+                    
+                    // 自动保存更新后的用例
+                    const topLevelCase = getTopLevelParent(currentTestCase.id, updatedTestCases);
+                    if (topLevelCase) {
+                      scheduleAutoSave(topLevelCase);
+                    }
                   }}
                   jumpOptions={{
                     commandOptions: buildCommandOptionsFromCase(currentTestCase)

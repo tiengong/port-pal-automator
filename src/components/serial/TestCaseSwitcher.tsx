@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, TestTube2, FilePlus, Trash2, RotateCcw, Upload, Download, FolderOpen, Copy } from "lucide-react";
 import { TestCase } from "./types";
 import { useToast } from "@/hooks/use-toast";
-import { createWorkspace, openWorkspace, cloneCase, getNextUniqueId, saveCase, getCurrentWorkspace } from "./workspace";
+import { createWorkspace, openWorkspace, cloneCase, getNextUniqueId, saveCase, deleteCase, getCurrentWorkspace } from "./workspace";
 import { normalizeImportedCases, ensureUniqueIds } from "@/lib/testCaseUtils";
 
 interface TestCaseSwitcherProps {
@@ -141,6 +141,9 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   };
   const handleDeleteCase = async (testCase: TestCase) => {
     try {
+      // 删除磁盘文件
+      await deleteCase(testCase.uniqueId);
+      
       // 如果有传入的删除回调，使用它
       if (onDeleteTestCase) {
         onDeleteTestCase(testCase.id);
@@ -242,6 +245,15 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             }
             
             setTestCases([...testCases, ...validatedCases]);
+            
+            // 立即保存导入的用例到磁盘
+            try {
+              for (const validCase of validatedCases) {
+                await saveCase(validCase);
+              }
+            } catch (error) {
+              console.warn('自动保存导入用例失败:', error);
+            }
             
             // 自动切换到导入的用例
             if (onSelectTestCase && validatedCases.length > 0) {

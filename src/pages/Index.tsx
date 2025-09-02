@@ -20,9 +20,19 @@ const Index = () => {
   const serialManager = useSerialManager();
   const globalMessages = useGlobalMessages();
   const { settings } = useSettings();
-  const [leftPanelTab, setLeftPanelTab] = useState("connection");
+  
+  // 记住左侧页签状态
+  const [leftPanelTab, setLeftPanelTab] = useState(() => {
+    return localStorage.getItem('serial_left_tab') || 'connection';
+  });
+  
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [receivedData, setReceivedData] = useState<string[]>([]);
+
+  // 保存页签状态到 localStorage
+  useEffect(() => {
+    localStorage.setItem('serial_left_tab', leftPanelTab);
+  }, [leftPanelTab]);
 
   // Web Serial API availability check
   const isSerialSupported = 'serial' in navigator;
@@ -187,12 +197,14 @@ const Index = () => {
               />
             </TabsContent>
 
-            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up flex flex-col min-h-0">
-              <TestCaseManager 
-                connectedPorts={serialManager.getConnectedPorts()}
-                receivedData={receivedData}
-                statusMessages={globalMessages}
-              />
+            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up flex flex-col min-h-0" forceMount>
+              <div className={leftPanelTab === 'testcase' ? 'flex flex-col min-h-0 h-full' : 'hidden'}>
+                <TestCaseManager 
+                  connectedPorts={serialManager.getConnectedPorts()}
+                  receivedData={receivedData}
+                  statusMessages={globalMessages}
+                />
+              </div>
             </TabsContent>
           </Tabs>
         </div>

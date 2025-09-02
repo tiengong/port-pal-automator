@@ -45,6 +45,7 @@ import { CaseTree } from './CaseTree';
 import { ExecutionEditor } from './editors/ExecutionEditor';
 import { UrcEditor } from './editors/UrcEditor';
 import { VariableDisplay } from '../VariableDisplay';
+import { RunResultDialog, TestRunResult } from './RunResultDialog';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from '@/lib/eventBus';
 import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace, fromPersistedCase } from './workspace';
@@ -115,6 +116,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     caseId: string | null;
     commandIndex: number | null;
   }>({ caseId: null, commandIndex: null });
+  
+  // 运行结果状态
+  const [runResult, setRunResult] = useState<TestRunResult | null>(null);
+  const [showRunResult, setShowRunResult] = useState(false);
   
   // Initialize workspace and load test cases
   useEffect(() => {
@@ -1188,8 +1193,20 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     
     statusMessages?.addMessage(`开始执行测试用例: ${testCase.name}`, 'info');
 
+    // 初始化执行统计
+    const startTime = new Date();
+    let passedCommands = 0;
+    let failedCommands = 0; 
+    let warnings = 0;
+    let errors = 0;
+    const failureLogs: TestRunResult['failureLogs'] = [];
+
     // 获取运行次数，默认为1
     const runCount = testCase.runCount || 1;
+    
+    // 执行所有选中的命令，如果没有选中则执行全部命令
+    const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
+    const commandsToRun = selectedCommands.length > 0 ? selectedCommands : testCase.commands;
     
     try {
       for (let i = 0; i < runCount; i++) {
@@ -1207,10 +1224,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           });
         }
 
-        // 执行所有选中的命令，如果没有选中则执行全部命令
-        const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
-        const commandsToRun = selectedCommands.length > 0 ? selectedCommands : testCase.commands;
-        
+        // 执行命令
         console.log('Run clicked', { caseId, count: commandsToRun.length });
 
         for (let j = 0; j < commandsToRun.length; j++) {
@@ -1227,10 +1241,31 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           console.log(`Executing command ${j + 1}/${commandsToRun.length}: ${command.command}`);
           
           // 运行命令并获取结果
-          const commandSuccess = await runCommand(caseId, commandIndex);
+          const commandResult = await runCommand(caseId, commandIndex);
+          
+          // 统计执行结果
+          if (commandResult.success) {
+            passedCommands++;
+          } else {
+            failedCommands++;
+            // 记录失败日志
+            failureLogs.push({
+              commandIndex: j,
+              commandText: command.command,
+              error: commandResult.error || '命令执行失败',
+              timestamp: new Date()
+            });
+            
+            // 根据失败严重程度统计
+            if (command.failureSeverity === 'error') {
+              errors++;
+            } else {
+              warnings++;
+            }
+          }
           
           // 根据命令结果和失败处理策略决定是否继续
-          if (!commandSuccess) {
+          if (!commandResult.success) {
             // 命令失败，根据失败处理策略决定下一步
             if (command.failureHandling === 'stop') {
               statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
@@ -1261,14 +1296,40 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       // 执行完成，清除运行状态
       runningCasesRef.current.delete(caseId);
       setExecutingCommand({ caseId: null, commandIndex: null });
+      
+      // 确定最终状态
+      const finalStatus = failedCommands === 0 ? 'success' : 
+                         passedCommands === 0 ? 'failed' : 'partial';
+      
       const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: false,
-        status: 'success'
+        status: finalStatus
       }));
       setTestCases(finalTestCases);
 
-      statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, 'success');
+      // 创建执行结果
+      const endTime = new Date();
+      const result: TestRunResult = {
+        testCaseId: caseId,
+        testCaseName: testCase.name,
+        status: finalStatus,
+        startTime,
+        endTime,
+        duration: endTime.getTime() - startTime.getTime(),
+        totalCommands: commandsToRun.length,
+        passedCommands,
+        failedCommands,
+        warnings,
+        errors,
+        failureLogs
+      };
+
+      // 显示结果对话框
+      setRunResult(result);
+      setShowRunResult(true);
+
+      statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, finalStatus === 'success' ? 'success' : 'warning');
     } catch (error) {
       // 执行出错，清除运行状态
       runningCasesRef.current.delete(caseId);
@@ -1284,10 +1345,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
   };
 
-  // 运行单个命令 - 返回是否成功
-  const runCommand = async (caseId: string, commandIndex: number): Promise<boolean> => {
+  // 运行单个命令 - 返回执行结果
+  const runCommand = async (caseId: string, commandIndex: number): Promise<{ success: boolean; error?: string }> => {
     const targetCase = findTestCaseById(caseId);
-    if (!targetCase) return false;
+    if (!targetCase) return { success: false, error: '测试用例未找到' };
     
     const command = targetCase.commands[commandIndex];
     
@@ -1393,7 +1454,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           statusMessages?.addMessage(message, severity === 'error' ? 'error' : 'warning');
         }
         
-        return success;
+        return { success: true };
       } else {
         // 无验证的命令，直接发送
         const sendEvent: SendCommandEvent = {
@@ -1406,11 +1467,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         console.log('Emitting SEND_COMMAND', sendEvent);
         eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
         statusMessages?.addMessage(`执行命令: ${substitutedCommand}`, 'info');
-        return true;
+        return { success: true };
       }
     } else if (command.type === 'urc') {
       statusMessages?.addMessage(`URC监听: ${command.urcPattern}`, 'info');
-      return true;
+      return { success: true };
     }
     
     // 模拟执行时间后清除高亮
@@ -1418,7 +1479,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       setExecutingCommand({ caseId: null, commandIndex: null });
     }, command.waitTime || 1000);
     
-    return true;
+    return { success: true };
   };
 
   // 删除测试用例
@@ -2181,8 +2242,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+          </DialogContent>
+        </Dialog>
+
+        {/* 执行结果对话框 */}
+        <RunResultDialog
+          isOpen={showRunResult}
+          onClose={() => setShowRunResult(false)}
+          result={runResult}
+        />
+      </div>
+    );
+  };

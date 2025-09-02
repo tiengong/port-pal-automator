@@ -937,7 +937,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         
         // 直接渲染子用例
         testCase.subCases.forEach((subCase) => {
-          elements.push(...renderCaseNode(subCase, 0));
+          elements.push(...renderCaseNode(subCase, level + 1));
         });
       } else {
         // 对于非顶级用例，正常渲染
@@ -1677,6 +1677,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           onRunTestCase={runTestCase}
           onSync={handleSync}
           onDeleteTestCase={deleteTestCase}
+          onDeleteSelectedCommands={deleteSelectedCommands}
           onDeletePresetCases={deletePresetCases}
           onSelectTestCase={handleSelectTestCase}
           onAddSubCase={(parentId: string) => {

@@ -1,5 +1,5 @@
 import { SerialTransport, SerialPortInfo, SerialConfig, SerialConnection } from './transport';
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
 interface TauriPortInfo {

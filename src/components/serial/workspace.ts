@@ -1,5 +1,7 @@
 import { TestCase } from './types';
-import { fs, path, dialog } from '@tauri-apps/api';
+import { readTextFile, writeTextFile, mkdir, readDir, exists, remove } from '@tauri-apps/plugin-fs';
+import { appDataDir, join } from '@tauri-apps/api/path';
+import { open } from '@tauri-apps/plugin-dialog';
 
 // Workspace interface
 export interface Workspace {
@@ -45,15 +47,15 @@ export const initializeDesktopStructure = async (): Promise<string> => {
   }
 
   try {
-    const appDir = await path.appDataDir();
-    const testCasesDir = await path.join(appDir, 'test_cases');
-    const logDir = await path.join(appDir, 'log');
-    const syslogDir = await path.join(appDir, 'syslog');
+    const appDir = await appDataDir();
+    const testCasesDir = await join(appDir, 'test_cases');
+    const logDir = await join(appDir, 'log');
+    const syslogDir = await join(appDir, 'syslog');
 
     // Create directories if they don't exist
-    await fs.createDir(testCasesDir, { recursive: true });
-    await fs.createDir(logDir, { recursive: true });
-    await fs.createDir(syslogDir, { recursive: true });
+    await mkdir(testCasesDir, { recursive: true });
+    await mkdir(logDir, { recursive: true });
+    await mkdir(syslogDir, { recursive: true });
 
     return testCasesDir;
   } catch (error) {
@@ -181,7 +183,7 @@ export const createWorkspace = async (name: string, useFileSystem = false): Prom
       
       if (useFileSystem) {
         // Let user select folder
-        folderPath = await dialog.open({
+        folderPath = await open({
           directory: true,
           title: '选择测试用例存储文件夹'
         }) as string;
@@ -192,16 +194,16 @@ export const createWorkspace = async (name: string, useFileSystem = false): Prom
       } else {
         // Use default test_cases directory
         const testCasesDir = await initializeDesktopStructure();
-        folderPath = await path.join(testCasesDir, name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_'));
-        await fs.createDir(folderPath, { recursive: true });
+        folderPath = await join(testCasesDir, name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_'));
+        await mkdir(folderPath, { recursive: true });
       }
       
       workspace.persistence = 'tauri';
       workspace.folderPath = folderPath;
       
       // Create workspace.json file
-      const workspaceFile = await path.join(folderPath, 'workspace.json');
-      await fs.writeTextFile(workspaceFile, JSON.stringify({
+      const workspaceFile = await join(folderPath, 'workspace.json');
+      await writeTextFile(workspaceFile, JSON.stringify({
         name: workspace.name,
         createdAt: workspace.createdAt,
         caseList: []
@@ -254,8 +256,8 @@ export const openWorkspace = async (workspaceId?: string, folderHandle?: FileSys
   // Tauri desktop mode
   if (folderPath && isTauri()) {
     try {
-      const workspaceFile = await path.join(folderPath, 'workspace.json');
-      const content = JSON.parse(await fs.readTextFile(workspaceFile));
+      const workspaceFile = await join(folderPath, 'workspace.json');
+      const content = JSON.parse(await readTextFile(workspaceFile));
       
       const workspace: Workspace = {
         id: `tauri_${Date.now()}`,
@@ -339,16 +341,16 @@ export const initializeDefaultWorkspace = async (): Promise<Workspace> => {
       // Desktop mode: create default workspace with DT001 test case
       try {
         const testCasesDir = await initializeDesktopStructure();
-        const defaultWorkspacePath = await path.join(testCasesDir, 'default_workspace');
+        const defaultWorkspacePath = await join(testCasesDir, 'default_workspace');
         
         // Check if default workspace exists
-        const workspaceExists = await fs.exists(defaultWorkspacePath);
+        const workspaceExists = await exists(defaultWorkspacePath);
         if (!workspaceExists) {
-          await fs.createDir(defaultWorkspacePath, { recursive: true });
+          await mkdir(defaultWorkspacePath, { recursive: true });
           
           // Create workspace.json
-          const workspaceFile = await path.join(defaultWorkspacePath, 'workspace.json');
-          await fs.writeTextFile(workspaceFile, JSON.stringify({
+          const workspaceFile = await join(defaultWorkspacePath, 'workspace.json');
+          await writeTextFile(workspaceFile, JSON.stringify({
             name: '默认工作区',
             createdAt: new Date().toISOString(),
             caseList: []
@@ -356,8 +358,8 @@ export const initializeDefaultWorkspace = async (): Promise<Workspace> => {
           
           // Create default test case DT001
           const defaultCase = createDefaultTestCase();
-          const testCaseFile = await path.join(defaultWorkspacePath, `${defaultCase.uniqueId}_${defaultCase.name}.json`);
-          await fs.writeTextFile(testCaseFile, JSON.stringify(defaultCase, null, 2));
+          const testCaseFile = await join(defaultWorkspacePath, `${defaultCase.uniqueId}_${defaultCase.name}.json`);
+          await writeTextFile(testCaseFile, JSON.stringify(defaultCase, null, 2));
         }
         
         workspace = {
@@ -429,13 +431,13 @@ export const loadCases = async (): Promise<TestCase[]> => {
   // Tauri desktop mode
   if (workspace.persistence === 'tauri' && workspace.folderPath) {
     try {
-      const entries = await fs.readDir(workspace.folderPath);
+      const entries = await readDir(workspace.folderPath);
       const cases: TestCase[] = [];
       
       for (const entry of entries) {
         if (entry.name?.endsWith('.json') && entry.name !== 'workspace.json') {
-          const filePath = await path.join(workspace.folderPath, entry.name);
-          const content = await fs.readTextFile(filePath);
+          const filePath = await join(workspace.folderPath, entry.name);
+          const content = await readTextFile(filePath);
           const persistedCase: PersistedTestCase = JSON.parse(content);
           cases.push(fromPersistedCase(persistedCase));
         }
@@ -510,8 +512,8 @@ export const saveCase = async (testCase: TestCase): Promise<void> => {
     try {
       const sanitizedName = testCase.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
       const fileName = `${testCase.uniqueId}_${sanitizedName}.json`;
-      const filePath = await path.join(workspace.folderPath, fileName);
-      await fs.writeTextFile(filePath, JSON.stringify(persistedCase, null, 2));
+      const filePath = await join(workspace.folderPath, fileName);
+      await writeTextFile(filePath, JSON.stringify(persistedCase, null, 2));
     } catch (error) {
       console.error('Failed to save case to Tauri file system:', error);
       throw error;
@@ -556,12 +558,12 @@ export const deleteCase = async (uniqueId: string): Promise<void> => {
   // Tauri desktop mode
   if (workspace.persistence === 'tauri' && workspace.folderPath) {
     try {
-      const entries = await fs.readDir(workspace.folderPath);
+      const entries = await readDir(workspace.folderPath);
       
       for (const entry of entries) {
         if (entry.name?.startsWith(`${uniqueId}_`) && entry.name.endsWith('.json')) {
-          const filePath = await path.join(workspace.folderPath, entry.name);
-          await fs.removeFile(filePath);
+          const filePath = await join(workspace.folderPath, entry.name);
+          await remove(filePath);
           break;
         }
       }

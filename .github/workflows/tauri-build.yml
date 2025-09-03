@@ -103,6 +103,8 @@ jobs:
           npx --yes @tauri-apps/cli@latest --version
           npx --yes @tauri-apps/cli@latest info
           if ($LASTEXITCODE -ne 0) { exit 1 }
+        env:
+          TAURI_CONFIG: src-tauri/tauri.conf.json
         shell: pwsh
 
       # 步骤7：构建Tauri应用

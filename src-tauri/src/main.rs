@@ -3,6 +3,7 @@
 
 use std::env;
 use std::panic;
+use tauri::Manager;
 
 fn main() {
     // Set up panic hook for better error reporting

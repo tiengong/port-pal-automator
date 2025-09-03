@@ -45,11 +45,6 @@
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
-      },
-      "nsis": {
-        "createDesktopShortcut": true,
-        "createStartMenuShortcut": true,
-        "installMode": "currentUser"
       }
     }
   },

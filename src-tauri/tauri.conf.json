@@ -50,32 +50,10 @@
   },
   "plugins": {
     "fs": {
-      "readFile": true,
-      "writeFile": true,
-      "createDir": true,
-      "removeDir": true,
-      "removeFile": true,
-      "renameFile": true,
-      "exists": true,
-      "readDir": true,
       "scope": ["**"]
     },
-    "dialog": {
-      "open": true,
-      "save": true
-    },
-    "shell": {
-      "open": true
-    },
-    "window": {
-      "close": true,
-      "hide": true,
-      "show": true,
-      "maximize": true,
-      "minimize": true,
-      "unmaximize": true,
-      "unminimize": true,
-      "startDragging": true
-    }
+    "dialog": {},
+    "shell": {},
+    "window": {}
   }
 }

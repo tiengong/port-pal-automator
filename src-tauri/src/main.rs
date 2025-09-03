@@ -5,6 +5,7 @@
 use std::env;
 use std::panic;
 use tauri::Manager;
+use chrono::Utc;
 
 fn main() {
     // Set up panic hook for better error reporting
@@ -135,8 +136,28 @@ fn main() {
     match builder.run(tauri::generate_context!()) {
         Ok(_) => log::info!("Application exited normally"),
         Err(e) => {
+            let error_msg = format!("Application startup failed: {}\n\nTimestamp: {}\nPlatform: {}\nArchitecture: {}", 
+                e, 
+                Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
+                std::env::consts::OS,
+                std::env::consts::ARCH
+            );
+            
             log::error!("Application failed to run: {}", e);
             eprintln!("FATAL ERROR: {}", e);
+            
+            // Write startup error to file for troubleshooting
+            if let Ok(exe_path) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_path.parent() {
+                    let error_file = exe_dir.join("startup-error.txt");
+                    if let Err(write_err) = std::fs::write(&error_file, &error_msg) {
+                        eprintln!("Failed to write startup error to file: {}", write_err);
+                    } else {
+                        eprintln!("Startup error written to: {}", error_file.display());
+                    }
+                }
+            }
+            
             panic!("Application startup failed: {}", e);
         }
     }

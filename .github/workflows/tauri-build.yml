@@ -128,11 +128,32 @@ jobs:
           TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
         working-directory: ./  # 确保在项目根目录执行（npx找node_modules）
 
-      # 步骤8：上传构建产物（按平台分类，保留7天）
+      # 步骤8：构建Tauri应用（控制台调试版本）
+      - name: Build Tauri app (console debug mode)
+        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --features console
+        env:
+          TAURI_BUILD_MODE: release
+          TAURI_APP_NAME: "Serial Pilot (Console)"
+          TAURI_APP_VERSION: "0.1.0"
+          TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
+        working-directory: ./
+
+      # 步骤9：上传构建产物（按平台分类，保留7天）
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: serial-wiz-windows
+          name: serial-pilot-windows
+          path: |
+            ./src-tauri/target/release/bundle/**/*
+            !./src-tauri/target/release/bundle/**/temp/
+          retention-days: 7
+          compression-level: 6
+
+      # 步骤10：上传控制台调试版构建产物
+      - name: Upload console debug artifacts  
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-pilot-windows-console
           path: |
             ./src-tauri/target/release/bundle/**/*
             !./src-tauri/target/release/bundle/**/temp/

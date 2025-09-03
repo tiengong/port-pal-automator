@@ -104,7 +104,7 @@ jobs:
           npx --yes @tauri-apps/cli@latest --version
           
           echo "=== Tauri Environment Info ==="
-          npx --yes @tauri-apps/cli@latest info --config src-tauri/tauri.conf.json
+          npx --yes @tauri-apps/cli@latest info
           
           echo "=== Verify Config File ==="
           if (Test-Path "src-tauri/tauri.conf.json") { 

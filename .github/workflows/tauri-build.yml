@@ -97,22 +97,35 @@ jobs:
         env:
           npm_config_registry: https://registry.npmjs.org
 
-      # 步骤6：验证Tauri CLI安装
-      - name: Verify Tauri CLI installation
+      # 步骤6：验证Tauri CLI安装和配置
+      - name: Verify Tauri CLI installation and config
         run: |
+          echo "=== Tauri CLI Version ==="
           npx --yes @tauri-apps/cli@latest --version
-          npx --yes @tauri-apps/cli@latest info
+          
+          echo "=== Tauri Environment Info ==="
+          npx --yes @tauri-apps/cli@latest info --config src-tauri/tauri.conf.json
+          
+          echo "=== Verify Config File ==="
+          if (Test-Path "src-tauri/tauri.conf.json") { 
+            echo "✅ Config file exists"
+            echo "📋 Config content preview:"
+            Get-Content "src-tauri/tauri.conf.json" | Select-Object -First 10
+          } else { 
+            echo "❌ Config file missing"; exit 1 
+          }
+          
           if ($LASTEXITCODE -ne 0) { exit 1 }
-        env:
-          TAURI_CONFIG: src-tauri/tauri.conf.json
         shell: pwsh
 
-      # 步骤7：构建Tauri应用
+      # 步骤7：构建Tauri应用（显式指定配置和包信息）
       - name: Build Tauri app (release mode)
-        run: npx --yes @tauri-apps/cli@latest build
+        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json
         env:
           TAURI_BUILD_MODE: release
-          TAURI_CONFIG: src-tauri/tauri.conf.json
+          TAURI_APP_NAME: "Serial Pilot"
+          TAURI_APP_VERSION: "0.1.0"
+          TAURI_APP_IDENTIFIER: "com.serialpilot.app"
         working-directory: ./  # 确保在项目根目录执行（npx找node_modules）
 
       # 步骤8：上传构建产物（按平台分类，保留7天）

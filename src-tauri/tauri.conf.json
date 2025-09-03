@@ -60,9 +60,6 @@
       "readDir": true,
       "scope": ["**"]
     },
-    "path": {
-      "all": true
-    },
     "dialog": {
       "open": true,
       "save": true

@@ -34,7 +34,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "msi"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -45,6 +45,11 @@
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "installMode": "currentUser"
       }
     }
   },

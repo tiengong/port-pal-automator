@@ -1,5 +1,5 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-// Use console feature to enable console in release builds for debugging
+// Console window configuration for debugging
+// Always show console in debug mode, optionally in release with "console" feature
 #![cfg_attr(all(not(debug_assertions), not(feature = "console")), windows_subsystem = "windows")]
 
 use std::env;

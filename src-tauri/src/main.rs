@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Use console feature to enable console in release builds for debugging
+#![cfg_attr(all(not(debug_assertions), not(feature = "console")), windows_subsystem = "windows")]
 
 use std::env;
 use std::panic;
@@ -39,6 +40,11 @@ fn main() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default()
             .level(log::LevelFilter::Trace)
+            .targets([
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: None }),
+            ])
             .build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -70,7 +76,30 @@ fn main() {
                 
                 log::info!("Main window setup completed");
             } else {
-                log::error!("Main window not found!");
+                log::error!("Main window not found! Attempting to create fallback window...");
+                
+                // Fallback: create main window if not found
+                match app.handle().get_webview_window("main").or_else(|| {
+                    log::info!("Creating fallback main window...");
+                    tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
+                        .title("Serial Pilot")
+                        .inner_size(1200.0, 800.0)
+                        .min_inner_size(800.0, 600.0)
+                        .center()
+                        .build()
+                        .map_err(|e| log::error!("Failed to create fallback window: {}", e))
+                        .ok()
+                }) {
+                    Some(window) => {
+                        log::info!("Fallback window created successfully");
+                        if let Err(e) = window.show() {
+                            log::warn!("Failed to show fallback window: {}", e);
+                        }
+                    }
+                    None => {
+                        log::error!("Failed to create fallback window!");
+                    }
+                }
             }
             
             Ok(())

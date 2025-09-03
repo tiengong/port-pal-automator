@@ -106,6 +106,12 @@ jobs:
           echo "=== Tauri Environment Info ==="
           npx --yes @tauri-apps/cli@latest info
           
+          echo "=== NPM Tauri Package Versions ==="
+          npm ls @tauri-apps/api @tauri-apps/plugin-fs @tauri-apps/plugin-dialog
+          
+          echo "=== Rust Tauri Crate Versions ==="
+          cd src-tauri && cargo tree | grep -E "tauri|tauri-plugin" | head -10
+          
           echo "=== Verify Config File ==="
           if (Test-Path "src-tauri/tauri.conf.json") { 
             echo "✅ Config file exists"

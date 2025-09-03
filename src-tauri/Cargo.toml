@@ -1,3 +1,4 @@
+[package]
 name = "serial-pilot"
 version = "0.1.0"
 description = "Serial Pilot - Professional serial communication debugging tool"

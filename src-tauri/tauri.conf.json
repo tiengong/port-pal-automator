@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "productName": "Serial Pilot",
   "version": "0.1.0",
-  "identifier": "com.serialpilot.app",
+  "identifier": "com.serialpilot.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",

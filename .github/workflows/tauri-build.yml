@@ -125,7 +125,7 @@ jobs:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot"
           TAURI_APP_VERSION: "0.1.0"
-          TAURI_APP_IDENTIFIER: "com.serialpilot.app"
+          TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
         working-directory: ./  # 确保在项目根目录执行（npx找node_modules）
 
       # 步骤8：上传构建产物（按平台分类，保留7天）

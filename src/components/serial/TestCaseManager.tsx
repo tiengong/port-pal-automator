@@ -741,6 +741,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', command.id);
         }}
+        onDragEnd={() => {
+          setDragInfo({ draggedItem: null, dropTarget: null });
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -798,6 +801,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             onCheckedChange={(checked) => {
               setSelectedTestCaseId(caseId);
               updateCommandSelection(caseId, command.id, checked as boolean);
+              setLastFocusedChild({
+                caseId,
+                type: 'command',
+                itemId: command.id,
+                index: childIndex
+              });
             }}
             className="flex-shrink-0"
           />
@@ -931,6 +940,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', subCase.id);
         }}
+        onDragEnd={() => {
+          setDragInfo({ draggedItem: null, dropTarget: null });
+        }}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'move';
@@ -994,6 +1006,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 selected: checked as boolean
               }));
               setTestCases(updatedTestCases);
+              setLastFocusedChild({
+                caseId: parentCaseId,
+                type: 'subcase',
+                itemId: subCase.id,
+                index: childIndex
+              });
             }}
             className="flex-shrink-0"
           />

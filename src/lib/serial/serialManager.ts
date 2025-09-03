@@ -8,9 +8,11 @@ export class SerialManager {
 
   constructor() {
     // Choose transport based on environment
-    if (window.__TAURI__) {
+    if (import.meta.env.TAURI_PLATFORM) {
+      console.log('Initializing Tauri serial transport');
       this.transport = new TauriSerialTransport();
     } else {
+      console.log('Initializing Web serial transport');
       this.transport = new WebSerialTransport();
     }
   }

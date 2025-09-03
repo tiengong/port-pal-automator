@@ -3,6 +3,7 @@
 
 fn main() {
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::default().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
@@ -11,7 +12,17 @@ fn main() {
     // Only initialize serial plugin if available
     #[cfg(not(target_os = "linux"))]
     {
-        builder = builder.plugin(tauri_plugin_serialplugin::init());
+        match tauri_plugin_serialplugin::init() {
+            plugin => {
+                log::info!("Serial plugin initialized successfully");
+                builder = builder.plugin(plugin);
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        log::warn!("Serial plugin not available on Linux");
     }
 
     builder

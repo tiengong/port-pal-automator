@@ -27,13 +27,13 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   const getMessageIcon = (type: GlobalMessage['type']) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-4 h-4 text-success" />;
+        return <CheckCircle className="w-3 h-3 text-success" />;
       case 'warning':
-        return <AlertCircle className="w-4 h-4 text-warning" />;
+        return <AlertCircle className="w-3 h-3 text-warning" />;
       case 'error':
-        return <XCircle className="w-4 h-4 text-destructive" />;
+        return <XCircle className="w-3 h-3 text-destructive" />;
       default:
-        return <Info className="w-4 h-4 text-primary" />;
+        return <Info className="w-3 h-3 text-primary" />;
     }
   };
 
@@ -57,16 +57,16 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
         {/* Scrollable Messages Area */}
         <div className="flex-1 min-w-0">
           <ScrollArea className="h-5 w-full">
-            <div className="flex items-center gap-2 py-2">
+            <div className="flex items-center gap-1 py-1">
               {messages.length === 0 ? (
-                <span className="text-muted-foreground/70 text-sm">{t('status.ready')}</span>
+                <span className="text-muted-foreground/70 text-xs">{t('status.ready')}</span>
               ) : (
                 messages.slice(-3).map((msg) => (
-                  <div key={msg.id} className={`flex items-center gap-2 px-3 py-1 rounded-md border text-xs whitespace-nowrap ${getMessageStyles(msg.type)}`}>
+                  <div key={msg.id} className={`flex items-center gap-1 px-2 py-0.5 rounded border text-xs whitespace-nowrap ${getMessageStyles(msg.type)}`}>
                     {getMessageIcon(msg.type)}
-                    <span className="font-medium">{msg.message}</span>
+                    <span className="font-medium text-xs">{msg.message}</span>
                     <span className="text-muted-foreground text-xs">
-                      {msg.timestamp.toLocaleTimeString()}
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                 ))

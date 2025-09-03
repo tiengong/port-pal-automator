@@ -5,3 +5,5 @@ declare global {
     __TAURI__?: any;
   }
 }
+
+export {};

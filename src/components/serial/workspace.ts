@@ -20,6 +20,7 @@ export interface PersistedTestCase {
   description: string;
   commands: any[];
   subCases: PersistedTestCase[];
+  childrenOrder?: Array<{ type: 'command' | 'subcase'; id: string; index: number }>;
   failureHandling?: 'stop' | 'continue' | 'prompt';
   isPreset?: boolean;
 }
@@ -116,6 +117,7 @@ export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
       selected: false    // reset selection
     })),
     subCases: testCase.subCases.map(toPersistedCase),
+    childrenOrder: testCase.childrenOrder,
     failureHandling: testCase.failureHandling,
     isPreset: testCase.isPreset
   };
@@ -125,6 +127,7 @@ export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
 export const fromPersistedCase = (persistedCase: PersistedTestCase): TestCase => {
   return {
     ...persistedCase,
+    childrenOrder: persistedCase.childrenOrder,
     isExpanded: false,
     isRunning: false,
     currentCommand: -1,

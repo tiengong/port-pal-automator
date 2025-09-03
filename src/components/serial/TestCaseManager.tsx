@@ -99,10 +99,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   
-  // Drag and drop state
+  // Drag and drop state for unified children (commands and subcases)
   const [dragInfo, setDragInfo] = useState<{
-    draggedItem: { caseId: string; commandIndex: number } | null;
-    dropTarget: { caseId: string; commandIndex: number; position: 'above' | 'below' } | null;
+    draggedItem: { caseId: string; type: 'command' | 'subcase'; itemId: string; index: number } | null;
+    dropTarget: { caseId: string; index: number; position: 'above' | 'below' } | null;
   }>({ draggedItem: null, dropTarget: null });
 
   // Inline editing state
@@ -194,6 +194,94 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 跟踪已触发的永久URC ID，防止重复触发
   const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
+  
+  // 生成或修复childrenOrder
+  const generateChildrenOrder = (testCase: TestCase): Array<{ type: 'command' | 'subcase'; id: string; index: number }> => {
+    if (testCase.childrenOrder && testCase.childrenOrder.length === testCase.commands.length + testCase.subCases.length) {
+      // 验证现有顺序的有效性
+      const commandIds = new Set(testCase.commands.map(cmd => cmd.id));
+      const subcaseIds = new Set(testCase.subCases.map(subcase => subcase.id));
+      
+      const isValid = testCase.childrenOrder.every(item => {
+        if (item.type === 'command') return commandIds.has(item.id);
+        if (item.type === 'subcase') return subcaseIds.has(item.id);
+        return false;
+      });
+      
+      if (isValid) return testCase.childrenOrder;
+    }
+    
+    // 重新生成顺序：先命令，后子用例
+    const newOrder: Array<{ type: 'command' | 'subcase'; id: string; index: number }> = [];
+    
+    testCase.commands.forEach((cmd, index) => {
+      newOrder.push({ type: 'command', id: cmd.id, index });
+    });
+    
+    testCase.subCases.forEach((subcase, index) => {
+      newOrder.push({ type: 'subcase', id: subcase.id, index });
+    });
+    
+    return newOrder;
+  };
+  
+  // 获取排序后的子项列表
+  const getSortedChildren = (testCase: TestCase): Array<{ type: 'command' | 'subcase'; item: TestCommand | TestCase; index: number }> => {
+    const order = generateChildrenOrder(testCase);
+    
+    return order.map(orderItem => {
+      if (orderItem.type === 'command') {
+        const command = testCase.commands.find(cmd => cmd.id === orderItem.id);
+        return { type: 'command' as const, item: command!, index: orderItem.index };
+      } else {
+        const subcase = testCase.subCases.find(subcase => subcase.id === orderItem.id);
+        return { type: 'subcase' as const, item: subcase!, index: orderItem.index };
+      }
+    }).filter(item => item.item); // 过滤掉找不到的项目
+  };
+  
+  // 更新子项顺序
+  const updateChildrenOrder = (testCase: TestCase, newOrder: Array<{ type: 'command' | 'subcase'; id: string; index: number }>): TestCase => {
+    return {
+      ...testCase,
+      childrenOrder: newOrder
+    };
+  };
+  
+  // 统一重排序处理（命令和子用例）
+  const handleUnifiedReorder = (testCase: TestCase, fromIndex: number, toIndex: number, position: 'above' | 'below') => {
+    const sortedChildren = getSortedChildren(testCase);
+    let targetIndex = toIndex;
+    
+    if (position === 'below') {
+      targetIndex += 1;
+    }
+    
+    // 如果拖拽的索引在目标索引之前，需要调整目标索引
+    if (fromIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+    
+    // 重新排列子项顺序
+    const reorderedChildren = moveItem(sortedChildren, fromIndex, targetIndex);
+    const newOrder = reorderedChildren.map((child, index) => ({
+      type: child.type,
+      id: child.type === 'command' ? (child.item as TestCommand).id : (child.item as TestCase).id,
+      index
+    }));
+    
+    const updatedTestCase = updateChildrenOrder(testCase, newOrder);
+    const updatedTestCases = updateCaseById(testCases, testCase.id, () => updatedTestCase);
+    setTestCases(updatedTestCases);
+    
+    // 自动保存更新后的用例
+    scheduleAutoSave(updatedTestCase);
+    
+    toast({
+      title: "重新排序成功",
+      description: "子项顺序已更新"
+    });
+  };
   
   // URC解析和变量替换系统
   const parseUrcData = (data: string, command: TestCommand): { [key: string]: { value: string; timestamp: number } } => {
@@ -612,8 +700,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 渲染命令行
   const renderCommandRow = (command: TestCommand, caseId: string, commandIndex: number, level: number) => {
-    const isDragging = dragInfo.draggedItem?.caseId === caseId && dragInfo.draggedItem?.commandIndex === commandIndex;
-    const isDropTarget = dragInfo.dropTarget?.caseId === caseId && dragInfo.dropTarget?.commandIndex === commandIndex;
+    const testCase = findTestCaseById(caseId);
+    if (!testCase) return null;
+    
+    const sortedChildren = getSortedChildren(testCase);
+    const childItem = sortedChildren.find(child => child.type === 'command' && (child.item as TestCommand).id === command.id);
+    if (!childItem) return null;
+    
+    const childIndex = sortedChildren.indexOf(childItem);
+    const isDragging = dragInfo.draggedItem?.caseId === caseId && dragInfo.draggedItem?.itemId === command.id;
+    const isDropTarget = dragInfo.dropTarget?.caseId === caseId && dragInfo.dropTarget?.index === childIndex;
     const isExecuting = executingCommand.caseId === caseId && executingCommand.commandIndex === commandIndex;
     
     return (
@@ -632,7 +728,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         onDragStart={(e) => {
           setDragInfo(prev => ({
             ...prev,
-            draggedItem: { caseId, commandIndex }
+            draggedItem: { caseId, type: 'command', itemId: command.id, index: childIndex }
           }));
           e.dataTransfer.effectAllowed = 'move';
         }}
@@ -646,7 +742,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           
           setDragInfo(prev => ({
             ...prev,
-            dropTarget: { caseId, commandIndex, position }
+            dropTarget: { caseId, index: childIndex, position }
           }));
         }}
         onDragLeave={(e) => {
@@ -662,40 +758,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           if (draggedItem && dropTarget && draggedItem.caseId === dropTarget.caseId) {
             const targetCase = findTestCaseById(dropTarget.caseId);
             if (targetCase) {
-              let newIndex = dropTarget.commandIndex;
-              if (dropTarget.position === 'below') {
-                newIndex += 1;
-              }
-              
-              // 如果拖拽的索引在目标索引之前，需要调整目标索引
-              if (draggedItem.commandIndex < newIndex) {
-                newIndex -= 1;
-              }
-              
-              const reorderedCommands = moveItem(targetCase.commands, draggedItem.commandIndex, newIndex);
-              
-              const updatedTestCases = updateCaseById(testCases, dropTarget.caseId, (testCase) => ({
-                ...testCase,
-                commands: reorderedCommands
-              }));
-              
-              setTestCases(updatedTestCases);
-              
-              // 自动保存更新后的用例
-              const updatedCase = findTestCaseById(dropTarget.caseId, updatedTestCases);
-              if (updatedCase) {
-                scheduleAutoSave(updatedCase);
-              }
-              
-              toast({
-                title: "重新排序成功",
-                description: "命令顺序已更新"
-              });
+              handleUnifiedReorder(targetCase, draggedItem.index, dropTarget.index, dropTarget.position);
             }
           } else if (draggedItem && dropTarget && draggedItem.caseId !== dropTarget.caseId) {
             toast({
               title: "不支持跨用例拖拽",
-              description: "只能在同一用例内重新排序命令"
+              description: "只能在同一用例内重新排序"
             });
           }
           
@@ -811,8 +879,169 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
              </div>
            </div>
          </div>
-       );
+        );
     };
+
+  // 渲染子用例行（支持拖拽）
+  const renderSubCaseRow = (subCase: TestCase, parentCaseId: string, level: number) => {
+    const parentCase = findTestCaseById(parentCaseId);
+    if (!parentCase) return null;
+    
+    const sortedChildren = getSortedChildren(parentCase);
+    const childItem = sortedChildren.find(child => child.type === 'subcase' && (child.item as TestCase).id === subCase.id);
+    if (!childItem) return null;
+    
+    const childIndex = sortedChildren.indexOf(childItem);
+    const isDragging = dragInfo.draggedItem?.caseId === parentCaseId && dragInfo.draggedItem?.itemId === subCase.id;
+    const isDropTarget = dragInfo.dropTarget?.caseId === parentCaseId && dragInfo.dropTarget?.index === childIndex;
+    
+    return (
+      <div 
+        key={subCase.id} 
+        className={`p-3 hover:bg-muted/50 transition-colors cursor-move select-none ${
+          isDragging ? 'opacity-50' : ''
+        } ${
+          isDropTarget && dragInfo.dropTarget?.position === 'above' ? 'border-t-2 border-primary' : ''
+        } ${
+          isDropTarget && dragInfo.dropTarget?.position === 'below' ? 'border-b-2 border-primary' : ''
+        }`}
+        draggable
+        onDragStart={(e) => {
+          setDragInfo(prev => ({
+            ...prev,
+            draggedItem: { caseId: parentCaseId, type: 'subcase', itemId: subCase.id, index: childIndex }
+          }));
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          
+          const rect = e.currentTarget.getBoundingClientRect();
+          const midpoint = rect.top + rect.height / 2;
+          const position = e.clientY < midpoint ? 'above' : 'below';
+          
+          setDragInfo(prev => ({
+            ...prev,
+            dropTarget: { caseId: parentCaseId, index: childIndex, position }
+          }));
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setDragInfo(prev => ({ ...prev, dropTarget: null }));
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          const { draggedItem, dropTarget } = dragInfo;
+          
+          if (draggedItem && dropTarget && draggedItem.caseId === dropTarget.caseId) {
+            const targetCase = findTestCaseById(dropTarget.caseId);
+            if (targetCase) {
+              handleUnifiedReorder(targetCase, draggedItem.index, dropTarget.index, dropTarget.position);
+            }
+          }
+          
+          setDragInfo({ draggedItem: null, dropTarget: null });
+        }}
+      >
+        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+          {/* 展开/折叠按钮 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 flex-shrink-0"
+            onClick={() => {
+              const updatedTestCases = toggleExpandById(testCases, subCase.id);
+              setTestCases(updatedTestCases);
+            }}
+          >
+            {subCase.subCases.length > 0 || subCase.commands.length > 0 ? (
+              subCase.isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )
+            ) : (
+              <div className="w-4 h-4" />
+            )}
+          </Button>
+
+          {/* 复选框 */}
+          <Checkbox
+            checked={subCase.selected}
+            onCheckedChange={(checked) => {
+              const updatedTestCases = updateCaseById(testCases, subCase.id, (tc) => ({
+                ...tc,
+                selected: checked as boolean
+              }));
+              setTestCases(updatedTestCases);
+            }}
+            className="flex-shrink-0"
+          />
+          
+          {/* 子用例内容 */}
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() => setSelectedTestCaseId(subCase.id)}
+          >
+            <div className="flex items-center gap-2">
+              <span className={`font-medium text-sm truncate ${
+                selectedTestCaseId === subCase.id ? 'text-primary' : ''
+              }`}>
+                {subCase.name}
+              </span>
+            </div>
+          </div>
+          
+          {/* 状态指示器 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {getStatusIcon(subCase.status)}
+          </div>
+          
+          {/* 操作按钮 */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => runTestCase(subCase.id)}
+                    disabled={connectedPorts.length === 0}
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>运行</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleEditCase(subCase)}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>设置</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // 渲染测试用例节点
   const renderCaseNode = (testCase: TestCase, level: number): React.ReactNode[] => {
@@ -920,16 +1149,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       </div>
     );
 
-    // 渲染展开的内容（命令和子用例）
+    // 渲染展开的内容（统一排序的命令和子用例）
     if (testCase.isExpanded) {
-      // 先渲染命令
-      testCase.commands.forEach((command, index) => {
-        elements.push(renderCommandRow(command, testCase.id, index, level + 1));
-      });
+      const sortedChildren = getSortedChildren(testCase);
       
-      // 再渲染子用例
-      testCase.subCases.forEach((subCase) => {
-        elements.push(...renderCaseNode(subCase, level + 1));
+      sortedChildren.forEach((child, sortedIndex) => {
+        if (child.type === 'command') {
+          const command = child.item as TestCommand;
+          const originalIndex = testCase.commands.findIndex(cmd => cmd.id === command.id);
+          elements.push(renderCommandRow(command, testCase.id, originalIndex, level + 1));
+        } else if (child.type === 'subcase') {
+          const subCase = child.item as TestCase;
+          elements.push(renderSubCaseRow(subCase, testCase.id, level + 1));
+          
+          // 如果子用例展开，递归渲染其内容
+          if (subCase.isExpanded) {
+            elements.push(...renderCaseNode(subCase, level + 2));
+          }
+        }
       });
     }
     
@@ -943,14 +1180,17 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     cases.forEach((testCase) => {
       // 对于顶级用例（level === 0），不渲染用例行本身，直接渲染其内容
       if (level === 0) {
-        // 直接渲染命令
-        testCase.commands.forEach((command, index) => {
-          elements.push(renderCommandRow(command, testCase.id, index, 0));
-        });
+        const sortedChildren = getSortedChildren(testCase);
         
-        // 直接渲染子用例
-        testCase.subCases.forEach((subCase) => {
-          elements.push(...renderCaseNode(subCase, level + 1));
+        sortedChildren.forEach((child) => {
+          if (child.type === 'command') {
+            const command = child.item as TestCommand;
+            const originalIndex = testCase.commands.findIndex(cmd => cmd.id === command.id);
+            elements.push(renderCommandRow(command, testCase.id, originalIndex, 0));
+          } else if (child.type === 'subcase') {
+            const subCase = child.item as TestCase;
+            elements.push(...renderCaseNode(subCase, level + 1));
+          }
         });
       } else {
         // 对于非顶级用例，正常渲染

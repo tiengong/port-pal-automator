@@ -55,6 +55,8 @@ export interface TestCase {
   description: string;
   commands: TestCommand[];
   subCases: TestCase[];
+  // 子项顺序控制（用于统一渲染命令和子用例）
+  childrenOrder?: Array<{ type: 'command' | 'subcase'; id: string; index: number }>;
   isExpanded: boolean;
   isRunning: boolean;
   currentCommand: number;

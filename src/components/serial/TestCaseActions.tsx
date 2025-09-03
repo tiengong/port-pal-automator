@@ -180,8 +180,53 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         status: 'pending'
       };
 
-      const updatedSubCases = [...currentTestCase.subCases, newSubCase];
-      const updatedCase = { ...currentTestCase, subCases: updatedSubCases };
+      // 找到当前选中的命令位置，在其后插入子用例
+      const targetCase = currentTestCase;
+      const currentOrder = targetCase.childrenOrder || [];
+      
+      // 生成默认顺序（如果不存在）
+      let newOrder: Array<{ type: 'command' | 'subcase'; id: string; index: number }> = [];
+      
+      if (currentOrder.length === 0) {
+        // 生成默认顺序：先命令，后子用例
+        targetCase.commands.forEach((cmd, index) => {
+          newOrder.push({ type: 'command', id: cmd.id, index });
+        });
+        targetCase.subCases.forEach((subcase, index) => {
+          newOrder.push({ type: 'subcase', id: subcase.id, index });
+        });
+      } else {
+        newOrder = [...currentOrder];
+      }
+      
+      // 找到最后一个选中的命令位置
+      let insertIndex = newOrder.length; // 默认在末尾插入
+      const selectedCommands = targetCase.commands.filter(cmd => cmd.selected);
+      
+      if (selectedCommands.length > 0) {
+        // 找到最后一个选中命令在顺序中的位置
+        const lastSelectedCommand = selectedCommands[selectedCommands.length - 1];
+        const lastSelectedIndex = newOrder.findIndex(item => 
+          item.type === 'command' && item.id === lastSelectedCommand.id
+        );
+        
+        if (lastSelectedIndex !== -1) {
+          insertIndex = lastSelectedIndex + 1;
+        }
+      }
+      
+      // 在指定位置插入新子用例
+      newOrder.splice(insertIndex, 0, { 
+        type: 'subcase', 
+        id: newSubCase.id, 
+        index: targetCase.subCases.length 
+      });
+      
+      const updatedCase = { 
+        ...targetCase, 
+        subCases: [...targetCase.subCases, newSubCase],
+        childrenOrder: newOrder
+      };
       const updatedTestCases = testCases.map(tc => 
         tc.id === currentTestCase.id ? updatedCase : tc
       );
@@ -189,7 +234,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
 
       toast({
         title: t("testCase.addSubCase"),
-        description: t("testCase.addSubCaseDesc", { name: newSubCase.name }),
+        description: selectedCommands.length > 0 
+          ? `已在选中命令后添加子用例：${newSubCase.name}`
+          : t("testCase.addSubCaseDesc", { name: newSubCase.name }),
       });
     }
     setShowAddMenu(false);

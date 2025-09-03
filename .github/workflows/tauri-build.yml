@@ -100,15 +100,17 @@ jobs:
       # 步骤6：验证Tauri CLI安装
       - name: Verify Tauri CLI installation
         run: |
-          npx tauri --version
+          npx tauri@1.6.3 --version
+          npx tauri@1.6.3 info --config src-tauri/tauri.conf.json
           if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: pwsh
 
       # 步骤7：构建Tauri应用
       - name: Build Tauri app (release mode)
-        run: npx tauri build
+        run: npx tauri@1.6.3 build --config src-tauri/tauri.conf.json
         env:
           TAURI_BUILD_MODE: release
+          TAURI_CONFIG: src-tauri/tauri.conf.json
         working-directory: ./  # 确保在项目根目录执行（npx找node_modules）
 
       # 步骤8：上传构建产物（按平台分类，保留7天）

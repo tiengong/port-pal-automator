@@ -121,6 +121,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [runResult, setRunResult] = useState<TestRunResult | null>(null);
   const [showRunResult, setShowRunResult] = useState(false);
   
+  // 跟踪最后焦点的子项（用于精确插入子用例位置）
+  const [lastFocusedChild, setLastFocusedChild] = useState<{
+    caseId: string;
+    type: 'command' | 'subcase';
+    itemId: string;
+    index: number;
+  } | null>(null);
+  
   // Initialize workspace and load test cases
   useEffect(() => {
     const initWorkspace = async () => {
@@ -731,6 +739,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             draggedItem: { caseId, type: 'command', itemId: command.id, index: childIndex }
           }));
           e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', command.id);
         }}
         onDragOver={(e) => {
           e.preventDefault();
@@ -773,7 +782,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         <div 
           className="flex items-center gap-3 cursor-pointer" 
           style={{ paddingLeft: `${level * 16}px` }}
-          onClick={() => setSelectedTestCaseId(caseId)}
+          onClick={() => {
+            setSelectedTestCaseId(caseId);
+            setLastFocusedChild({
+              caseId,
+              type: 'command',
+              itemId: command.id,
+              index: childIndex
+            });
+          }}
         >
           {/* 复选框 */}
           <Checkbox
@@ -912,6 +929,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             draggedItem: { caseId: parentCaseId, type: 'subcase', itemId: subCase.id, index: childIndex }
           }));
           e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', subCase.id);
         }}
         onDragOver={(e) => {
           e.preventDefault();
@@ -983,7 +1001,15 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           {/* 子用例内容 */}
           <div
             className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => setSelectedTestCaseId(subCase.id)}
+            onClick={() => {
+              setSelectedTestCaseId(subCase.id);
+              setLastFocusedChild({
+                caseId: parentCaseId,
+                type: 'subcase',
+                itemId: subCase.id,
+                index: childIndex
+              });
+            }}
           >
             <div className="flex items-center gap-2">
               <span className={`font-medium text-sm truncate ${
@@ -2168,15 +2194,80 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               description: '',
               commands: [],
               subCases: [],
-              isExpanded: false,
+              isExpanded: true, // 新建子用例默认展开
               isRunning: false,
               currentCommand: -1,
               selected: false,
               status: 'pending'
             };
 
-            const updatedTestCases = addSubCaseById(testCases, parentId, newSubCase);
+            // 获取目标父用例
+            const parentCase = findTestCaseById(parentId);
+            if (!parentCase) return;
+
+            let insertIndex = -1; // 默认插入到末尾
+
+            // 如果有最后焦点的子项且属于同一父用例，在其后插入
+            if (lastFocusedChild && lastFocusedChild.caseId === parentId) {
+              const sortedChildren = getSortedChildren(parentCase);
+              const focusedChildIndex = sortedChildren.findIndex(child => 
+                child.type === lastFocusedChild.type && 
+                (child.type === 'command' ? (child.item as TestCommand).id : (child.item as TestCase).id) === lastFocusedChild.itemId
+              );
+              if (focusedChildIndex >= 0) {
+                insertIndex = focusedChildIndex + 1;
+              }
+            } else {
+              // 如果没有焦点子项，尝试在最后一个选中的命令之后插入
+              const sortedChildren = getSortedChildren(parentCase);
+              const lastSelectedCommandIndex = sortedChildren.reduce((lastIndex, child, index) => {
+                if (child.type === 'command' && (child.item as TestCommand).selected) {
+                  return index;
+                }
+                return lastIndex;
+              }, -1);
+              
+              if (lastSelectedCommandIndex >= 0) {
+                insertIndex = lastSelectedCommandIndex + 1;
+              }
+            }
+
+            // 添加子用例到指定位置
+            const updatedTestCases = updateCaseById(testCases, parentId, (testCase) => {
+              const newSubCases = [...testCase.subCases, newSubCase];
+              
+              // 更新childrenOrder以反映新的插入位置
+              let newOrder = generateChildrenOrder(testCase);
+              
+              if (insertIndex >= 0 && insertIndex < newOrder.length) {
+                // 在指定位置插入
+                const subcaseOrderItem = { type: 'subcase' as const, id: newSubCase.id, index: testCase.subCases.length };
+                newOrder.splice(insertIndex, 0, subcaseOrderItem);
+                
+                // 重新调整后续项的索引
+                newOrder = newOrder.map((item, idx) => ({
+                  ...item,
+                  index: idx
+                }));
+              } else {
+                // 添加到末尾
+                newOrder.push({ type: 'subcase', id: newSubCase.id, index: testCase.subCases.length });
+              }
+
+              return {
+                ...testCase,
+                subCases: newSubCases,
+                childrenOrder: newOrder
+              };
+            });
+
             setTestCases(updatedTestCases);
+
+            // 保存更新后的用例
+            const updatedCase = findTestCaseById(parentId, updatedTestCases);
+            if (updatedCase) {
+              scheduleAutoSave(updatedCase);
+            }
 
             toast({
               title: "新增子用例",

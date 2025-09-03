@@ -1,31 +1,113 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::env;
+use std::panic;
+
 fn main() {
+    // Set up panic hook for better error reporting
+    panic::set_hook(Box::new(|panic_info| {
+        let payload = panic_info.payload();
+        let message = if let Some(s) = payload.downcast_ref::<&str>() {
+            s.to_string()
+        } else if let Some(s) = payload.downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "Unknown panic".to_string()
+        };
+        
+        let location = panic_info.location()
+            .map(|l| format!(" at {}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_default();
+            
+        eprintln!("PANIC: {}{}", message, location);
+        log::error!("PANIC: {}{}", message, location);
+    }));
+
+    log::info!("Starting Serial Pilot application...");
+    
+    // Read environment variables for plugin control
+    let enable_window_state = env::var("SP_ENABLE_WINDOW_STATE")
+        .unwrap_or_else(|_| "0".to_string()) == "1";
+    let enable_serial = env::var("SP_ENABLE_SERIAL")
+        .unwrap_or_else(|_| "1".to_string()) == "1";
+    
+    log::info!("Window state plugin: {}", if enable_window_state { "enabled" } else { "disabled" });
+    log::info!("Serial plugin: {}", if enable_serial { "enabled" } else { "disabled" });
+
     let mut builder = tauri::Builder::default()
-        .plugin(tauri_plugin_log::Builder::default().build())
+        .plugin(tauri_plugin_log::Builder::default()
+            .level(log::LevelFilter::Trace)
+            .build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build());
-
-    // Only initialize serial plugin if available
-    #[cfg(not(target_os = "linux"))]
-    {
-        match tauri_plugin_serialplugin::init() {
-            plugin => {
-                log::info!("Serial plugin initialized successfully");
-                builder = builder.plugin(plugin);
+        .setup(|app| {
+            log::info!("Setting up main window...");
+            
+            // Get the main window and ensure it's visible
+            if let Some(window) = app.get_webview_window("main") {
+                log::info!("Main window found, configuring...");
+                
+                // Force window to be visible and focused
+                if let Err(e) = window.show() {
+                    log::warn!("Failed to show window: {}", e);
+                }
+                
+                if let Err(e) = window.set_focus() {
+                    log::warn!("Failed to focus window: {}", e);
+                }
+                
+                if let Err(e) = window.center() {
+                    log::warn!("Failed to center window: {}", e);
+                }
+                
+                // Set a safe default size
+                if let Err(e) = window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width: 1200, height: 800 })) {
+                    log::warn!("Failed to set window size: {}", e);
+                }
+                
+                log::info!("Main window setup completed");
+            } else {
+                log::error!("Main window not found!");
             }
+            
+            Ok(())
+        });
+
+    // Conditionally add window state plugin
+    if enable_window_state {
+        log::info!("Adding window state plugin...");
+        builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
+        log::info!("Window state plugin added");
+    }
+
+    // Conditionally add serial plugin (only on supported platforms)
+    if enable_serial {
+        #[cfg(not(target_os = "linux"))]
+        {
+            log::info!("Adding serial plugin...");
+            match tauri_plugin_serialplugin::init() {
+                plugin => {
+                    log::info!("Serial plugin initialized successfully");
+                    builder = builder.plugin(plugin);
+                }
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            log::warn!("Serial plugin not available on Linux");
         }
     }
 
-    #[cfg(target_os = "linux")]
-    {
-        log::warn!("Serial plugin not available on Linux");
+    log::info!("Running Tauri application...");
+    match builder.run(tauri::generate_context!()) {
+        Ok(_) => log::info!("Application exited normally"),
+        Err(e) => {
+            log::error!("Application failed to run: {}", e);
+            eprintln!("FATAL ERROR: {}", e);
+            panic!("Application startup failed: {}", e);
+        }
     }
-
-    builder
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
 }

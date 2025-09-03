@@ -190,7 +190,7 @@ const Index = () => {
               </TabsList>
             </div>
 
-            <TabsContent value="connection" className="flex-1 m-0 p-6 animate-slide-up overflow-auto">
+            <TabsContent value="connection" className="flex-1 m-0 p-4 md:p-6 animate-slide-up overflow-visible">
               <SerialConnection
                 serialManager={serialManager}
                 isSupported={isSerialSupported}

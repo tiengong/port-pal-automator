@@ -28,9 +28,7 @@
     ],
     "security": {
       "csp": null
-    },
-    "enableApi": true,
-    "withGlobalTauri": false
+    }
   },
   "bundle": {
     "active": true,

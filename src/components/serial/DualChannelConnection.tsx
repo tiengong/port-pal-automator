@@ -12,6 +12,7 @@ import { RefreshCw, Plug, PlugZap, AlertTriangle, Settings2, Plus, ChevronDown, 
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { useSerialManager, type SerialPortInfo } from "@/hooks/useSerialManager";
+import { SerialPortInfo as TransportPortInfo } from '@/lib/serial/transport';
 
 interface DualChannelConnectionProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -24,10 +25,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 }) => {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [availablePorts, setAvailablePorts] = useState<any[]>([]);
+  const [availablePorts, setAvailablePorts] = useState<TransportPortInfo[]>([]);
   const [selectedPorts, setSelectedPorts] = useState<{
-    P1: any | null;
-    P2: any | null;
+    P1: TransportPortInfo | null;
+    P2: TransportPortInfo | null;
   }>({ P1: null, P2: null });
   const [selectedIndex, setSelectedIndex] = useState<{
     P1: string;
@@ -38,11 +39,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     P2: boolean;
   }>({ P1: false, P2: false });
 
-  const { strategy, updateStrategy, ports } = serialManager;
+  const { strategy, updateStrategy, ports, serialManager: manager } = serialManager;
 
   // 获取可用串口
   const refreshPorts = async () => {
-    if (!isSupported) {
+    if (!manager.isSupported()) {
       toast({
         title: t("connection.webSerialNotSupported"),
         description: t("connection.webSerialNotSupportedDesc"),
@@ -52,7 +53,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     }
 
     try {
-      const ports = await (navigator as any).serial.getPorts();
+      const ports = await manager.listPorts();
       setAvailablePorts(ports);
       
       if (ports.length === 0) {
@@ -73,57 +74,25 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
   // 请求新串口访问并刷新
   const requestPortAndRefresh = async () => {
-    if (!isSupported) return;
+    if (!manager.isSupported()) return;
 
     try {
-      // 仅请求新设备访问权限
-      const port = await (navigator as any).serial.requestPort();
-      await refreshPorts();
-      
-      toast({
-        title: t("connection.deviceAdded"),
-        description: t("connection.deviceAddedDesc"),
-      });
-    } catch (error) {
-      if ((error as any).name !== 'NotFoundError') {
-        console.error('请求串口访问失败:', error);
+      const port = await manager.requestPort();
+      if (port) {
+        await refreshPorts();
         toast({
-          title: t("connection.requestFailed"),
-          description: t("connection.requestFailedDesc"),
-          variant: "destructive"
+          title: t("connection.deviceAdded"),
+          description: t("connection.deviceAddedDesc"),
         });
       }
+    } catch (error) {
+      console.error('请求串口访问失败:', error);
+      toast({
+        title: t("connection.requestFailed"),
+        description: t("connection.requestFailedDesc"),
+        variant: "destructive"
+      });
     }
-  };
-
-  // USB设备名称映射
-  const getDeviceName = (vendorId?: number, productId?: number): string => {
-    if (!vendorId) return "";
-    
-    const deviceMap: { [key: string]: string } = {
-      // Silicon Labs
-      "10c4:ea60": "Silicon Labs CP210x USB to UART Bridge",
-      "10c4:ea70": "Silicon Labs CP210x USB to UART Bridge",
-      // FTDI
-      "0403:6001": "FTDI FT232R USB UART",
-      "0403:6015": "FTDI FT230X USB UART",
-      "0403:6014": "FTDI FT232H USB UART",
-      // CH340/CH341
-      "1a86:7523": "QinHeng CH340 USB Serial",
-      "1a86:5523": "QinHeng CH341 USB Serial",
-      // Prolific
-      "067b:2303": "Prolific PL2303 USB Serial",
-      // Arduino
-      "2341:0043": "Arduino Uno Rev3",
-      "2341:0001": "Arduino Uno",
-      "1b4f:9206": "Arduino Leonardo",
-      // ESP32
-      "303a:1001": "Espressif ESP32-S2",
-      "303a:0002": "Espressif ESP32-S3",
-    };
-    
-    const key = `${vendorId.toString(16).padStart(4, '0')}:${productId?.toString(16).padStart(4, '0') || '0000'}`;
-    return deviceMap[key] || `USB Device (${key})`;
   };
 
   // 连接指定通道
@@ -154,12 +123,12 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
   // 组件挂载时刷新端口列表
   useEffect(() => {
-    if (isSupported) {
+    if (manager.isSupported()) {
       refreshPorts();
     }
-  }, [isSupported]);
+  }, [manager]);
 
-  if (!isSupported) {
+  if (!manager.isSupported()) {
     return (
       <Card>
         <CardHeader>
@@ -170,13 +139,18 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {t("connection.currentBrowserNotSupported")}
+            {window.__TAURI__ 
+              ? t("connection.tauriSerialNotSupported")
+              : t("connection.currentBrowserNotSupported")
+            }
           </p>
-          <div className="space-y-2">
-            <Badge variant="outline">Chrome 89+</Badge>
-            <Badge variant="outline">Edge 89+</Badge>
-            <Badge variant="outline">Opera 76+</Badge>
-          </div>
+          {!window.__TAURI__ && (
+            <div className="space-y-2">
+              <Badge variant="outline">Chrome 89+</Badge>
+              <Badge variant="outline">Edge 89+</Badge>
+              <Badge variant="outline">Opera 76+</Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -249,22 +223,9 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       </>
                     ) : (
                       availablePorts.map((port, index) => {
-                        // Try to get port info from the port object
-                        const getPortInfo = () => {
-                          const info = (port as any).getInfo?.() || {};
-                          const portNumber = `COM${index + 1}`;
-                          
-                          if (info.usbVendorId && info.usbProductId) {
-                            const deviceName = getDeviceName(info.usbVendorId, info.usbProductId);
-                            return `${portNumber} (${deviceName})`;
-                          }
-                          
-                          return `${portNumber} (Serial Device)`;
-                        };
-                        
                         return (
                           <SelectItem key={index} value={index.toString()}>
-                            {getPortInfo()}
+                            {port.name}
                           </SelectItem>
                         );
                       })
@@ -505,24 +466,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                         </>
                       ) : (
                         availablePorts.map((port, index) => {
-                          // Try to get port info from the port object
-                          const getPortInfo = () => {
-                            const info = (port as any).getInfo?.() || {};
-                            const portNumber = `COM${index + 1}`;
-                            
-                            if (info.usbVendorId && info.usbProductId) {
-                              const deviceName = getDeviceName(info.usbVendorId, info.usbProductId);
-                              return `${portNumber} (${deviceName})`;
-                            }
-                            
-                            return `${portNumber} (Serial Device)`;
-                          };
-                          
-                          return (
-                            <SelectItem key={index} value={index.toString()}>
-                              {getPortInfo()}
-                            </SelectItem>
-                          );
+                        return (
+                          <SelectItem key={index} value={index.toString()}>
+                            {port.name}
+                          </SelectItem>
+                        );
                         })
                       )}
                     </SelectContent>

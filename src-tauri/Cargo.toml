@@ -1,4 +1,3 @@
-[package]
 name = "serial-pilot"
 version = "0.1.0"
 description = "Serial Pilot - Professional serial communication debugging tool"
@@ -16,6 +15,7 @@ tauri-build = { version = "1.5", features = [] }
 tauri = { version = "1.8", features = ["api-all"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tauri-plugin-serialplugin = { git = "https://github.com/s00d/tauri-plugin-serialplugin", branch = "v1" }
 
 [features]
 # This feature is used for production builds or when `devPath` points to the filesystem

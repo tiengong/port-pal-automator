@@ -110,10 +110,12 @@ jobs:
           npm ls @tauri-apps/api @tauri-apps/plugin-fs @tauri-apps/plugin-dialog
           
           echo "=== Rust Tauri Crate Versions ==="
-          cd src-tauri && cargo tree | grep -E "tauri|tauri-plugin" | head -10
+          Push-Location src-tauri
+          cargo tree | grep -E "tauri|tauri-plugin" | head -10
+          Pop-Location
           
           echo "=== Verify Config File ==="
-          if (Test-Path "src-tauri/tauri.conf.json") { 
+          if (Test-Path "src-tauri/tauri.conf.json") {
             echo "✅ Config file exists"
             echo "📋 Config content preview:"
             Get-Content "src-tauri/tauri.conf.json" | Select-Object -First 10

@@ -1917,7 +1917,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               }
               passedCommands++; // 在校验等级允许的情况下，仍然算作通过
             }
+            console.log("DEBUG: Command validation complete");
           } else {
+            console.log("DEBUG: Command successful");
             // 命令成功
             passedCommands++;
           }
@@ -1927,46 +1929,50 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             await new Promise(resolve => setTimeout(resolve, command.waitTime));
           }
         }
+        console.log("DEBUG: Command loop completed");
       }
-    }
-
+      console.log("DEBUG: All loops completed");
+    
+    console.log("DEBUG: About to complete execution");
+    
     // 执行完成，清除运行状态
     runningCasesRef.current.delete(caseId);
-      setExecutingCommand({ caseId: null, commandIndex: null });
-      
-      // 确定最终状态
-      const finalStatus = failedCommands === 0 ? 'success' : 
-                         passedCommands === 0 ? 'failed' : 'partial';
-      
-      const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
-        ...tc,
-        isRunning: false,
-        status: finalStatus
-      }));
-      setTestCases(finalTestCases);
+    setExecutingCommand({ caseId: null, commandIndex: null });
+    
+    // 确定最终状态
+    const finalStatus = failedCommands === 0 ? 'success' : 
+                       passedCommands === 0 ? 'failed' : 'partial';
+    
+    // 更新最终状态  
+    const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
+      ...tc,
+      isRunning: false,
+      status: finalStatus
+    }));
+    setTestCases(finalTestCases);
 
-      // 创建执行结果
-      const endTime = new Date();
-      const result: TestRunResult = {
-        testCaseId: caseId,
-        testCaseName: testCase.name,
-        status: finalStatus,
-        startTime,
-        endTime,
-        duration: endTime.getTime() - startTime.getTime(),
-        totalCommands: commandsToRun.length,
-        passedCommands,
-        failedCommands,
-        warnings,
-        errors,
-        failureLogs
-      };
+    // 创建执行结果
+    const endTime = new Date();
+    const result: TestRunResult = {
+      testCaseId: caseId,
+      testCaseName: testCase.name,
+      status: finalStatus,
+      startTime,
+      endTime,
+      duration: endTime.getTime() - startTime.getTime(),
+      totalCommands: commandsToRun.length,
+      passedCommands,
+      failedCommands,
+      warnings,
+      errors,
+      failureLogs
+    };
 
-      // 显示结果对话框
-      setRunResult(result);
-      setShowRunResult(true);
+    // 显示结果对话框
+    setRunResult(result);
+    setShowRunResult(true);
 
-      statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, finalStatus === 'success' ? 'success' : 'warning');
+    statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, finalStatus === 'success' ? 'success' : 'warning');
     } catch (error) {
       // 执行出错，清除运行状态
       runningCasesRef.current.delete(caseId);

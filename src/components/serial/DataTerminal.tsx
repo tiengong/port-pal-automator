@@ -60,10 +60,6 @@ interface DataTerminalProps {
   };
 }
 
-interface MergedLogEntry extends LogEntry {
-  portLabel: string;
-}
-
 // Remove duplicate interface since it's now imported
 
 export const DataTerminal: React.FC<DataTerminalProps> = ({
@@ -653,7 +649,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                        className="flex-1 overflow-auto p-2 font-mono bg-background"
                        style={{ 
                          fontSize: `${settings.terminalFontSize}px`,
-                         lineHeight: getLineHeight(),
+                         lineHeight: getLineHeightValue(),
                          scrollBehavior: synchronizedScrolling ? 'smooth' : 'auto'
                        }}
                        onScroll={(e) => {
@@ -673,7 +669,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                            className="whitespace-pre-wrap break-all" 
                            style={{ 
                              marginBottom: `${settings.terminalRowGap}px`,
-                             lineHeight: getLineHeight()
+                              lineHeight: getLineHeightValue()
                            }}
                          >
                            {showTimestamp && (
@@ -751,7 +747,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               className="flex-1 overflow-auto p-2 font-mono bg-background"
               style={{ 
                 fontSize: `${settings.terminalFontSize}px`,
-                lineHeight: getLineHeight()
+                lineHeight: getLineHeightValue()
               }}
             >
               {connectedPorts.length > 1 ? (
@@ -762,7 +758,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     className="whitespace-pre-wrap break-all" 
                     style={{ 
                       marginBottom: `${settings.terminalRowGap}px`,
-                      lineHeight: getLineHeight()
+                      lineHeight: getLineHeightValue()
                     }}
                   >
                     {showTimestamp && (
@@ -789,7 +785,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     className="whitespace-pre-wrap break-all" 
                     style={{ 
                       marginBottom: `${settings.terminalRowGap}px`,
-                      lineHeight: getLineHeight()
+                      lineHeight: getLineHeightValue()
                     }}
                   >
                     {showTimestamp && (

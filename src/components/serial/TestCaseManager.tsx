@@ -652,6 +652,60 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           
           console.log(`Executing command ${j + 1}/${commandsToRun.length}: ${command.command}`);
           
+          // 单步模式检查 - 每个命令执行前需要用户确认
+          if (testCase.runMode === 'single') {
+            try {
+              await new Promise<void>((resolve, reject) => {
+                setUserActionDialog({
+                  isOpen: true,
+                  commandText: command.command,
+                  promptText: `单步模式执行确认\n\n即将执行第 ${j + 1}/${commandsToRun.length} 条命令:\n${command.command}\n\n是否继续执行？`,
+                  onConfirm: () => {
+                    setUserActionDialog(prev => ({ ...prev, isOpen: false }));
+                    statusMessages?.addMessage(`单步模式：用户确认执行命令 ${j + 1}`, 'info');
+                    resolve();
+                  },
+                  onCancel: () => {
+                    setUserActionDialog(prev => ({ ...prev, isOpen: false }));
+                    statusMessages?.addMessage(`单步模式：用户取消执行`, 'warning');
+                    runningCasesRef.current.delete(caseId);
+                    setExecutingCommand({ caseId: null, commandIndex: null });
+                    reject(new Error('用户取消单步执行'));
+                  }
+                });
+              });
+            } catch (error) {
+              // 用户取消执行，显示当前执行结果
+              const endTime = new Date();
+              const result: TestRunResult = {
+                testCaseId: caseId,
+                testCaseName: testCase.name,
+                status: 'failed',
+                startTime,
+                endTime,
+                duration: endTime.getTime() - startTime.getTime(),
+                totalCommands: commandsToRun.length,
+                passedCommands,
+                failedCommands,
+                warnings,
+                errors,
+                failureLogs
+              };
+              
+              const stoppedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+                ...tc,
+                isRunning: false,
+                status: 'failed'
+              }));
+              setTestCases(stoppedTestCases);
+              
+              setRunResult(result);
+              setShowRunResult(true);
+              
+              return;
+            }
+          }
+          
           // 运行命令并获取结果
           const commandResult = await runCommand(caseId, commandIndex);
           

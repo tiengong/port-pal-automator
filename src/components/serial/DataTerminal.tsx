@@ -746,7 +746,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
                               : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
                           }`}>
-                            {log.type === 'sent' ? t('terminal.tx') : log.type === 'received' ? t('terminal.rx') : t('terminal.sys')}
+                            {log.type === 'sent' ? t('terminal.ui.txShort') : log.type === 'received' ? t('terminal.ui.rxShort') : t('terminal.ui.systemShort')}
                           </span>
                           <span className={log.type === 'sent' ? 'text-blue-600 dark:text-blue-400' : log.type === 'received' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
                             {formatData(log.data, displayFormat, log.format)}
@@ -834,7 +834,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
                     }`}>
-                      {log.type === 'sent' ? t('terminal.tx') : log.type === 'received' ? t('terminal.rx') : t('terminal.sys')}
+                      {log.type === 'sent' ? t('terminal.ui.txShort') : log.type === 'received' ? t('terminal.ui.rxShort') : t('terminal.ui.systemShort')}
                     </span>
                     <span className={log.type === 'sent' ? 'text-blue-600 dark:text-blue-400' : log.type === 'received' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
                       {formatData(log.data, displayFormat, log.format)}
@@ -857,7 +857,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
                     }`}>
-                      {log.type === 'sent' ? t('terminal.tx') : log.type === 'received' ? t('terminal.rx') : t('terminal.sys')}
+                      {log.type === 'sent' ? t('terminal.ui.txShort') : log.type === 'received' ? t('terminal.ui.rxShort') : t('terminal.ui.systemShort')}
                     </span>
                     <span className={log.type === 'sent' ? 'text-blue-600 dark:text-blue-400' : log.type === 'received' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
                       {formatData(log.data, displayFormat, log.format)}

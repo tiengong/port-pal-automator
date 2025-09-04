@@ -111,6 +111,9 @@ export const CaseEditDialogInline: React.FC<CaseEditDialogInlineProps> = ({
                     <SelectItem value="prompt">提示用户</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  命令失败时的处理方式，适用于所有严重级别的失败
+                </p>
               </div>
               
               <div>
@@ -130,48 +133,6 @@ export const CaseEditDialogInline: React.FC<CaseEditDialogInlineProps> = ({
                 <div className="text-xs text-muted-foreground mt-1">
                   设置测试用例执行次数 (1-999次)
                 </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="warning-failure">警告级失败处理</Label>
-                <Select
-                  value={editingCase.onWarningFailure || editingCase.failureStrategy || 'continue'}
-                  onValueChange={(value) => setEditingCase({ 
-                    ...editingCase, 
-                    onWarningFailure: value as 'continue' | 'stop' | 'prompt' 
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="continue">继续执行</SelectItem>
-                    <SelectItem value="stop">停止执行</SelectItem>
-                    <SelectItem value="prompt">提示用户</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="error-failure">错误级失败处理</Label>
-                <Select
-                  value={editingCase.onErrorFailure || editingCase.failureStrategy || 'stop'}
-                  onValueChange={(value) => setEditingCase({ 
-                    ...editingCase, 
-                    onErrorFailure: value as 'continue' | 'stop' | 'prompt' 
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="continue">继续执行</SelectItem>
-                    <SelectItem value="stop">停止执行</SelectItem>
-                    <SelectItem value="prompt">提示用户</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             

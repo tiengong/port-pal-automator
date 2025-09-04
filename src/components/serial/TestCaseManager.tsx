@@ -694,6 +694,35 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               statusMessages?.addMessage(`命令失败（${severity}级），停止执行测试用例`, 'error');
               runningCasesRef.current.delete(caseId);
               setExecutingCommand({ caseId: null, commandIndex: null });
+              
+              // 停止执行时也要显示测试结果
+              const endTime = new Date();
+              const result: TestRunResult = {
+                testCaseId: caseId,
+                testCaseName: testCase.name,
+                status: 'failed',
+                startTime,
+                endTime,
+                duration: endTime.getTime() - startTime.getTime(),
+                totalCommands: commandsToRun.length,
+                passedCommands,
+                failedCommands,
+                warnings,
+                errors,
+                failureLogs
+              };
+              
+              // 更新测试用例状态并显示结果对话框
+              const stoppedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+                ...tc,
+                isRunning: false,
+                status: 'failed'
+              }));
+              setTestCases(stoppedTestCases);
+              
+              setRunResult(result);
+              setShowRunResult(true);
+              
               return;
             } else if (caseAction === 'prompt') {
               // 显示用户确认对话框
@@ -713,6 +742,34 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     statusMessages?.addMessage(`用户选择停止执行`, 'warning');
                     runningCasesRef.current.delete(caseId);
                     setExecutingCommand({ caseId: null, commandIndex: null });
+                    
+                    // 用户选择停止时也要显示测试结果
+                    const endTime = new Date();
+                    const result: TestRunResult = {
+                      testCaseId: caseId,
+                      testCaseName: testCase.name,
+                      status: 'failed',
+                      startTime,
+                      endTime,
+                      duration: endTime.getTime() - startTime.getTime(),
+                      totalCommands: commandsToRun.length,
+                      passedCommands,
+                      failedCommands,
+                      warnings,
+                      errors,
+                      failureLogs
+                    };
+                    
+                    const stoppedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+                      ...tc,
+                      isRunning: false,
+                      status: 'failed'
+                    }));
+                    setTestCases(stoppedTestCases);
+                    
+                    setRunResult(result);
+                    setShowRunResult(true);
+                    
                     reject(new Error('用户选择停止执行'));
                   }
                 });
@@ -776,7 +833,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, finalStatus === 'success' ? 'success' : 'warning');
     } catch (error) {
-      // 执行出错，清除运行状态
+      // 执行出错，清除运行状态并显示结果
       runningCasesRef.current.delete(caseId);
       setExecutingCommand({ caseId: null, commandIndex: null });
       const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
@@ -785,6 +842,34 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         status: 'failed'
       }));
       setTestCases(errorTestCases);
+
+      // 创建错误执行结果
+      const endTime = new Date();
+      const errorResult: TestRunResult = {
+        testCaseId: caseId,
+        testCaseName: testCase.name,
+        status: 'failed',
+        startTime,
+        endTime,
+        duration: endTime.getTime() - startTime.getTime(),
+        totalCommands: commandsToRun.length,
+        passedCommands,
+        failedCommands,
+        warnings,
+        errors,
+        failureLogs: [
+          ...failureLogs,
+          {
+            commandIndex: -1,
+            commandText: '系统错误',
+            error: error?.toString() || '未知错误',
+            timestamp: new Date()
+          }
+        ]
+      };
+
+      setRunResult(errorResult);
+      setShowRunResult(true);
 
       statusMessages?.addMessage(`测试用例执行出错: ${error}`, 'error');
     }

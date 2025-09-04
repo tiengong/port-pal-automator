@@ -1660,8 +1660,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           });
         }
 
-        // 执行命令
-        console.log('Run clicked', { caseId, count: commandsToRun.length });
+        // 根据运行模式执行命令
+        console.log('Run clicked', { caseId, count: commandsToRun.length, runMode: testCase.runMode });
 
         for (let j = 0; j < commandsToRun.length; j++) {
           // 检查是否被暂停
@@ -1675,6 +1675,42 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           const commandIndex = testCase.commands.indexOf(command);
           
           console.log(`Executing command ${j + 1}/${commandsToRun.length}: ${command.command}`);
+          
+          // 单步模式：每个命令执行前等待用户确认
+          if (testCase.runMode === 'single' && j > 0) {
+            const shouldContinue = await new Promise<boolean>((resolve) => {
+              const dialog = document.createElement('div');
+              dialog.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                  <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; text-align: center;">
+                    <h3 style="margin: 0 0 10px 0; color: #2563eb;">单步执行模式</h3>
+                    <p style="margin: 0 0 10px 0; color: #374151;">即将执行命令 ${j + 1}/${commandsToRun.length}</p>
+                    <p style="margin: 0 0 15px 0; color: #6b7280; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">${command.command}</p>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                      <button id="continue-btn" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">继续执行</button>
+                      <button id="stop-btn" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">停止执行</button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              document.body.appendChild(dialog);
+              
+              dialog.querySelector('#continue-btn')?.addEventListener('click', () => {
+                document.body.removeChild(dialog);
+                resolve(true);
+              });
+              
+              dialog.querySelector('#stop-btn')?.addEventListener('click', () => {
+                document.body.removeChild(dialog);
+                resolve(false);
+              });
+            });
+            
+            if (!shouldContinue) {
+              statusMessages?.addMessage(`单步执行已停止 (用户选择停止)`, 'warning');
+              return;
+            }
+          }
           
           // 运行命令并获取结果
           const commandResult = await runCommand(caseId, commandIndex);
@@ -1706,9 +1742,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             const testCaseValidationLevel = testCase.validationLevel || 'error';
             const commandFailureSeverity = command.failureSeverity || 'error';
             
-            // 如果校验等级为"警告"，那么警告和错误都算失败
-            // 如果校验等级为"错误"，那么只有错误才算失败，警告可以继续
-            const shouldTreatAsFailed = testCaseValidationLevel === 'warning' || commandFailureSeverity === 'error';
+            // 校验等级逻辑：
+            // - 如果校验等级为"警告"：警告级别的失败也会阻止执行
+            // - 如果校验等级为"错误"：只有错误级别的失败才会阻止执行，警告级别继续
+            const shouldTreatAsFailed = (testCaseValidationLevel === 'warning') || 
+                                      (testCaseValidationLevel === 'error' && commandFailureSeverity === 'error');
             
             if (shouldTreatAsFailed) {
               // 命令失败，根据失败处理策略决定下一步
@@ -1832,10 +1870,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 failedCommands++;
               }
             } else {
-              // 根据校验等级，这个失败不被视为真正的失败（例如：校验等级为"错误"，但命令失败严重性为"警告"）
-              statusMessages?.addMessage(`命令出现警告但根据校验等级继续执行: ${command.command}`, 'info');
+              // 根据校验等级，这个失败不被视为真正的失败
+              // 例如：校验等级为"错误"，但命令失败严重性为"警告"
+              statusMessages?.addMessage(`命令出现${commandFailureSeverity}但根据校验等级(${testCaseValidationLevel})继续执行: ${command.command}`, 'info');
+              
               // 记录为警告但不计入失败
-              warnings++;
+              if (commandFailureSeverity === 'error') {
+                errors++;
+              } else {
+                warnings++;
+              }
               passedCommands++; // 在校验等级允许的情况下，仍然算作通过
             }
           } else {

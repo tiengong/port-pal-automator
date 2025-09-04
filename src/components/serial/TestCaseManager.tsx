@@ -1256,10 +1256,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   return (
     <div className="flex flex-col h-full max-h-screen">
       {/* 1. 页面头部 */}
-      <TestCaseHeader 
-        currentTestCase={currentTestCase}
-        storedParameters={storedParameters}
-      />
+        <TestCaseHeader 
+          currentTestCase={currentTestCase}
+        />
       
       {/* 2. 操作按钮栏 */}
       <TestCaseActions 

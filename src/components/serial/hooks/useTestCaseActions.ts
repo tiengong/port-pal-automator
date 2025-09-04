@@ -1,6 +1,20 @@
 import { useCallback } from 'react';
-import { TestCase } from '../types';
-import { findTestCaseById, findCasePath } from '../testCaseRecursiveUtils';
+import { TestCase, TestCommand } from '../types';
+import { 
+  findTestCaseById, 
+  findCasePath, 
+  findParentCase, 
+  updateCaseById 
+} from '../testCaseRecursiveUtils';
+import { 
+  getSortedChildren, 
+  updateChildrenOrder, 
+  moveItem, 
+  isStatsCase 
+} from '../testCaseUtils';
+import { scheduleAutoSave } from '../workspace';
+import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
 export interface TestCaseActionsProps {
   testCases: TestCase[];
@@ -17,6 +31,8 @@ export const useTestCaseActions = ({
   setInlineEdit,
   inlineEdit
 }: TestCaseActionsProps) => {
+  const { toast } = useToast();
+  const { t } = useTranslation();
   
   // 获取当前选中的测试用例（支持嵌套查找）
   const getCurrentTestCase = useCallback((selectedTestCaseId: string) => {
@@ -45,8 +61,106 @@ export const useTestCaseActions = ({
     return testCases[0] || null;
   }, [testCases]);
 
+  // 统一重排序处理（命令和子用例）
+  const handleUnifiedReorder = useCallback((
+    testCase: TestCase, 
+    fromIndex: number, 
+    toIndex: number, 
+    position: 'above' | 'below'
+  ) => {
+    const sortedChildren = getSortedChildren(testCase);
+    let targetIndex = toIndex;
+    
+    if (position === 'below') {
+      targetIndex += 1;
+    }
+    
+    // 如果拖拽的索引在目标索引之前，需要调整目标索引
+    if (fromIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+    
+    // 重新排列子项顺序
+    const reorderedChildren = moveItem(sortedChildren, fromIndex, targetIndex);
+    const newOrder = reorderedChildren.map((child, index) => ({
+      type: child.type,
+      id: child.type === 'command' ? (child.item as TestCommand).id : (child.item as TestCase).id,
+      index
+    }));
+    
+    const updatedTestCase = updateChildrenOrder(testCase, newOrder);
+    const updatedTestCases = updateCaseById(testCases, testCase.id, () => updatedTestCase);
+    setTestCases(updatedTestCases);
+    
+    // 自动保存更新后的用例
+    scheduleAutoSave(updatedTestCase);
+    
+    toast({
+      title: "重新排序成功",
+      description: "子项顺序已更新"
+    });
+  }, [testCases, setTestCases, toast]);
+
+  // 更新命令选中状态（支持嵌套）
+  const updateCommandSelection = useCallback((
+    caseId: string, 
+    commandId: string, 
+    selected: boolean
+  ) => {
+    const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+      ...testCase,
+      commands: testCase.commands.map(cmd =>
+        cmd.id === commandId ? { ...cmd, selected } : cmd
+      )
+    }));
+    setTestCases(updatedTestCases);
+  }, [testCases, setTestCases]);
+
+  // 保存内联编辑
+  const saveInlineEdit = useCallback((caseId: string, commandId: string) => {
+    if (inlineEdit.commandId === commandId && inlineEdit.value.trim()) {
+      const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+        ...testCase,
+        commands: testCase.commands.map(cmd =>
+          cmd.id === commandId 
+            ? { ...cmd, [cmd.type === 'urc' ? 'urcPattern' : 'command']: inlineEdit.value.trim() }
+            : cmd
+        )
+      }));
+      setTestCases(updatedTestCases);
+      
+      // 自动保存更新后的用例
+      const updatedCase = findTestCaseById(caseId, testCases);
+      if (updatedCase) {
+        scheduleAutoSave(updatedCase);
+      }
+      
+      toast({
+        title: t("testCase.modifySuccess"),
+        description: t("testCase.modifySuccessDesc")
+      });
+    }
+    setInlineEdit({ commandId: null, value: '' });
+  }, [testCases, setTestCases, inlineEdit, setInlineEdit, toast, t]);
+
+  // 获取用于操作的目标用例（统计用例使用其父用例）
+  const getTargetCaseForActions = useCallback((selectedCase: TestCase | null): TestCase | null => {
+    if (!selectedCase) return null;
+    
+    if (isStatsCase(selectedCase)) {
+      const parent = findParentCase(selectedCase.id, testCases);
+      return parent || selectedCase;
+    }
+    
+    return selectedCase;
+  }, [testCases]);
+
   return {
     getCurrentTestCase,
-    getVisibleRootCase
+    getVisibleRootCase,
+    handleUnifiedReorder,
+    updateCommandSelection,
+    saveInlineEdit,
+    getTargetCaseForActions
   };
 };

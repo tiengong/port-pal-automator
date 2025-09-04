@@ -59,11 +59,11 @@ import { CommandRow } from './CommandRow';
 import { sampleTestCases } from './sampleCases';
 import { CaseEditDialogInline } from './components/CaseEditDialogInline';
 
-// Import new modular components and hooks
-import { useTestCaseState } from './hooks/useTestCaseState';
-import { useTestCaseActions } from './hooks/useTestCaseActions';
-import { useTestCaseExecution } from './hooks/useTestCaseExecution';
-import { TestCaseDialogs } from './components/TestCaseDialogs';
+// Import new modular components and hooks - temporarily disabled for stability
+// import { useTestCaseState } from './hooks/useTestCaseState';
+// import { useTestCaseActions } from './hooks/useTestCaseActions';
+// import { useTestCaseExecution } from './hooks/useTestCaseExecution';
+// import { TestCaseDialogs } from './components/TestCaseDialogs';
 
 interface TestCaseManagerProps {
   connectedPorts: Array<{
@@ -84,81 +84,46 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const { toast } = useToast();
   const { t } = useTranslation();
   
-  // Use modular state management
-  const testCaseState = useTestCaseState();
-  
-  // Use modular actions
-  const testCaseActions = useTestCaseActions({
-    testCases: testCaseState.testCases,
-    setTestCases: testCaseState.setTestCases,
-    generateUniqueId: testCaseState.generateUniqueId,
-    setInlineEdit: testCaseState.setInlineEdit,
-    inlineEdit: testCaseState.inlineEdit
+  // Original working state management
+  const [testCases, setTestCases] = useState<TestCase[]>([]);
+  const [selectedTestCaseId, setSelectedTestCaseId] = useState<string | null>(null);
+  const [editingCase, setEditingCase] = useState<TestCase | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
+  const [executionResults, setExecutionResults] = useState<any[]>([]);
+  const [waitingForUser, setWaitingForUser] = useState(false);
+  const [userPrompt, setUserPrompt] = useState('');
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    visible: false,
+    x: 0,
+    y: 0,
+    targetId: '',
+    targetType: 'case'
   });
-  
-  // Use modular execution
-  const testCaseExecution = useTestCaseExecution({
-    onStatusUpdate: (message, type) => statusMessages?.addMessage?.(message, type),
-    onCommandUpdate: (caseId, commandIndex, updates) => {
-      const updatedTestCases = updateCaseById(testCaseState.testCases, caseId, (testCase) => ({
-        ...testCase,
-        commands: testCase.commands.map((cmd, idx) =>
-          idx === commandIndex ? { ...cmd, ...updates } : cmd
-        )
-      }));
-      testCaseState.setTestCases(updatedTestCases);
-    },
-    onCaseUpdate: (caseId, updates) => {
-      const updatedTestCases = updateCaseById(testCaseState.testCases, caseId, (testCase) => ({
-        ...testCase,
-        ...updates
-      }));
-      testCaseState.setTestCases(updatedTestCases);
-    }
+  const [nextUniqueId, setNextUniqueId] = useState(1);
+  const [currentWorkspace, setCurrentWorkspace] = useState<string>('');
+  const [dragInfo, setDragInfo] = useState<any>(null);
+  const [inlineEdit, setInlineEdit] = useState<{ commandId: string | null; value: string }>({
+    commandId: null,
+    value: ''
   });
+  const [executingCommand, setExecutingCommand] = useState<string | null>(null);
+  const [lastFocusedChild, setLastFocusedChild] = useState<any>(null);
+  const [storedParameters, setStoredParameters] = useState<Record<string, string>>({});
+  const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
   
-  // Track running test cases to prevent race conditions
-  const runningCasesRef = testCaseState.runningCasesRef;
-  const contextMenuRef = testCaseState.contextMenuRef;
+  const runningCasesRef = useRef<Set<string>>(new Set());
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   
+  // Generate unique ID function
+  const generateUniqueId = () => {
+    const id = `tc_${nextUniqueId}`;
+    setNextUniqueId(prev => prev + 1);
+    return id;
+  };
   
-  // AT命令库
-  const atCommands = [
-    'AT', 'AT+CGMR', 'AT+CGMI', 'AT+CGSN', 'AT+CSQ', 'AT+CREG', 'AT+COPS',
-    'AT+CGATT', 'AT+CGACT', 'AT+CGDCONT', 'AT+CPINR', 'AT+CPIN', 'AT+CCID'
-  ];
-  
-  // Extract state from modular state management
-  const {
-    testCases, setTestCases,
-    selectedTestCaseId, setSelectedTestCaseId,
-    editingCase, setEditingCase,
-    isEditDialogOpen, setIsEditDialogOpen,
-    editingCommandIndex, setEditingCommandIndex,
-    executionResults, setExecutionResults,
-    waitingForUser, setWaitingForUser,
-    userPrompt, setUserPrompt,
-    contextMenu, setContextMenu,
-    nextUniqueId, setNextUniqueId,
-    currentWorkspace, setCurrentWorkspace,
-    dragInfo, setDragInfo,
-    inlineEdit, setInlineEdit,
-    executingCommand, setExecutingCommand,
-    lastFocusedChild, setLastFocusedChild,
-    storedParameters, setStoredParameters,
-    triggeredUrcIds, setTriggeredUrcIds,
-    handleWorkspaceChange,
-    generateUniqueId
-  } = testCaseState;
-  
-  // Extract actions from modular actions
-  const {
-    handleUnifiedReorder,
-    updateCommandSelection,
-    saveInlineEdit,
-    getTargetCaseForActions,
-    getCurrentTestCase: getTestCase,
-    getVisibleRootCase: getVisibleRoot
+  // Initialize workspace and load test cases  
+  useEffect(() => {
   } = testCaseActions;
   
   // Get current test case and visible root
@@ -224,13 +189,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 const extractedParams = parseUrcData(event.data, command);
                 if (Object.keys(extractedParams).length > 0) {
                   // 更新存储的参数，同名变量使用最新值
-                  setStoredParameters(prev => {
-                    return { ...prev, ...extractedParams };
-                  });
+                  setStoredParameters(prev => ({
+                    ...prev,
+                    ...extractedParams
+                  }));
                   
                   eventBus.emit(EVENTS.PARAMETER_EXTRACTED, { 
                     commandId: command.id, 
-                    parameters: extractedParams 
+                    parameters: extractedParams
                   });
                   
                   toast({
@@ -471,7 +437,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         // 检查是否被暂停
         if (!runningCasesRef.current.has(caseId)) {
           console.log('Test case execution stopped (paused)');
-          setExecutingCommand({ caseId: null, commandIndex: null });
+          setExecutingCommand(null);
           return;
         }
 
@@ -818,7 +784,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setExecutingCommand({ caseId, commandIndex });
     
     if (command.type === 'execution') {
-      // 执行命令前进行变量替换
       const substitutedCommand = substituteVariables(command.command, storedParameters);
       
       // 如果有验证方法且不是none，使用重试逻辑
@@ -966,7 +931,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     
     // 模拟执行时间后清除高亮
     setTimeout(() => {
-      setExecutingCommand({ caseId: null, commandIndex: null });
+          setExecutingCommand(null);
     }, command.waitTime || 1000);
     
     return { success: true };

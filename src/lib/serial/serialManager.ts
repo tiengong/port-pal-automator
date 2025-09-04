@@ -7,8 +7,8 @@ export class SerialManager {
   private connections = new Map<string, SerialConnection>(); // label -> connection
 
   constructor() {
-    // Choose transport based on environment
-    if (import.meta.env.TAURI_PLATFORM) {
+    // Choose transport based on environment - use more reliable detection
+    if (typeof window !== 'undefined' && window.__TAURI__) {
       console.log('Initializing Tauri serial transport');
       this.transport = new TauriSerialTransport();
     } else {

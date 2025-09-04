@@ -52,8 +52,8 @@
     "fs": {
       "requireLiteralLeadingDot": false
     },
-    "dialog": {},
-    "shell": {},
-    "window": {}
+    "dialog": null,
+    "shell": null,
+    "window": null
   }
 }

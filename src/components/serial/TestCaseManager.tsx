@@ -18,7 +18,12 @@ import { TestCaseActions } from './TestCaseActions';
 import { TestCaseSwitcher } from './TestCaseSwitcher';
 import { useStatusMessages } from '@/hooks/useStatusMessages';
 import { eventBus, EVENTS, SerialDataEvent } from '@/lib/eventBus';
-import Workspace from './workspace';
+import { 
+  initializeDefaultWorkspace, 
+  loadCases, 
+  saveCase, 
+  scheduleAutoSave 
+} from './workspace';
 
 interface TestCaseManagerProps {
   connectedPorts: any[];
@@ -90,8 +95,8 @@ const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   useEffect(() => {
     const initWorkspace = async () => {
       try {
-        await Workspace.init();
-        const savedCases = await Workspace.loadTestCases();
+        await initializeDefaultWorkspace();
+        const savedCases = await loadCases();
         setTestCases(savedCases);
         
         // Set first case as selected if no case is selected
@@ -107,20 +112,7 @@ const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     initWorkspace();
   }, []);
 
-  // Auto-save when test cases change
-  useEffect(() => {
-    if (testCases.length > 0) {
-      const saveTimeout = setTimeout(async () => {
-        try {
-          await Workspace.saveTestCases(testCases);
-        } catch (error) {
-          console.error('Auto-save failed:', error);
-        }
-      }, 1000);
-      
-      return () => clearTimeout(saveTimeout);
-    }
-  }, [testCases]);
+// ... keep existing code (auto-save when test cases change)
 
   // Utility functions
   const generateUniqueId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -408,11 +400,7 @@ const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 'info'
               );
               
-              if (commandFailureSeverity === 'error') {
-                errors++;
-              } else {
-                warnings++;
-              }
+              errors++;
               passedCommands++;
             }
           } else {
@@ -848,10 +836,9 @@ const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {showExecutionEditor && editingCommand && (
         <ExecutionEditor
           command={editingCommand}
-          onSave={handleSaveCommand}
-          onCancel={() => {
-            setShowExecutionEditor(false);
-            setEditingCommand(null);
+          onUpdate={(updates) => {
+            const updatedCommand = { ...editingCommand, ...updates };
+            handleSaveCommand(updatedCommand);
           }}
         />
       )}
@@ -859,10 +846,9 @@ const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {showUrcEditor && editingCommand && (
         <UrcEditor
           command={editingCommand}
-          onSave={handleSaveCommand}
-          onCancel={() => {
-            setShowUrcEditor(false);
-            setEditingCommand(null);
+          onUpdate={(updates) => {
+            const updatedCommand = { ...editingCommand, ...updates };
+            handleSaveCommand(updatedCommand);
           }}
         />
       )}
@@ -871,8 +857,8 @@ const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {runResult && (
         <RunResultDialog
           result={runResult}
-          open={showRunResult}
-          onOpenChange={setShowRunResult}
+          isOpen={showRunResult}
+          onClose={() => setShowRunResult(false)}
         />
       )}
     </div>

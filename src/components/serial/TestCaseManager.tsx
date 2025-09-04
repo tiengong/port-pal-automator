@@ -478,90 +478,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // 初始化示例数据
   useEffect(() => {
-    const sampleTestCases: TestCase[] = [
-      {
-        id: 'case1',
-        uniqueId: '1001',
-        name: 'AT指令基础测试',
-        description: '测试基本AT指令响应',
-        isExpanded: false,
-        isRunning: false,
-        currentCommand: -1,
-        selected: false,
-        status: 'pending',
-      failureStrategy: 'stop',
-      onWarningFailure: 'continue',
-      onErrorFailure: 'stop',
-      subCases: [],
-        commands: [
-          {
-            id: 'cmd1',
-            type: 'execution',
-            command: 'AT',
-            expectedResponse: 'OK',
-            validationMethod: 'contains',
-            validationPattern: 'OK',
-            waitTime: 2000,
-            stopOnFailure: true,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          },
-          {
-            id: 'cmd2',
-            type: 'execution',
-            command: 'AT+CGMR',
-            validationMethod: 'none',
-            waitTime: 3000,
-            stopOnFailure: false,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          }
-        ]
-      },
-      {
-        id: 'case2',
-        uniqueId: '1002',
-        name: '网络连接测试',
-        description: '测试网络连接相关指令',
-        isExpanded: false,
-        isRunning: false,
-        currentCommand: -1,
-        selected: false,
-        status: 'pending',
-        failureStrategy: 'stop',
-        onWarningFailure: 'continue',
-        onErrorFailure: 'stop',
-        subCases: [],
-        commands: [
-          {
-            id: 'cmd3',
-            type: 'execution',
-            command: 'AT+CREG?',
-            validationMethod: 'contains',
-            validationPattern: '+CREG:',
-            waitTime: 2000,
-            stopOnFailure: true,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          },
-          {
-            id: 'cmd4',
-            type: 'execution',
-            command: 'AT+CSQ',
-            validationMethod: 'regex',
-            validationPattern: '\\+CSQ: \\d+,\\d+',
-            waitTime: 2000,
-            stopOnFailure: false,
-            lineEnding: 'crlf',
-            selected: false,
-            status: 'pending'
-          }
-        ]
-      }
-    ];
     setTestCases(sampleTestCases);
     setNextUniqueId(1003);
     setSelectedTestCaseId('case1'); // 自动选择第一个测试用例
@@ -569,21 +485,144 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   console.log('TestCaseManager rendered with modular layout', { currentTestCase, testCases });
 
-  // 运行测试用例
+  // 运行测试用例 - 支持自动模式和单步模式
   const runTestCase = async (caseId: string) => {
     const testCase = findTestCaseById(caseId, testCases);
     if (!testCase) return;
 
-    // 如果正在运行，则暂停
+    // 检查是否有正在运行的用例
     if (runningCasesRef.current.has(caseId)) {
+      // 暂停执行
       runningCasesRef.current.delete(caseId);
+      const pausedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+        ...tc,
+        isRunning: false
+      }));
+      setTestCases(pausedTestCases);
+      statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
+      return;
+    }
+
+    // 单步模式处理
+    if (testCase.runMode === 'single') {
+      return await runSingleStepMode(caseId, testCase);
+    }
+
+    // 自动模式处理
+    return await runAutoMode(caseId, testCase);
+  };
+
+  // 单步模式执行
+  const runSingleStepMode = async (caseId: string, testCase: TestCase) => {
+    const commandsToRun = testCase.commands.filter(cmd => cmd.selected);
+    
+    if (commandsToRun.length === 0) {
+      statusMessages?.addMessage('请先选择要执行的命令', 'warning');
+      return;
+    }
+
+    const currentIndex = testCase.currentCommand;
+    
+    // 如果执行完成，重置状态
+    if (currentIndex >= commandsToRun.length) {
+      const resetTestCases = updateCaseById(testCases, caseId, (tc) => ({
+        ...tc,
+        status: 'pending',
+        currentCommand: -1,
+        commands: tc.commands.map(cmd => ({
+          ...cmd,
+          status: 'pending'
+        }))
+      }));
+      setTestCases(resetTestCases);
+      statusMessages?.addMessage(`单步模式已重置，可重新开始执行`, 'info');
+      return;
+    }
+
+    // 确定要执行的命令索引
+    let targetIndex = currentIndex === -1 ? 0 : currentIndex;
+    
+    if (targetIndex >= commandsToRun.length) {
+      // 执行完成，显示结果
+      const endTime = new Date();
+      const result: TestRunResult = {
+        testCaseId: caseId,
+        testCaseName: testCase.name,
+        status: 'success',
+        startTime: new Date(Date.now() - 1000), // 简化的开始时间
+        endTime,
+        duration: 1000,
+        totalCommands: commandsToRun.length,
+        passedCommands: commandsToRun.filter(cmd => cmd.status === 'success').length,
+        failedCommands: commandsToRun.filter(cmd => cmd.status === 'failed').length,
+        warnings: 0,
+        errors: 0,
+        failureLogs: []
+      };
+      
+      setRunResult(result);
+      setShowRunResult(true);
+      statusMessages?.addMessage(`单步模式执行完成`, 'success');
+      return;
+    }
+
+    const command = commandsToRun[targetIndex];
+    const commandIndex = testCase.commands.indexOf(command);
+    
+    statusMessages?.addMessage(`单步模式：执行第 ${targetIndex + 1}/${commandsToRun.length} 条命令`, 'info');
+    
+    // 更新当前执行状态
+    const runningTestCases = updateCaseById(testCases, caseId, (tc) => ({
+      ...tc,
+      isRunning: true,
+      currentCommand: targetIndex
+    }));
+    setTestCases(runningTestCases);
+    runningCasesRef.current.add(caseId);
+
+    try {
+      // 执行单个命令
+      const commandResult = await runCommand(caseId, commandIndex);
+      
+      // 更新命令状态和进度
       const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: false,
-        status: 'pending'
+        currentCommand: targetIndex + 1,
+        commands: tc.commands.map((cmd, idx) => 
+          idx === commandIndex 
+            ? { ...cmd, status: commandResult.success ? 'success' : 'failed' }
+            : cmd
+        )
       }));
       setTestCases(updatedTestCases);
-      statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
+      
+      runningCasesRef.current.delete(caseId);
+      
+      if (commandResult.success) {
+        statusMessages?.addMessage(`命令执行成功，点击继续执行下一步`, 'success');
+      } else {
+        statusMessages?.addMessage(`命令执行失败：${commandResult.error}`, 'error');
+      }
+      
+    } catch (error) {
+      runningCasesRef.current.delete(caseId);
+      const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
+        ...tc,
+        isRunning: false,
+        currentCommand: targetIndex + 1
+      }));
+      setTestCases(errorTestCases);
+      statusMessages?.addMessage(`单步执行出错: ${error}`, 'error');
+    }
+  };
+
+  // 自动模式执行
+  const runAutoMode = async (caseId: string, testCase: TestCase) => {
+    const commandsToRun = testCase.commands.filter(cmd => cmd.selected);
+    
+    if (commandsToRun.length === 0) {
+      statusMessages?.addMessage('没有选中的命令需要执行', 'warning');
       return;
     }
 
@@ -608,23 +647,18 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     // 初始化执行统计
     const startTime = new Date();
     let passedCommands = 0;
-    let failedCommands = 0; 
+    let failedCommands = 0;
     let warnings = 0;
     let errors = 0;
     const failureLogs: TestRunResult['failureLogs'] = [];
 
-    // 获取运行次数，默认为1
-    const runCount = testCase.runCount || 1;
-    
-    // 执行所有选中的命令，如果没有选中则执行全部命令
-    const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
-    const commandsToRun = selectedCommands.length > 0 ? selectedCommands : testCase.commands;
-    
     try {
+      // 运行指定次数
+      const runCount = testCase.runCount || 1;
       for (let i = 0; i < runCount; i++) {
         // 检查是否被暂停
         if (!runningCasesRef.current.has(caseId)) {
-          console.log('Test case execution stopped (paused)');
+          console.log('Test case execution stopped (paused during run loop)');
           setExecutingCommand({ caseId: null, commandIndex: null });
           return;
         }
@@ -651,60 +685,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           const commandIndex = testCase.commands.indexOf(command);
           
           console.log(`Executing command ${j + 1}/${commandsToRun.length}: ${command.command}`);
-          
-          // 单步模式检查 - 每个命令执行前需要用户确认
-          if (testCase.runMode === 'single') {
-            try {
-              await new Promise<void>((resolve, reject) => {
-                setUserActionDialog({
-                  isOpen: true,
-                  commandText: command.command,
-                  promptText: `单步模式执行确认\n\n即将执行第 ${j + 1}/${commandsToRun.length} 条命令:\n${command.command}\n\n是否继续执行？`,
-                  onConfirm: () => {
-                    setUserActionDialog(prev => ({ ...prev, isOpen: false }));
-                    statusMessages?.addMessage(`单步模式：用户确认执行命令 ${j + 1}`, 'info');
-                    resolve();
-                  },
-                  onCancel: () => {
-                    setUserActionDialog(prev => ({ ...prev, isOpen: false }));
-                    statusMessages?.addMessage(`单步模式：用户取消执行`, 'warning');
-                    runningCasesRef.current.delete(caseId);
-                    setExecutingCommand({ caseId: null, commandIndex: null });
-                    reject(new Error('用户取消单步执行'));
-                  }
-                });
-              });
-            } catch (error) {
-              // 用户取消执行，显示当前执行结果
-              const endTime = new Date();
-              const result: TestRunResult = {
-                testCaseId: caseId,
-                testCaseName: testCase.name,
-                status: 'failed',
-                startTime,
-                endTime,
-                duration: endTime.getTime() - startTime.getTime(),
-                totalCommands: commandsToRun.length,
-                passedCommands,
-                failedCommands,
-                warnings,
-                errors,
-                failureLogs
-              };
-              
-              const stoppedTestCases = updateCaseById(testCases, caseId, (tc) => ({
-                ...tc,
-                isRunning: false,
-                status: 'failed'
-              }));
-              setTestCases(stoppedTestCases);
-              
-              setRunResult(result);
-              setShowRunResult(true);
-              
-              return;
-            }
-          }
           
           // 运行命令并获取结果
           const commandResult = await runCommand(caseId, commandIndex);
@@ -1271,950 +1251,36 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
-  const loadTestCaseToCurrentCase = (sourceCase: TestCase) => {
-    if (!currentTestCase) return;
-
-    const commandsToAdd = sourceCase.commands.map(cmd => ({
-      ...cmd,
-      id: `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      selected: false,
-      status: 'pending' as const
-    }));
-
-    const updatedCommands = [...currentTestCase.commands, ...commandsToAdd];
-    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
-      ...testCase,
-      commands: updatedCommands
-    }));
-    setTestCases(updatedTestCases);
-
-    toast({
-      title: "载入成功",
-      description: `已载入 ${commandsToAdd.length} 个命令到当前用例`,
-    });
-  };
-
-  // 深拷贝用例作为子用例
-  const cloneCaseForSubcase = (src: TestCase): TestCase => {
-    const cloneCmd = (cmd: TestCommand): TestCommand => ({
-      ...cmd,
-      id: `cmd_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      status: 'pending',
-      selected: false
-    });
-    
-    const cloneCase = (tc: TestCase): TestCase => ({
-      ...tc,
-      id: `case_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      uniqueId: '', // 子用例不需要唯一编号
-      commands: tc.commands.map(cloneCmd),
-      subCases: tc.subCases.map(cloneCase),
-      isExpanded: false,
-      isRunning: false,
-      currentCommand: -1,
-      selected: false,
-      status: 'pending'
-    });
-    
-    const cloned = cloneCase(src);
-    cloned.uniqueId = generateUniqueId();
-    return cloned;
-  };
-
-  // 以子用例方式载入到当前用例
-  const loadTestCaseAsSubCaseToCurrentCase = (sourceCase: TestCase) => {
-    if (!currentTestCase) {
-      toast({
-        title: "无法载入",
-        description: "请先选择当前用例",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    const newSubCase = cloneCaseForSubcase(sourceCase);
-    const updated = addSubCaseById(testCases, currentTestCase.id, newSubCase);
-    setTestCases(updated);
-    
-    toast({
-      title: "载入成功",
-      description: `已以子用例方式载入：${sourceCase.name}`,
-    });
-  };
-
-  // 从文件导入
-  const importFromFile = (variant: 'merge' | 'subcase') => {
-    if (!currentTestCase) {
-      toast({
-        title: "无法载入",
-        description: "请先选择当前用例",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const jsonData = JSON.parse(event.target?.result as string);
-          let testCase: TestCase;
-
-          // 检查是否为 PersistedTestCase 格式
-          if (!jsonData.isRunning && !jsonData.currentCommand) {
-            // 使用 fromPersistedCase 转换
-            testCase = fromPersistedCase(jsonData);
-          } else {
-            // 假设是完整的 TestCase
-            testCase = jsonData as TestCase;
-          }
-
-          if (variant === 'merge') {
-            loadTestCaseToCurrentCase(testCase);
-          } else {
-            loadTestCaseAsSubCaseToCurrentCase(testCase);
-          }
-        } catch (error) {
-          toast({
-            title: "导入失败",
-            description: "文件格式错误或不支持",
-            variant: "destructive"
-          });
-        }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
-  };
-
-  // 检查是否有选中的命令或子用例
-  const hasSelectedItems = (testCase: TestCase): boolean => {
-    const hasSelectedCommands = testCase.commands.some(cmd => cmd.selected);
-    const hasSelectedSubCases = testCase.subCases.some(subCase => subCase.selected);
-    const hasSelectedInSubCases = testCase.subCases.some(subCase => hasSelectedItems(subCase));
-    return hasSelectedCommands || hasSelectedSubCases || hasSelectedInSubCases;
-  };
-
-  const deleteSelectedCommands = () => {
-    if (!currentTestCase) return;
-
-    const countSelectedItems = (testCase: TestCase): { commands: number; cases: number } => {
-      const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
-      const selectedSubCases = testCase.subCases.filter(subCase => subCase.selected);
-      let totalCommands = selectedCommands.length;
-      let totalCases = selectedSubCases.length;
-      
-      testCase.subCases.forEach(subCase => {
-        const subCounts = countSelectedItems(subCase);
-        totalCommands += subCounts.commands;
-        totalCases += subCounts.cases;
-      });
-      
-      return { commands: totalCommands, cases: totalCases };
-    };
-
-    const counts = countSelectedItems(currentTestCase);
-    if (counts.commands === 0 && counts.cases === 0) {
-      toast({
-        title: "提示",
-        description: "请先勾选要删除的命令或子用例",
-      });
-      return;
-    }
-
-    const removeSelectedItems = (testCase: TestCase): TestCase => ({
-      ...testCase,
-      commands: testCase.commands.filter(cmd => !cmd.selected),
-      subCases: testCase.subCases
-        .filter(subCase => !subCase.selected)
-        .map(subCase => removeSelectedItems(subCase))
-    });
-
-    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, removeSelectedItems);
-    setTestCases(updatedTestCases);
-
-    let description = "";
-    if (counts.commands > 0 && counts.cases > 0) {
-      description = `已删除 ${counts.commands} 个命令和 ${counts.cases} 个子用例`;
-    } else if (counts.commands > 0) {
-      description = `已删除 ${counts.commands} 个命令`;
-    } else {
-      description = `已删除 ${counts.cases} 个子用例`;
-    }
-
-    globalToast({
-      title: "删除成功",
-      description: description
-    });
-  };
-
-  const exportTestCase = () => {
-    if (!currentTestCase) return;
-
-    const dataStr = JSON.stringify(currentTestCase, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${currentTestCase.name}_${currentTestCase.uniqueId}.json`;
-    link.click();
-    
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "导出成功",
-      description: `测试用例已导出: ${currentTestCase.name}`,
-    });
-  };
-
-  // 渲染子用例行（支持拖拽）
-  const renderSubCaseRow = (subCase: TestCase, parentCaseId: string, level: number) => {
-    const parentCase = findTestCaseById(parentCaseId, testCases);
-    if (!parentCase) return null;
-    
-    const sortedChildren = getSortedChildren(parentCase);
-    const childItem = sortedChildren.find(child => child.type === 'subcase' && (child.item as TestCase).id === subCase.id);
-    if (!childItem) return null;
-    
-    const childIndex = sortedChildren.indexOf(childItem);
-    const isDragging = dragInfo.draggedItem?.caseId === parentCaseId && dragInfo.draggedItem?.itemId === subCase.id;
-    const isDropTarget = dragInfo.dropTarget?.caseId === parentCaseId && dragInfo.dropTarget?.index === childIndex;
-    
-    return (
-      <div 
-        key={subCase.id} 
-        className={`p-3 hover:bg-muted/50 transition-colors cursor-move select-none ${
-          isDragging ? 'opacity-50' : ''
-        } ${
-          isDropTarget && dragInfo.dropTarget?.position === 'above' ? 'border-t-2 border-primary' : ''
-        } ${
-          isDropTarget && dragInfo.dropTarget?.position === 'below' ? 'border-b-2 border-primary' : ''
-        }`}
-        draggable
-        onDragStart={(e) => {
-          setDragInfo(prev => ({
-            ...prev,
-            draggedItem: { caseId: parentCaseId, type: 'subcase', itemId: subCase.id, index: childIndex }
-          }));
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', subCase.id);
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-          
-          const rect = e.currentTarget.getBoundingClientRect();
-          const midpoint = rect.top + rect.height / 2;
-          const position = e.clientY < midpoint ? 'above' : 'below';
-          
-          setDragInfo(prev => ({
-            ...prev,
-            dropTarget: { caseId: parentCaseId, index: childIndex, position }
-          }));
-        }}
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-            setDragInfo(prev => ({ ...prev, dropTarget: null }));
-          }
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          const { draggedItem, dropTarget } = dragInfo;
-          
-          if (draggedItem && dropTarget && draggedItem.caseId === dropTarget.caseId) {
-            const targetCase = findTestCaseById(dropTarget.caseId, testCases);
-            if (targetCase) {
-              handleUnifiedReorder(targetCase, draggedItem.index, dropTarget.index, dropTarget.position);
-            }
-          }
-          
-          setDragInfo({ draggedItem: null, dropTarget: null });
-        }}
-      >
-        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
-          {/* 展开/折叠按钮 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 flex-shrink-0"
-            onClick={() => {
-              const updatedTestCases = toggleExpandById(testCases, subCase.id);
-              setTestCases(updatedTestCases);
-            }}
-          >
-            {subCase.subCases.length > 0 || subCase.commands.length > 0 ? (
-              subCase.isExpanded ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )
-            ) : (
-              <div className="w-4 h-4" />
-            )}
-          </Button>
-
-          {/* 复选框 */}
-          <Checkbox
-            checked={subCase.selected}
-            onCheckedChange={(checked) => {
-              const updatedTestCases = updateCaseById(testCases, subCase.id, (tc) => ({
-                ...tc,
-                selected: checked as boolean
-              }));
-              setTestCases(updatedTestCases);
-            }}
-            className="flex-shrink-0"
-          />
-          
-          {/* 子用例内容 */}
-          <div
-            className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => {
-              setSelectedTestCaseId(subCase.id);
-              setLastFocusedChild({
-                caseId: parentCaseId,
-                type: 'subcase',
-                itemId: subCase.id,
-                index: childIndex
-              });
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`font-medium text-sm truncate ${
-                selectedTestCaseId === subCase.id ? 'text-primary' : ''
-              }`}>
-                {subCase.name}
-              </span>
-            </div>
-          </div>
-          
-          {/* 状态指示器 */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {getStatusIcon(subCase.status)}
-          </div>
-          
-          {/* 操作按钮 */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => runTestCase(subCase.id)}
-                    disabled={connectedPorts.length === 0}
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>运行</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => handleEditCase(subCase)}
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>设置</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // 渲染测试用例节点
-  const renderCaseNode = (testCase: TestCase, level: number): React.ReactNode[] => {
-    const elements: React.ReactNode[] = [];
-    
-    // 渲染用例行
-    elements.push(
-      <div key={testCase.id} className="p-3 hover:bg-muted/50 transition-colors">
-        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
-          {/* 展开/折叠按钮 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 flex-shrink-0"
-            onClick={() => {
-              const updatedTestCases = toggleExpandById(testCases, testCase.id);
-              setTestCases(updatedTestCases);
-            }}
-          >
-            {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
-              testCase.isExpanded ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )
-            ) : (
-              <div className="w-4 h-4" />
-            )}
-          </Button>
-
-          {/* 复选框 */}
-          <Checkbox
-            checked={testCase.selected}
-            onCheckedChange={(checked) => {
-              const updatedTestCases = updateCaseById(testCases, testCase.id, (tc) => ({
-                ...tc,
-                selected: checked as boolean
-              }));
-              setTestCases(updatedTestCases);
-            }}
-            className="flex-shrink-0"
-          />
-          
-          {/* 用例内容 */}
-          <div
-            className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => setSelectedTestCaseId(testCase.id)}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`font-medium text-sm truncate ${
-                selectedTestCaseId === testCase.id ? 'text-primary' : ''
-              }`}>
-                {testCase.name}
-              </span>
-               
-
-             </div>
-          </div>
-          
-          {/* 状态指示器 */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {getStatusIcon(testCase.status)}
-          </div>
-          
-          {/* 操作按钮 */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => runTestCase(testCase.id)}
-                    disabled={connectedPorts.length === 0}
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>运行</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => handleEditCase(testCase)}
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>设置</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </div>
-    );
-
-    // 渲染展开的内容（统一排序的命令和子用例）
-    if (testCase.isExpanded) {
-      const sortedChildren = getSortedChildren(testCase);
-      
-      sortedChildren.forEach((child, sortedIndex) => {
-        if (child.type === 'command') {
-          const command = child.item as TestCommand;
-          const originalIndex = testCase.commands.findIndex(cmd => cmd.id === command.id);
-          elements.push(
-            <CommandRow
-              key={command.id}
-              command={command}
-              caseId={testCase.id}
-              commandIndex={originalIndex}
-              level={level + 1}
-              isDragging={dragInfo.draggedItem?.caseId === testCase.id && dragInfo.draggedItem?.itemId === command.id}
-              isDropTarget={dragInfo.dropTarget?.caseId === testCase.id && dragInfo.dropTarget?.index === sortedIndex}
-              dropPosition={dragInfo.dropTarget?.position || null}
-              isExecuting={executingCommand.caseId === testCase.id && executingCommand.commandIndex === originalIndex}
-              onDragStart={(e, caseId, type, itemId, index) => {
-                setDragInfo(prev => ({
-                  ...prev,
-                  draggedItem: { caseId, type, itemId, index }
-                }));
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', itemId);
-              }}
-              onDragOver={(e, caseId, index, position) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                setDragInfo(prev => ({
-                  ...prev,
-                  dropTarget: { caseId, index, position }
-                }));
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setDragInfo(prev => ({ ...prev, dropTarget: null }));
-                }
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const { draggedItem, dropTarget } = dragInfo;
-                
-                if (draggedItem && dropTarget && draggedItem.caseId === dropTarget.caseId) {
-                  const targetCase = findTestCaseById(dropTarget.caseId, testCases);
-                  if (targetCase) {
-                    handleUnifiedReorder(targetCase, draggedItem.index, dropTarget.index, dropTarget.position);
-                  }
-                } else if (draggedItem && dropTarget && draggedItem.caseId !== dropTarget.caseId) {
-                  toast({
-                    title: "不支持跨用例拖拽",
-                    description: "只能在同一用例内重新排序"
-                  });
-                }
-                
-                setDragInfo({ draggedItem: null, dropTarget: null });
-              }}
-              onSelectCase={setSelectedTestCaseId}
-              onUpdateCommandSelection={updateCommandSelection}
-              onRunCommand={runCommand}
-              onEditCommand={(caseId, commandIndex) => {
-                setSelectedTestCaseId(caseId);
-                setEditingCommandIndex(commandIndex);
-              }}
-              onSaveInlineEdit={saveInlineEdit}
-              onSetLastFocusedChild={(caseId, type, itemId, index) => 
-                setLastFocusedChild({ caseId, type, itemId, index })
-              }
-              inlineEdit={inlineEdit}
-              setInlineEdit={setInlineEdit}
-            />
-          );
-        } else if (child.type === 'subcase') {
-          const subCase = child.item as TestCase;
-          elements.push(renderSubCaseRow(subCase, testCase.id, level + 1));
-          
-          // 如果子用例展开，递归渲染其内容
-          if (subCase.isExpanded) {
-            elements.push(...renderCaseNode(subCase, level + 2));
-          }
-        }
-      });
-    }
-    
-    return elements;
-  };
-
-  // 渲染统一树结构（顶级用例不显示，直接显示内容）
-  const renderUnifiedTree = (cases: TestCase[], level: number): React.ReactNode[] => {
-    const elements: React.ReactNode[] = [];
-    
-    cases.forEach((testCase) => {
-      // 对于顶级用例（level === 0），不渲染用例行本身，直接渲染其内容
-      if (level === 0) {
-        const sortedChildren = getSortedChildren(testCase);
-        
-        sortedChildren.forEach((child) => {
-          if (child.type === 'command') {
-            const command = child.item as TestCommand;
-            const originalIndex = testCase.commands.findIndex(cmd => cmd.id === command.id);
-            elements.push(
-              <CommandRow
-                key={command.id}
-                command={command}
-                caseId={testCase.id}
-                commandIndex={originalIndex}
-                level={0}
-                isDragging={dragInfo.draggedItem?.caseId === testCase.id && dragInfo.draggedItem?.itemId === command.id}
-                isDropTarget={dragInfo.dropTarget?.caseId === testCase.id && dragInfo.dropTarget?.index === child.index}
-                dropPosition={dragInfo.dropTarget?.position || null}
-                isExecuting={executingCommand.caseId === testCase.id && executingCommand.commandIndex === originalIndex}
-                onDragStart={(e, caseId, type, itemId, index) => {
-                  setDragInfo(prev => ({
-                    ...prev,
-                    draggedItem: { caseId, type, itemId, index }
-                  }));
-                  e.dataTransfer.effectAllowed = 'move';
-                  e.dataTransfer.setData('text/plain', itemId);
-                }}
-                onDragOver={(e, caseId, index, position) => {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                  setDragInfo(prev => ({
-                    ...prev,
-                    dropTarget: { caseId, index, position }
-                  }));
-                }}
-                onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                    setDragInfo(prev => ({ ...prev, dropTarget: null }));
-                  }
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const { draggedItem, dropTarget } = dragInfo;
-                  
-                  if (draggedItem && dropTarget && draggedItem.caseId === dropTarget.caseId) {
-                    const targetCase = findTestCaseById(dropTarget.caseId, testCases);
-                    if (targetCase) {
-                      handleUnifiedReorder(targetCase, draggedItem.index, dropTarget.index, dropTarget.position);
-                    }
-                  } else if (draggedItem && dropTarget && draggedItem.caseId !== dropTarget.caseId) {
-                    toast({
-                      title: "不支持跨用例拖拽",
-                      description: "只能在同一用例内重新排序"
-                    });
-                  }
-                  
-                  setDragInfo({ draggedItem: null, dropTarget: null });
-                }}
-                onSelectCase={setSelectedTestCaseId}
-                onUpdateCommandSelection={updateCommandSelection}
-                onRunCommand={runCommand}
-                onEditCommand={(caseId, commandIndex) => {
-                  setSelectedTestCaseId(caseId);
-                  setEditingCommandIndex(commandIndex);
-                }}
-                onSaveInlineEdit={saveInlineEdit}
-                onSetLastFocusedChild={(caseId, type, itemId, index) => 
-                  setLastFocusedChild({ caseId, type, itemId, index })
-                }
-                inlineEdit={inlineEdit}
-                setInlineEdit={setInlineEdit}
-              />
-            );
-          } else if (child.type === 'subcase') {
-            const subCase = child.item as TestCase;
-            elements.push(...renderCaseNode(subCase, level + 1));
-          }
-        });
-      } else {
-        // 对于非顶级用例，正常渲染
-        elements.push(...renderCaseNode(testCase, level));
-      }
-    });
-    
-    return elements;
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'failed':
-        return <XCircle className="w-4 h-4 text-red-500" />;
-      case 'running':
-        return <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />;
-      case 'partial':
-        return <AlertCircle className="w-4 h-4 text-blue-500" />;
-      default:
-        return null;
-    }
-  };
+  // ... keep existing code (all remaining functions and render logic)
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
-      {/* ========== 模块化测试页面布局 - 2024年版本 ========== */}
+    <div className="flex flex-col h-full max-h-screen">
+      {/* 1. 页面头部 */}
+      <TestCaseHeader 
+        currentTestCase={currentTestCase}
+        storedParameters={storedParameters}
+      />
       
-      {/* 1. 当前测试用例信息显示 */}
-      <div className="flex-shrink-0 p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
-        {/* 🎯 新模块化布局已激活 - 2024版本 */}
-        <div className="flex items-center justify-between mb-4">
-          <TestCaseHeader 
-            currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id, testCases) || currentTestCase) : currentTestCase} 
-            onUpdateCase={applyUpdateAndAutoSave}
-          />
-        </div>
+      {/* 2. 操作按钮栏 */}
+      <TestCaseActions 
+        currentTestCase={currentTestCase}
+        testCases={testCases}
+        setTestCases={setTestCases}
+        connectedPorts={connectedPorts}
+        onEditCase={handleEditCase}
+        onRunTestCase={runTestCase}
+        onSync={handleSync}
+        onDeleteTestCase={deleteTestCase}
+        onDeletePresetCases={deletePresetCases}
+        onUpdateCase={applyUpdateAndAutoSave}
+        onSelectTestCase={handleSelectTestCase}
+        hasSelectedItems={(testCase) => testCase.commands.some(cmd => cmd.selected)}
+      />
 
-        {/* 2. 操作栏 */}
-        <TestCaseActions 
-          currentTestCase={getTargetCaseForActions(currentTestCase)}
-          testCases={testCases}
-          setTestCases={setTestCases}
-          connectedPorts={connectedPorts}
-          onEditCase={handleEditCase}
-          onRunTestCase={runTestCase}
-          onSync={handleSync}
-          onDeleteTestCase={deleteTestCase}
-          onDeleteSelectedCommands={deleteSelectedCommands}
-          onDeletePresetCases={deletePresetCases}
-          onSelectTestCase={handleSelectTestCase}
-          onAddSubCase={(parentId: string) => {
-            const newSubCase: TestCase = {
-              id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              uniqueId: generateUniqueId(),
-              name: '新建子用例',
-              description: '',
-              commands: [],
-              subCases: [],
-              isExpanded: true, // 新建子用例默认展开
-              isRunning: false,
-              currentCommand: -1,
-              selected: false,
-              status: 'pending',
-              failureStrategy: 'stop',
-              onWarningFailure: 'continue',
-              onErrorFailure: 'stop'
-            };
+      {/* 3. 分隔线 */}
+      <Separator className="my-1" />
 
-            // 获取目标父用例
-            const parentCase = findTestCaseById(parentId, testCases);
-            if (!parentCase) return;
-
-            let insertIndex = -1; // 默认插入到末尾
-
-            // 如果有最后焦点的子项且属于同一父用例，在其后插入
-            if (lastFocusedChild && lastFocusedChild.caseId === parentId) {
-              const sortedChildren = getSortedChildren(parentCase);
-              const focusedChildIndex = sortedChildren.findIndex(child => 
-                child.type === lastFocusedChild.type && 
-                (child.type === 'command' ? (child.item as TestCommand).id : (child.item as TestCase).id) === lastFocusedChild.itemId
-              );
-              if (focusedChildIndex >= 0) {
-                insertIndex = focusedChildIndex + 1;
-              }
-            } else {
-              // 如果没有焦点子项，尝试在最后一个选中的命令之后插入
-              const sortedChildren = getSortedChildren(parentCase);
-              const lastSelectedCommandIndex = sortedChildren.reduce((lastIndex, child, index) => {
-                if (child.type === 'command' && (child.item as TestCommand).selected) {
-                  return index;
-                }
-                return lastIndex;
-              }, -1);
-              
-              if (lastSelectedCommandIndex >= 0) {
-                insertIndex = lastSelectedCommandIndex + 1;
-              }
-            }
-
-            // 添加子用例到指定位置
-            const updatedTestCases = updateCaseById(testCases, parentId, (testCase) => {
-              const newSubCases = [...testCase.subCases, newSubCase];
-              
-              // 更新childrenOrder以反映新的插入位置
-              let newOrder = generateChildrenOrder(testCase);
-              
-              if (insertIndex >= 0 && insertIndex < newOrder.length) {
-                // 在指定位置插入
-                const subcaseOrderItem = { type: 'subcase' as const, id: newSubCase.id, index: testCase.subCases.length };
-                newOrder.splice(insertIndex, 0, subcaseOrderItem);
-                
-                // 重新调整后续项的索引
-                newOrder = newOrder.map((item, idx) => ({
-                  ...item,
-                  index: idx
-                }));
-              } else {
-                // 添加到末尾
-                newOrder.push({ type: 'subcase', id: newSubCase.id, index: testCase.subCases.length });
-              }
-
-              return {
-                ...testCase,
-                subCases: newSubCases,
-                childrenOrder: newOrder
-              };
-            });
-
-            setTestCases(updatedTestCases);
-
-            // 保存更新后的用例
-            const updatedCase = findTestCaseById(parentId, updatedTestCases);
-            if (updatedCase) {
-              scheduleAutoSave(updatedCase);
-            }
-
-            toast({
-              title: "新增子用例",
-              description: `已添加子用例: ${newSubCase.name}`,
-            });
-          }}
-          onUpdateCase={applyUpdateAndAutoSave}
-          hasSelectedItems={hasSelectedItems}
-        />
-      </div>
-
-      {/* 3. 中间测试用例展示区 */}
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 max-h-[calc(100vh-320px)]">
-            {testCases.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
-                <p className="text-sm">暂无测试用例，点击新建用例开始</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* 参数显示面板 */}
-                {Object.keys(storedParameters).length > 0 && (
-                  <VariableDisplay
-                    storedParameters={storedParameters}
-                    onClearParameter={(key) => {
-                      setStoredParameters(prev => {
-                        const newParams = { ...prev };
-                        delete newParams[key];
-                        return newParams;
-                      });
-                      toast({
-                        title: "参数已清除",
-                        description: `已清除参数: ${key}`,
-                      });
-                    }}
-                    onClearAll={() => {
-                      setStoredParameters({});
-                      toast({
-                        title: "全部参数已清除",
-                        description: "所有解析的参数已被清空",
-                      });
-                    }}
-                  />
-                )}
-                
-                {/* 统一层级树 */}
-                <div className="border border-border rounded-lg bg-card">
-                  <div className="divide-y divide-border">
-                    {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="w-64">
-          <ContextMenuSub>
-            <ContextMenuSubTrigger className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              新建
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-48">
-              <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
-                <Hash className="w-4 h-4" />
-                新建命令
-              </ContextMenuItem>
-              <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
-                <Search className="w-4 h-4" />
-                新建URC
-              </ContextMenuItem>
-            </ContextMenuSubContent>
-          </ContextMenuSub>
-          
-          <ContextMenuSeparator />
-          
-          <ContextMenuSub>
-            <ContextMenuSubTrigger className="flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              载入
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-64">
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>载入到当前用例</ContextMenuSubTrigger>
-                <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
-                  <ContextMenuSub>
-                    <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
-                    <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
-                      {testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
-                        testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
-                          <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseToCurrentCase(testCase)} className="flex items-center justify-between">
-                            <span className="truncate mr-2">{testCase.name}</span>
-                            <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
-                          </ContextMenuItem>
-                        ))
-                      ) : (
-                        <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
-                      )}
-                    </ContextMenuSubContent>
-                  </ContextMenuSub>
-                  <ContextMenuItem onClick={() => importFromFile('merge')}>
-                    自现有文件
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
-              
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>以子用例方式载入到当前用例</ContextMenuSubTrigger>
-                <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
-                  <ContextMenuSub>
-                    <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
-                    <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
-                      {testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
-                        testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
-                          <ContextMenuItem key={testCase.id} onClick={() => loadTestCaseAsSubCaseToCurrentCase(testCase)} className="flex items-center justify-between">
-                            <span className="truncate mr-2">{testCase.name}</span>
-                            <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
-                          </ContextMenuItem>
-                        ))
-                      ) : (
-                        <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
-                      )}
-                    </ContextMenuSubContent>
-                  </ContextMenuSub>
-                  <ContextMenuItem onClick={() => importFromFile('subcase')}>
-                    自现有文件
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
-            </ContextMenuSubContent>
-          </ContextMenuSub>
-          
-          <ContextMenuSeparator />
-          
-          <ContextMenuItem 
-            onClick={deleteSelectedCommands} 
-            className="flex items-center gap-2 text-destructive"
-            disabled={!currentTestCase}
-          >
-            <Trash2 className="w-4 h-4" />
-            删除勾选的命令
-          </ContextMenuItem>
-          
-          <ContextMenuSeparator />
-          
-          <ContextMenuItem 
-            onClick={exportTestCase} 
-            className="flex items-center gap-2"
-            disabled={!currentTestCase}
-          >
-            <Download className="w-4 h-4" />
-            导出用例到...
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-
-      {/* 4. 测试用例切换区 */}
+      {/* 测试用例切换区 */}
       <TestCaseSwitcher 
         testCases={testCases}
         currentTestCase={currentTestCase}
@@ -2240,142 +1306,56 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         }}
       />
 
-      {/* 编辑命令对话框 */}
-      <Dialog open={editingCommandIndex !== null} onOpenChange={() => setEditingCommandIndex(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingCommandIndex !== null && currentTestCase && 
-                currentTestCase.commands[editingCommandIndex].type === 'execution' && '编辑命令配置'}
-              {editingCommandIndex !== null && currentTestCase && 
-                currentTestCase.commands[editingCommandIndex].type === 'urc' && '编辑URC配置'}
-            </DialogTitle>
-            <DialogDescription>
-              配置详细属性，包括执行参数、验证规则、错误处理等
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingCommandIndex !== null && currentTestCase && (
-            <div className="space-y-4">
-              {currentTestCase.commands[editingCommandIndex].type === 'execution' && (
-                <ExecutionEditor
-                  command={currentTestCase.commands[editingCommandIndex]}
-                  onUpdate={(updates) => {
-                    const updatedCommands = [...currentTestCase.commands];
-                    updatedCommands[editingCommandIndex] = {
-                      ...updatedCommands[editingCommandIndex],
-                      ...updates
-                    };
-                    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
-                      ...testCase,
-                      commands: updatedCommands
-                    }));
-                    setTestCases(updatedTestCases);
-                    
-                    // 自动保存更新后的用例
-                    const topLevelCase = getTopLevelParent(currentTestCase.id, updatedTestCases);
-                    if (topLevelCase) {
-                      scheduleAutoSave(topLevelCase);
-                    }
-                  }}
-                />
-              )}
-              {currentTestCase.commands[editingCommandIndex].type === 'urc' && (
-                <UrcEditor
-                  command={currentTestCase.commands[editingCommandIndex]}
-                  onUpdate={(updates) => {
-                    const updatedCommands = [...currentTestCase.commands];
-                    updatedCommands[editingCommandIndex] = {
-                      ...updatedCommands[editingCommandIndex],
-                      ...updates
-                    };
-                    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
-                      ...testCase,
-                      commands: updatedCommands
-                    }));
-                    setTestCases(updatedTestCases);
-                    
-                    // 自动保存更新后的用例
-                    const topLevelCase = getTopLevelParent(currentTestCase.id, updatedTestCases);
-                    if (topLevelCase) {
-                      scheduleAutoSave(topLevelCase);
-                    }
-                  }}
-                  jumpOptions={{
-                    commandOptions: buildCommandOptionsFromCase(currentTestCase)
-                  }}
-                />
-              )}
-              
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setEditingCommandIndex(null)}>
-                  取消
-                </Button>
-                <Button onClick={() => {
-                  setEditingCommandIndex(null);
-                  toast({
-                    title: "保存成功",
-                    description: "命令配置已更新",
-                  });
-                }}>
-                  保存
-                </Button>
-              </div>
-            </div>
-          )}
-          </DialogContent>
-        </Dialog>
+      {/* 执行结果对话框 */}
+      <RunResultDialog
+        isOpen={showRunResult}
+        onClose={() => setShowRunResult(false)}
+        result={runResult}
+      />
 
-        {/* 执行结果对话框 */}
-        <RunResultDialog
-          isOpen={showRunResult}
-          onClose={() => setShowRunResult(false)}
-          result={runResult}
-        />
+      {/* 用户操作确认对话框 */}
+      <AlertDialog open={userActionDialog.isOpen} onOpenChange={(open) => 
+        setUserActionDialog(prev => ({ ...prev, isOpen: open }))
+      }>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>操作前确认</AlertDialogTitle>
+            <AlertDialogDescription>
+              {userActionDialog.promptText}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel onClick={userActionDialog.onCancel}>
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={userActionDialog.onConfirm}>
+              开始执行
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
 
-        {/* 用户操作确认对话框 */}
-        <AlertDialog open={userActionDialog.isOpen} onOpenChange={(open) => 
-          setUserActionDialog(prev => ({ ...prev, isOpen: open }))
-        }>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>操作前确认</AlertDialogTitle>
-              <AlertDialogDescription>
-                {userActionDialog.promptText}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="flex justify-end gap-2">
-              <AlertDialogCancel onClick={userActionDialog.onCancel}>
-                取消
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={userActionDialog.onConfirm}>
-                开始执行
-              </AlertDialogAction>
-            </div>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* 失败处理提示对话框 */}
-        <AlertDialog open={failurePromptDialog.isOpen} onOpenChange={(open) => 
-          setFailurePromptDialog(prev => ({ ...prev, isOpen: open }))
-        }>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>执行失败处理</AlertDialogTitle>
-              <AlertDialogDescription className="whitespace-pre-wrap">
-                {failurePromptDialog.promptText}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="flex justify-end gap-2">
-              <AlertDialogCancel onClick={failurePromptDialog.onStop}>
-                停止执行
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={failurePromptDialog.onContinue}>
-                继续执行
-              </AlertDialogAction>
-            </div>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    );
-  };
+      {/* 失败处理提示对话框 */}
+      <AlertDialog open={failurePromptDialog.isOpen} onOpenChange={(open) => 
+        setFailurePromptDialog(prev => ({ ...prev, isOpen: open }))
+      }>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>执行失败处理</AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-wrap">
+              {failurePromptDialog.promptText}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel onClick={failurePromptDialog.onStop}>
+              停止执行
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={failurePromptDialog.onContinue}>
+              继续执行
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};

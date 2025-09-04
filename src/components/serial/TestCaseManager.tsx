@@ -1387,7 +1387,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             validationMethod: 'contains',
             validationPattern: 'OK',
             waitTime: 2000,
-            stopOnFailure: true,
+            failureHandling: 'stop',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1398,7 +1398,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             command: 'AT+CGMR',
             validationMethod: 'none',
             waitTime: 3000,
-            stopOnFailure: false,
+            failureHandling: 'continue',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1424,7 +1424,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             validationMethod: 'contains',
             validationPattern: '+CREG:',
             waitTime: 2000,
-            stopOnFailure: true,
+            failureHandling: 'stop',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1436,7 +1436,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             validationMethod: 'regex',
             validationPattern: '\\+CSQ: \\d+,\\d+',
             waitTime: 2000,
-            stopOnFailure: false,
+            failureHandling: 'continue',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1786,26 +1786,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                       (testCaseValidationLevel === 'error' && commandFailureSeverity === 'error');
             
             if (shouldTreatAsFailed) {
-              // 命令失败，检查 stopOnFailure 配置
-              if (command.stopOnFailure) {
-                statusMessages?.addMessage(`命令失败，根据stopOnFailure配置强制停止执行`, 'error');
-                // 记录失败信息
-                failureLogs.push({
-                  commandIndex: commandIndex,
-                  commandText: command.command,
-                  error: commandResult.error || '命令执行失败 (stopOnFailure=true)',
-                  timestamp: new Date()
-                });
-                
-                if (commandFailureSeverity === 'error') {
-                  errors++;
-                } else {
-                  warnings++;
-                }
-                failedCommands++;
-                break; // 使用break替代return，确保执行清理逻辑
-              }
-              
               // 命令失败，根据失败处理策略决定下一步
               if (command.failureHandling === 'stop') {
                 statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
@@ -2340,7 +2320,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       command: 'AT',
       validationMethod: 'none',
       waitTime: 1000,
-      stopOnFailure: false,
+      failureHandling: 'continue',
       lineEnding: 'crlf',
       selected: false,
       status: 'pending'
@@ -2368,7 +2348,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       command: 'URC监听',
       validationMethod: 'none',
       waitTime: 0,
-      stopOnFailure: false,
       lineEnding: 'none',
       selected: true,
       status: 'pending',

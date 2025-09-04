@@ -7,7 +7,6 @@ export interface TestCommand {
   validationMethod: 'none' | 'contains' | 'equals' | 'regex';
   validationPattern?: string;
   waitTime: number;
-  stopOnFailure: boolean;
   requiresUserAction?: boolean;
   userPrompt?: string;
   lineEnding: 'none' | 'lf' | 'cr' | 'crlf';

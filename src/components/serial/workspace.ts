@@ -109,19 +109,36 @@ export const getNextAlphanumericId = async (): Promise<string> => {
   return `DT${nextNum.toString().padStart(3, '0')}`;
 };
 
-// Convert TestCase to PersistedTestCase (remove runtime fields)
+// Convert TestCase to PersistedTestCase (remove runtime fields and clean deprecated properties)
 export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
+  // Clean commands to remove deprecated properties and ensure proper format
+  const cleanCommands = (commands: any[]): any[] => {
+    return commands.map(cmd => {
+      const cleanedCmd = {
+        ...cmd,
+        status: 'pending', // reset status
+        selected: false,   // reset selection
+        expectedResponseFormat: cmd.expectedResponseFormat || 'text' // ensure backward compatibility
+      };
+      
+      // Remove deprecated stopOnFailure property if it exists
+      delete cleanedCmd.stopOnFailure;
+      
+      // Ensure failureHandling has a valid value
+      if (!cleanedCmd.failureHandling) {
+        cleanedCmd.failureHandling = 'stop';
+      }
+      
+      return cleanedCmd;
+    });
+  };
+
   return {
     id: testCase.id,
     uniqueId: testCase.uniqueId,
     name: testCase.name,
     description: testCase.description,
-    commands: testCase.commands.map(cmd => ({
-      ...cmd,
-      status: 'pending', // reset status
-      selected: false,   // reset selection
-      expectedResponseFormat: cmd.expectedResponseFormat || 'text' // ensure backward compatibility
-    })),
+    commands: cleanCommands(testCase.commands),
     subCases: testCase.subCases.map(toPersistedCase),
     childrenOrder: testCase.childrenOrder,
     failureHandling: testCase.failureHandling,
@@ -132,10 +149,31 @@ export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
   };
 };
 
-// Convert PersistedTestCase to TestCase (add runtime fields)
+// Convert PersistedTestCase to TestCase (add runtime fields and migrate old properties)
 export const fromPersistedCase = (persistedCase: PersistedTestCase): TestCase => {
+  // Migration logic: convert old stopOnFailure to failureHandling
+  const migrateCommands = (commands: any[]): any[] => {
+    return commands.map(cmd => {
+      const migratedCmd = { ...cmd };
+      
+      // Migrate stopOnFailure to failureHandling for backward compatibility
+      if (typeof migratedCmd.stopOnFailure === 'boolean') {
+        migratedCmd.failureHandling = migratedCmd.stopOnFailure ? 'stop' : 'continue';
+        delete migratedCmd.stopOnFailure; // Remove old property
+      }
+      
+      // Ensure failureHandling has a default value
+      if (!migratedCmd.failureHandling) {
+        migratedCmd.failureHandling = 'stop';
+      }
+      
+      return migratedCmd;
+    });
+  };
+
   return {
     ...persistedCase,
+    commands: migrateCommands(persistedCase.commands),
     childrenOrder: persistedCase.childrenOrder,
     isExpanded: false,
     isRunning: false,

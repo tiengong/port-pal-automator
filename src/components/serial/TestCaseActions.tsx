@@ -80,7 +80,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       command: 'AT',
       validationMethod: 'none',
       waitTime: 1000,
-      stopOnFailure: false,
+      failureHandling: 'stop',
       lineEnding: 'crlf',
       selected: false,
       status: 'pending'
@@ -121,7 +121,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       command: t("testCase.urcListener"),
       validationMethod: 'none',
       waitTime: 0,
-      stopOnFailure: false,
+      failureHandling: 'stop',
       lineEnding: 'none',
       selected: true,
       status: 'pending',

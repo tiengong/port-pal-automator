@@ -330,6 +330,9 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectItem value="retry">{t('editor.execution.retry')}</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              停止: 命令失败时立即停止测试用例执行；继续: 忽略失败继续执行；提示: 弹框让用户决定；重试: 自动重试指定次数
+            </p>
           </div>
 
           {command.failureHandling === 'retry' && (
@@ -365,18 +368,6 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
             </Select>
           </div>
 
-          {/* 新增：停止失败配置 */}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="stopOnFailure"
-              checked={command.stopOnFailure || false}
-              onCheckedChange={(checked) => updateCommand('stopOnFailure', checked)}
-            />
-            <Label htmlFor="stopOnFailure">命令失败时停止执行</Label>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            启用后，当此命令失败时将停止整个测试用例的执行
-          </p>
         </CardContent>
       </Card>
 

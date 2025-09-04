@@ -35,6 +35,7 @@ import {
   RotateCcw,
   Hash
 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { globalToast } from "@/hooks/useGlobalMessages";
 import { useTranslation } from "react-i18next";
@@ -55,6 +56,8 @@ import { findTestCaseById, getTopLevelParent, findParentCase, updateCaseById, ad
 import { findCommandLocation, getFirstExecutableInCase, getNextStepFrom, buildCommandOptionsFromCase } from './testCaseNavigationUtils';
 import { parseUrcData, substituteVariables, checkUrcMatch } from './testCaseUrcUtils';
 import { CommandRow } from './CommandRow';
+import { sampleTestCases } from './sampleCases';
+import { CaseEditDialogInline } from './components/CaseEditDialogInline';
 
 interface TestCaseManagerProps {
   connectedPorts: Array<{
@@ -126,6 +129,34 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   // 运行结果状态
   const [runResult, setRunResult] = useState<TestRunResult | null>(null);
   const [showRunResult, setShowRunResult] = useState(false);
+  
+  // 用户操作确认对话框状态
+  const [userActionDialog, setUserActionDialog] = useState<{
+    isOpen: boolean;
+    commandText: string;
+    promptText: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }>({
+    isOpen: false,
+    commandText: '',
+    promptText: '',
+    onConfirm: () => {},
+    onCancel: () => {}
+  });
+  
+  // 失败处理提示对话框状态
+  const [failurePromptDialog, setFailurePromptDialog] = useState<{
+    isOpen: boolean;
+    promptText: string;
+    onContinue: () => void;
+    onStop: () => void;
+  }>({
+    isOpen: false,
+    promptText: '',
+    onContinue: () => {},
+    onStop: () => {}
+  });
   
   // 跟踪最后焦点的子项（用于精确插入子用例位置）
   const [lastFocusedChild, setLastFocusedChild] = useState<{
@@ -645,25 +676,50 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             });
           }
           
-          // 根据命令结果和失败处理策略决定是否继续
+          // 根据命令结果和用例级失败策略决定是否继续
           if (!commandResult.success) {
-            // 命令失败，根据失败处理策略决定下一步
-            if (command.failureHandling === 'stop') {
-              statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
+            // 获取命令失败的严重级别
+            const severity = command.failureSeverity || 'error';
+            
+            // 确定用例级别的处理策略
+            let caseAction: 'stop' | 'continue' | 'prompt';
+            if (severity === 'error') {
+              caseAction = testCase.onErrorFailure || testCase.failureStrategy || 'stop';
+            } else {
+              caseAction = testCase.onWarningFailure || testCase.failureStrategy || 'continue';
+            }
+            
+            // 根据用例策略执行相应的操作
+            if (caseAction === 'stop') {
+              statusMessages?.addMessage(`命令失败（${severity}级），停止执行测试用例`, 'error');
+              runningCasesRef.current.delete(caseId);
+              setExecutingCommand({ caseId: null, commandIndex: null });
               return;
-            } else if (command.failureHandling === 'retry') {
-              // 重试已在runCommand中处理，这里检查用例级失败策略
-              if (command.failureSeverity === 'error' && testCase.failureHandling === 'stop') {
-                statusMessages?.addMessage(`命令执行失败（严重错误），停止执行测试用例`, 'error');
-                return;
-              }
-              // 否则继续执行下一条命令
-            } else if (command.failureHandling === 'continue') {
-              // 继续执行下一条命令
-              statusMessages?.addMessage(`命令失败，但继续执行下一条`, 'warning');
-            } else if (command.failureHandling === 'prompt') {
-              // TODO: 实现用户提示逻辑，当前按继续处理
-              statusMessages?.addMessage(`命令失败，等待用户确认（暂时继续执行）`, 'warning');
+            } else if (caseAction === 'prompt') {
+              // 显示用户确认对话框
+              const promptText = command.failurePrompt || `命令执行失败（${severity}级）: ${command.command}\n\n是否继续执行测试用例？`;
+              
+              return new Promise<void>((resolve, reject) => {
+                setFailurePromptDialog({
+                  isOpen: true,
+                  promptText,
+                  onContinue: () => {
+                    setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
+                    statusMessages?.addMessage(`用户选择继续执行`, 'info');
+                    resolve();
+                  },
+                  onStop: () => {
+                    setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
+                    statusMessages?.addMessage(`用户选择停止执行`, 'warning');
+                    runningCasesRef.current.delete(caseId);
+                    setExecutingCommand({ caseId: null, commandIndex: null });
+                    reject(new Error('用户选择停止执行'));
+                  }
+                });
+              });
+            } else {
+              // continue - 继续执行下一条命令
+              statusMessages?.addMessage(`命令失败（${severity}级），但继续执行下一条`, 'warning');
             }
           }
           
@@ -740,6 +796,31 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     if (!targetCase) return { success: false, error: '测试用例未找到' };
     
     const command = targetCase.commands[commandIndex];
+    
+    // 检查是否需要用户操作前确认
+    if (command.requiresUserAction) {
+      const promptText = command.userPrompt || `即将执行命令: ${command.command}\n\n是否继续？`;
+      
+      const userConfirmed = await new Promise<boolean>((resolve) => {
+        setUserActionDialog({
+          isOpen: true,
+          commandText: command.command,
+          promptText,
+          onConfirm: () => {
+            setUserActionDialog(prev => ({ ...prev, isOpen: false }));
+            resolve(true);
+          },
+          onCancel: () => {
+            setUserActionDialog(prev => ({ ...prev, isOpen: false }));
+            resolve(false);
+          }
+        });
+      });
+      
+      if (!userConfirmed) {
+        return { success: false, error: '用户取消执行' };
+      }
+    }
     
     // 设置当前执行的命令高亮
     setExecutingCommand({ caseId, commandIndex });
@@ -859,7 +940,35 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         return { success: true };
       }
     } else if (command.type === 'urc') {
+      // URC 监听逻辑
       statusMessages?.addMessage(`URC监听: ${command.urcPattern}`, 'info');
+      
+      // 如果是一次性监听且配置了超时时间，设置超时检查
+      if (command.urcListenMode === 'once' && command.urcListenTimeout) {
+        const timeoutPromise = new Promise<{ success: boolean; error?: string }>((resolve) => {
+          setTimeout(() => {
+            if (!triggeredUrcIds.has(command.id)) {
+              // URC 超时失败
+              const severity = command.failureSeverity || 'error';
+              
+              // 更新命令状态为失败
+              const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+                ...tc,
+                commands: tc.commands.map((cmd, idx) => 
+                  idx === commandIndex ? { ...cmd, status: 'failed' } : cmd
+                )
+              }));
+              setTestCases(updatedTestCases);
+              
+              statusMessages?.addMessage(`URC监听超时失败（${severity}级）: ${command.urcPattern}`, severity === 'error' ? 'error' : 'warning');
+              resolve({ success: false, error: `URC监听超时（${command.urcListenTimeout}ms）` });
+            }
+          }, command.urcListenTimeout);
+        });
+        
+        return timeoutPromise;
+      }
+      
       return { success: true };
     }
     
@@ -1971,104 +2080,19 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       />
 
       {/* 编辑测试用例对话框 */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>编辑测试用例</DialogTitle>
-            <DialogDescription>
-              修改测试用例的基本信息和配置
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingCase && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="case-name">用例名称</Label>
-                  <Input
-                    id="case-name"
-                    value={editingCase.name}
-                    onChange={(e) => setEditingCase({ ...editingCase, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="case-id">用例编号</Label>
-                  <Input
-                    id="case-id"
-                    value={editingCase.uniqueId}
-                    onChange={(e) => setEditingCase({ ...editingCase, uniqueId: e.target.value })}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="case-description">用例描述</Label>
-                <Textarea
-                  id="case-description"
-                  value={editingCase.description}
-                  onChange={(e) => setEditingCase({ ...editingCase, description: e.target.value })}
-                  rows={3}
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="case-failure-handling">失败处理方式</Label>
-                  <Select
-                    value={editingCase.failureHandling || 'stop'}
-                    onValueChange={(value) => setEditingCase({ ...editingCase, failureHandling: value as 'stop' | 'continue' | 'prompt' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="stop">停止执行</SelectItem>
-                      <SelectItem value="continue">继续执行</SelectItem>
-                      <SelectItem value="prompt">提示用户</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="case-run-count">运行次数</Label>
-                  <Input
-                    id="case-run-count"
-                    type="number"
-                    min="1"
-                    max="999"
-                    value={editingCase.runCount || 1}
-                    onChange={(e) => setEditingCase({ 
-                      ...editingCase, 
-                      runCount: parseInt(e.target.value) || 1 
-                    })}
-                    placeholder="1"
-                  />
-                  <div className="text-xs text-muted-foreground mt-1">
-                    设置测试用例执行次数 (1-999次)
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  取消
-                </Button>
-                <Button onClick={() => {
-                  applyUpdateAndAutoSave(editingCase.id, () => editingCase);
-                  setIsEditDialogOpen(false);
-                  setEditingCase(null);
-                  toast({
-                    title: "保存成功",
-                    description: "测试用例已更新",
-                  });
-                }}>
-                  保存
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <CaseEditDialogInline
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        editingCase={editingCase}
+        setEditingCase={setEditingCase}
+        onSave={(caseId, updatedCase) => {
+          applyUpdateAndAutoSave(caseId, () => updatedCase);
+          toast({
+            title: "保存成功",
+            description: "测试用例已更新",
+          });
+        }}
+      />
 
       {/* 编辑命令对话框 */}
       <Dialog open={editingCommandIndex !== null} onOpenChange={() => setEditingCommandIndex(null)}>
@@ -2162,6 +2186,50 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           onClose={() => setShowRunResult(false)}
           result={runResult}
         />
+
+        {/* 用户操作确认对话框 */}
+        <AlertDialog open={userActionDialog.isOpen} onOpenChange={(open) => 
+          setUserActionDialog(prev => ({ ...prev, isOpen: open }))
+        }>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>操作前确认</AlertDialogTitle>
+              <AlertDialogDescription>
+                {userActionDialog.promptText}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex justify-end gap-2">
+              <AlertDialogCancel onClick={userActionDialog.onCancel}>
+                取消
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={userActionDialog.onConfirm}>
+                开始执行
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* 失败处理提示对话框 */}
+        <AlertDialog open={failurePromptDialog.isOpen} onOpenChange={(open) => 
+          setFailurePromptDialog(prev => ({ ...prev, isOpen: open }))
+        }>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>执行失败处理</AlertDialogTitle>
+              <AlertDialogDescription className="whitespace-pre-wrap">
+                {failurePromptDialog.promptText}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex justify-end gap-2">
+              <AlertDialogCancel onClick={failurePromptDialog.onStop}>
+                停止执行
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={failurePromptDialog.onContinue}>
+                继续执行
+              </AlertDialogAction>
+            </div>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   };

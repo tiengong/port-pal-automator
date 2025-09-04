@@ -29,6 +29,7 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
       failureStrategy: editingCase.failureStrategy || editingCase.failureHandling || 'stop',
       onWarningFailure: editingCase.onWarningFailure || editingCase.failureStrategy || 'continue',
       onErrorFailure: editingCase.onErrorFailure || editingCase.failureStrategy || 'stop',
+      validationLevel: editingCase.validationLevel || 'error',
       runCount: editingCase.runCount
     };
     
@@ -101,6 +102,28 @@ export const TestCaseEditor: React.FC<TestCaseEditorProps> = ({
                 placeholder="1"
               />
             </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="validation-level">异常检测等级</Label>
+            <Select
+              value={editingCase.validationLevel || 'error'}
+              onValueChange={(value) => setEditingCase({ 
+                ...editingCase, 
+                validationLevel: value as 'warning' | 'error' 
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="error">错误级别（仅错误导致失败）</SelectItem>
+                <SelectItem value="warning">警告级别（警告和错误都导致失败）</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground mt-1">
+              设置测试用例执行过程中的异常检测等级，决定何种程度的异常会导致用例失败
+            </p>
           </div>
           
           <div className="grid grid-cols-2 gap-4">

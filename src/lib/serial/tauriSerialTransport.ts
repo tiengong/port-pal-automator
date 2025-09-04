@@ -37,10 +37,9 @@ export class TauriSerialTransport extends SerialTransport {
           deviceName = this.getDeviceName(port.usb_vid, port.usb_pid);
         }
         
-        // For Tauri, show simpler name format
         return {
           id: `tauri-${index}`,
-          name: port.port_name,
+          name: `${port.port_name} (${deviceName})`,
           path: port.port_name
         };
       });

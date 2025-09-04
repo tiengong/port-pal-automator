@@ -59,6 +59,12 @@ import { CommandRow } from './CommandRow';
 import { sampleTestCases } from './sampleCases';
 import { CaseEditDialogInline } from './components/CaseEditDialogInline';
 
+// Import new modular components and hooks
+import { useTestCaseState } from './hooks/useTestCaseState';
+import { useTestCaseActions } from './hooks/useTestCaseActions';
+import { useTestCaseExecution } from './hooks/useTestCaseExecution';
+import { TestCaseDialogs } from './components/TestCaseDialogs';
+
 interface TestCaseManagerProps {
   connectedPorts: Array<{
     port: any;
@@ -77,54 +83,50 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 }) => {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const contextMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Use modular state management
+  const testCaseState = useTestCaseState();
+  
+  // Use modular actions
+  const testCaseActions = useTestCaseActions({
+    testCases: testCaseState.testCases,
+    setTestCases: testCaseState.setTestCases,
+    generateUniqueId: testCaseState.generateUniqueId,
+    setInlineEdit: testCaseState.setInlineEdit,
+    inlineEdit: testCaseState.inlineEdit
+  });
+  
+  // Use modular execution
+  const testCaseExecution = useTestCaseExecution({
+    onStatusUpdate: (message, type) => statusMessages?.addMessage?.(message, type),
+    onCommandUpdate: (caseId, commandIndex, updates) => {
+      const updatedTestCases = updateCaseById(testCaseState.testCases, caseId, (testCase) => ({
+        ...testCase,
+        commands: testCase.commands.map((cmd, idx) =>
+          idx === commandIndex ? { ...cmd, ...updates } : cmd
+        )
+      }));
+      testCaseState.setTestCases(updatedTestCases);
+    },
+    onCaseUpdate: (caseId, updates) => {
+      const updatedTestCases = updateCaseById(testCaseState.testCases, caseId, (testCase) => ({
+        ...testCase,
+        ...updates
+      }));
+      testCaseState.setTestCases(updatedTestCases);
+    }
+  });
   
   // Track running test cases to prevent race conditions
-  const runningCasesRef = useRef<Set<string>>(new Set());
+  const runningCasesRef = testCaseState.runningCasesRef;
+  const contextMenuRef = testCaseState.contextMenuRef;
+  
   
   // AT命令库
   const atCommands = [
     'AT', 'AT+CGMR', 'AT+CGMI', 'AT+CGSN', 'AT+CSQ', 'AT+CREG', 'AT+COPS',
     'AT+CGATT', 'AT+CGACT', 'AT+CGDCONT', 'AT+CPINR', 'AT+CPIN', 'AT+CCID'
   ];
-  
-  // 状态管理
-  const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [selectedCase, setSelectedCase] = useState<TestCase | null>(null);
-  const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
-  const [editingCase, setEditingCase] = useState<TestCase | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
-  const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
-  const [waitingForUser, setWaitingForUser] = useState(false);
-  const [userPrompt, setUserPrompt] = useState('');
-  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
-    visible: false,
-    x: 0,
-    y: 0,
-    targetId: '',
-    targetType: 'case'
-  });
-  const [nextUniqueId, setNextUniqueId] = useState(1001);
-  const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
-  
-  // Drag and drop state for unified children (commands and subcases)
-  const [dragInfo, setDragInfo] = useState<{
-    draggedItem: { caseId: string; type: 'command' | 'subcase'; itemId: string; index: number } | null;
-    dropTarget: { caseId: string; index: number; position: 'above' | 'below' } | null;
-  }>({ draggedItem: null, dropTarget: null });
-
-  // Inline editing state
-  const [inlineEdit, setInlineEdit] = useState<{
-    commandId: string | null;
-    value: string;
-  }>({ commandId: null, value: '' });
-
-  // 当前执行命令状态
-  const [executingCommand, setExecutingCommand] = useState<{
-    caseId: string | null;
-    commandIndex: number | null;
-  }>({ caseId: null, commandIndex: null });
   
   // 运行结果状态
   const [runResult, setRunResult] = useState<TestRunResult | null>(null);
@@ -157,20 +159,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     onContinue: () => {},
     onStop: () => {}
   });
-  
-  // 跟踪最后焦点的子项（用于精确插入子用例位置）
-  const [lastFocusedChild, setLastFocusedChild] = useState<{
-    caseId: string;
-    type: 'command' | 'subcase';
-    itemId: string;
-    index: number;
-  } | null>(null);
-  
-  // 参数存储系统 - 用于URC解析的参数（端口内作用域）
-  const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
-  
-  // 跟踪已触发的永久URC ID，防止重复触发
-  const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
   
   // Initialize workspace and load test cases
   useEffect(() => {

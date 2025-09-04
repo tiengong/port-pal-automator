@@ -1,3 +1,4 @@
+// types.ts
 export interface TestCommand {
   id: string;
   type: 'execution' | 'urc';
@@ -7,6 +8,7 @@ export interface TestCommand {
   validationMethod: 'none' | 'contains' | 'equals' | 'regex';
   validationPattern?: string;
   waitTime: number;
+  stopOnFailure: boolean;
   requiresUserAction?: boolean;
   userPrompt?: string;
   lineEnding: 'none' | 'lf' | 'cr' | 'crlf';
@@ -19,7 +21,8 @@ export interface TestCommand {
   failureHandling?: 'stop' | 'continue' | 'prompt' | 'retry'; // 失败处理方式
   maxAttempts?: number; // 重复执行次数（默认3次）
   failureSeverity?: 'warning' | 'error'; // 失败异常等级：警告/异常
-  
+  userActionDialog?: boolean; // 是否需要用户操作弹框
+  dialogContent?: string; // 弹框内容
   
   // URC特有字段
   urcPattern?: string; // URC匹配内容

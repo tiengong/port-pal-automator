@@ -1928,9 +1928,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           }
         }
       }
+    }
 
-      // 执行完成，清除运行状态
-      runningCasesRef.current.delete(caseId);
+    // 执行完成，清除运行状态
+    runningCasesRef.current.delete(caseId);
       setExecutingCommand({ caseId: null, commandIndex: null });
       
       // 确定最终状态

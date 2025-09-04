@@ -364,6 +364,19 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* 新增：停止失败配置 */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="stopOnFailure"
+              checked={command.stopOnFailure || false}
+              onCheckedChange={(checked) => updateCommand('stopOnFailure', checked)}
+            />
+            <Label htmlFor="stopOnFailure">命令失败时停止执行</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            启用后，当此命令失败时将停止整个测试用例的执行
+          </p>
         </CardContent>
       </Card>
 
@@ -394,6 +407,32 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 onChange={(e) => updateCommand('dialogContent', e.target.value)}
                 placeholder={t('editor.execution.dialogContentPlaceholder')}
                 rows={3}
+              />
+            </div>
+          )}
+
+          {/* 新增：用户操作确认配置 */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="requiresUserAction"
+              checked={command.requiresUserAction || false}
+              onCheckedChange={(checked) => updateCommand('requiresUserAction', checked)}
+            />
+            <Label htmlFor="requiresUserAction">需要用户手动确认</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            启用后，执行此命令前会等待用户手动确认
+          </p>
+          
+          {command.requiresUserAction && (
+            <div>
+              <Label htmlFor="userPrompt">用户确认提示</Label>
+              <Textarea
+                id="userPrompt"
+                value={command.userPrompt || ''}
+                onChange={(e) => updateCommand('userPrompt', e.target.value)}
+                placeholder="请输入需要用户确认的提示信息，例如：请确认设备已连接并处于正确状态"
+                rows={2}
               />
             </div>
           )}

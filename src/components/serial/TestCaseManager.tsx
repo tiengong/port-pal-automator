@@ -1676,6 +1676,43 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           
           console.log(`Executing command ${j + 1}/${commandsToRun.length}: ${command.command}`);
           
+          // 检查是否需要用户手动确认
+          if (command.requiresUserAction) {
+            const shouldContinue = await new Promise<boolean>((resolve) => {
+              const dialog = document.createElement('div');
+              dialog.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                  <div style="background: white; padding: 20px; border-radius: 8px; max-width: 500px; text-align: center;">
+                    <h3 style="margin: 0 0 10px 0; color: #2563eb;">需要用户确认</h3>
+                    <p style="margin: 0 0 10px 0; color: #374151;">即将执行命令：</p>
+                    <p style="margin: 0 0 15px 0; color: #6b7280; font-family: monospace; background: #f3f4f6; padding: 8px; border-radius: 4px;">${command.command}</p>
+                    ${command.userPrompt ? `<p style="margin: 0 0 15px 0; color: #374151; font-weight: 500;">${command.userPrompt}</p>` : ''}
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                      <button id="continue-btn" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">确认执行</button>
+                      <button id="stop-btn" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">停止执行</button>
+                    </div>
+                  </div>
+                </div>
+              `;
+              document.body.appendChild(dialog);
+              
+              dialog.querySelector('#continue-btn')?.addEventListener('click', () => {
+                document.body.removeChild(dialog);
+                resolve(true);
+              });
+              
+              dialog.querySelector('#stop-btn')?.addEventListener('click', () => {
+                document.body.removeChild(dialog);
+                resolve(false);
+              });
+            });
+            
+            if (!shouldContinue) {
+              statusMessages?.addMessage(`用户取消执行命令: ${command.command}`, 'warning');
+              return;
+            }
+          }
+          
           // 单步模式：每个命令执行前等待用户确认
           if (testCase.runMode === 'single' && j > 0) {
             const shouldContinue = await new Promise<boolean>((resolve) => {
@@ -1749,6 +1786,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                       (testCaseValidationLevel === 'error' && commandFailureSeverity === 'error');
             
             if (shouldTreatAsFailed) {
+              // 命令失败，检查 stopOnFailure 配置
+              if (command.stopOnFailure) {
+                statusMessages?.addMessage(`命令失败，根据stopOnFailure配置强制停止执行`, 'error');
+                // 记录失败信息
+                failureLogs.push({
+                  commandIndex: commandIndex,
+                  commandText: command.command,
+                  error: commandResult.error || '命令执行失败 (stopOnFailure=true)',
+                  timestamp: new Date()
+                });
+                
+                if (commandFailureSeverity === 'error') {
+                  errors++;
+                } else {
+                  warnings++;
+                }
+                failedCommands++;
+                return; // 强制停止执行
+              }
+              
               // 命令失败，根据失败处理策略决定下一步
               if (command.failureHandling === 'stop') {
                 statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');

@@ -599,7 +599,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ALL">{t('terminal.ui.bothPorts')}</SelectItem>
+                          <SelectItem value="ALL">{t('terminal.ui.allPorts')}</SelectItem>
                           <SelectItem value="P1">P1</SelectItem>
                           <SelectItem value="P2">P2</SelectItem>
                         </SelectContent>
@@ -641,12 +641,12 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     className="flex items-center gap-1"
                   >
                     <Trash2 className="w-3 h-3" />
-                    {t('terminal.ui.clear')}
+                    {t('terminal.ui.clearLogs')}
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <p>{t('terminal.ui.clearAllLogs')}</p>
-                </TooltipContent>
+                 <TooltipContent>
+                   <p>{t('terminal.ui.clearLogs')}</p>
+                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
             
@@ -660,7 +660,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     className="flex items-center gap-1"
                   >
                     <Download className="w-3 h-3" />
-                    {t('terminal.ui.export')}
+                    {t('terminal.ui.exportLogs')}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -758,8 +758,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     {/* 端口统计 */}
                     <div className="p-2 border-t border-border bg-muted/30">
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{t('terminal.ui.sent')}: {stats[index]?.sentBytes || 0} bytes</span>
-                        <span>{t('terminal.ui.received')}: {stats[index]?.receivedBytes || 0} bytes</span>
+                        <span>{t('terminal.ui.sentBytes')}: {stats[index]?.sentBytes || 0} {t('terminal.ui.bytes')}</span>
+                        <span>{t('terminal.ui.receivedBytes')}: {stats[index]?.receivedBytes || 0} {t('terminal.ui.bytes')}</span>
                       </div>
                     </div>
                   </div>
@@ -780,7 +780,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                       {t('terminal.ui.mergedView')}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      TX: {strategy.txPort} | RX: {t('terminal.ui.bothPorts')}
+                      TX: {strategy.txPort} | RX: {t('terminal.ui.allPorts')}
                     </span>
                   </>
                 ) : (
@@ -873,14 +873,14 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
                   {connectedPortLabels.map((portInfo, index) => (
                     <div key={index} className="flex justify-between">
-                      <span>{portInfo.label}: {t('terminal.ui.sent')} {stats[index]?.sentBytes || 0} / {t('terminal.ui.received')} {stats[index]?.receivedBytes || 0} bytes</span>
+                      <span>{portInfo.label}: {t('terminal.ui.sentBytes')} {stats[index]?.sentBytes || 0} / {t('terminal.ui.receivedBytes')} {stats[index]?.receivedBytes || 0} {t('terminal.ui.bytes')}</span>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('terminal.ui.sent')}: {stats[0]?.sentBytes || 0} bytes</span>
-                  <span>{t('terminal.ui.received')}: {stats[0]?.receivedBytes || 0} bytes</span>
+                  <span>{t('terminal.ui.sentBytes')}: {stats[0]?.sentBytes || 0} {t('terminal.ui.bytes')}</span>
+                  <span>{t('terminal.ui.receivedBytes')}: {stats[0]?.receivedBytes || 0} {t('terminal.ui.bytes')}</span>
                 </div>
               )}
             </div>
@@ -941,7 +941,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">{t('terminal.ui.all')}</SelectItem>
+                    <SelectItem value="ALL">{t('terminal.ui.allPorts')}</SelectItem>
                     <SelectItem value="P1">P1</SelectItem>
                     <SelectItem value="P2">P2</SelectItem>
                   </SelectContent>

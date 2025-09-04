@@ -22,6 +22,12 @@ export interface AppSettings {
   autoScroll: boolean;
   displayFormat: 'utf8' | 'hex';
   
+  // 终端显示设置
+  terminalFontSize: number;
+  terminalLineHeight: 'compact' | 'normal' | 'loose';
+  terminalRowGap: number;
+  terminalColorMode: 'black' | 'byType';
+  
   // 快捷键设置
   shortcuts: {
     saveConfig: string;
@@ -51,6 +57,11 @@ export const defaultSettings: AppSettings = {
   showTimestamp: true,
   autoScroll: true,
   displayFormat: 'utf8',
+  
+  terminalFontSize: 12,
+  terminalLineHeight: 'compact',
+  terminalRowGap: 0,
+  terminalColorMode: 'black',
   
   shortcuts: {
     saveConfig: 'Ctrl+S',

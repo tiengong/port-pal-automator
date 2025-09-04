@@ -32,7 +32,8 @@
     "tabs": {
       "general": "General",
       "serial": "Serial",
-      "display": "Display"
+      "display": "Display",
+      "terminal": "Terminal"
     },
     "general": {
       "theme": "Theme",
@@ -65,6 +66,20 @@
       "displayFormat": "Display Format",
       "formatAscii": "UTF-8",
       "formatHex": "HEX"
+    },
+    "terminal": {
+      "fontSize": "Terminal Font Size",
+      "fontSizeDesc": "Set terminal log font size (8-24px)",
+      "lineHeight": "Line Height",
+      "lineHeightCompact": "Compact",
+      "lineHeightNormal": "Normal",
+      "lineHeightLoose": "Loose",
+      "rowGap": "Row Gap (px)",
+      "rowGapDesc": "Set gap between log rows (0-10px)",
+      "colorMode": "Color Mode", 
+      "colorModeBlack": "Uniform Black",
+      "colorModeByType": "Color by Type",
+      "colorModeDesc": "Choose terminal text color display mode"
     },
     "summary": {
       "title": "Current Settings Summary",

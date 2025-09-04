@@ -113,10 +113,11 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
       
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">{t('settings.tabs.general')}</TabsTrigger>
             <TabsTrigger value="serial">{t('settings.tabs.serial')}</TabsTrigger>
             <TabsTrigger value="display">{t('settings.tabs.display')}</TabsTrigger>
+            <TabsTrigger value="terminal">{t('settings.tabs.terminal')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-4 mt-4">
@@ -367,6 +368,76 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
                   </Badge>
                 </div>
               ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="terminal" className="space-y-4 mt-4">
+            {/* 终端字体大小 */}
+            <div className="space-y-2">
+              <Label>{t('settings.terminal.fontSize')}</Label>
+              <Input
+                type="number"
+                min="8"
+                max="24"
+                value={settings.terminalFontSize}
+                onChange={(e) => updateSetting('terminalFontSize', parseInt(e.target.value) || 12)}
+              />
+              <div className="text-xs text-muted-foreground">
+                {t('settings.terminal.fontSizeDesc')}
+              </div>
+            </div>
+
+            {/* 行高设置 */}
+            <div className="space-y-2">
+              <Label>{t('settings.terminal.lineHeight')}</Label>
+              <Select 
+                value={settings.terminalLineHeight} 
+                onValueChange={(value: any) => updateSetting('terminalLineHeight', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="compact">{t('settings.terminal.lineHeightCompact')}</SelectItem>
+                  <SelectItem value="normal">{t('settings.terminal.lineHeightNormal')}</SelectItem>
+                  <SelectItem value="loose">{t('settings.terminal.lineHeightLoose')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 行间距设置 */}
+            <div className="space-y-2">
+              <Label>{t('settings.terminal.rowGap')}</Label>
+              <Input
+                type="number"
+                min="0"
+                max="10"
+                value={settings.terminalRowGap}
+                onChange={(e) => updateSetting('terminalRowGap', parseInt(e.target.value) || 0)}
+              />
+              <div className="text-xs text-muted-foreground">
+                {t('settings.terminal.rowGapDesc')}
+              </div>
+            </div>
+
+            {/* 颜色模式 */}
+            <div className="space-y-2">
+              <Label>{t('settings.terminal.colorMode')}</Label>
+              <Select 
+                value={settings.terminalColorMode} 
+                onValueChange={(value: any) => updateSetting('terminalColorMode', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="black">{t('settings.terminal.colorModeBlack')}</SelectItem>
+                  <SelectItem value="byType">{t('settings.terminal.colorModeByType')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="text-xs text-muted-foreground">
+                {t('settings.terminal.colorModeDesc')}
+              </div>
             </div>
           </TabsContent>
         </Tabs>

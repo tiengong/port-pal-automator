@@ -83,6 +83,39 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   // 统计信息
   const [stats, setStats] = useState<{ [portIndex: number]: { sentBytes: number; receivedBytes: number; totalLogs: number } }>({});
 
+  // Terminal styling utilities
+  const getLineHeight = () => {
+    switch (settings.terminalLineHeight) {
+      case 'compact': return '1.2';
+      case 'normal': return '1.5';
+      case 'loose': return '1.8';
+      default: return '1.2';
+    }
+  };
+
+  const getTextColor = (logType: LogEntry['type']) => {
+    if (settings.terminalColorMode === 'black') {
+      return 'text-foreground';
+    }
+    
+    // By type coloring
+    switch (logType) {
+      case 'sent': return 'text-blue-600 dark:text-blue-400';
+      case 'received': return 'text-green-600 dark:text-green-400';
+      case 'system': return 'text-yellow-600 dark:text-yellow-400';
+      default: return 'text-foreground';
+    }
+  };
+
+  const getBadgeContent = (logType: LogEntry['type']) => {
+    switch (logType) {
+      case 'sent': return '[TX]';
+      case 'received': return '[RX]'; 
+      case 'system': return '[SYS]';
+      default: return '[?]';
+    }
+  };
+
   // 同步设置到组件状态
   useEffect(() => {
     setDisplayFormat(settings.displayFormat);
@@ -713,47 +746,49 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                       </div>
                     </div>
                     
-                    {/* 终端输出 */}
-                    <div 
-                      ref={el => terminalRefs.current[index] = el}
-                      className="flex-1 overflow-auto p-2 font-mono text-sm bg-background"
-                      style={{ 
-                        fontSize: settings.fontSize ? `${settings.fontSize}px` : '12px',
-                        scrollBehavior: synchronizedScrolling ? 'smooth' : 'auto'
-                      }}
-                      onScroll={(e) => {
-                        if (synchronizedScrolling && connectedPorts.length > 1) {
-                          const scrollTop = e.currentTarget.scrollTop;
-                          terminalRefs.current.forEach((ref, refIndex) => {
-                            if (ref && refIndex !== index) {
-                              ref.scrollTop = scrollTop;
-                            }
-                          });
-                        }
-                      }}
-                    >
-                      {(logs[index] || []).map((log) => (
-                        <div key={log.id} className="whitespace-pre-wrap break-all mb-1">
-                          {showTimestamp && (
-                            <span className="text-muted-foreground mr-2">
-                              [{log.timestamp.toLocaleTimeString()}]
-                            </span>
-                          )}
-                          <span className={`inline-block w-10 text-center text-xs rounded mr-2 ${
-                            log.type === 'sent' 
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' 
-                              : log.type === 'received'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                          }`}>
-                            {log.type === 'sent' ? t('terminal.ui.txShort') : log.type === 'received' ? t('terminal.ui.rxShort') : t('terminal.ui.systemShort')}
-                          </span>
-                          <span className={log.type === 'sent' ? 'text-blue-600 dark:text-blue-400' : log.type === 'received' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
-                            {formatData(log.data, displayFormat, log.format)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                     {/* 终端输出 */}
+                     <div 
+                       ref={el => terminalRefs.current[index] = el}
+                       className="flex-1 overflow-auto p-2 font-mono bg-background"
+                       style={{ 
+                         fontSize: `${settings.terminalFontSize}px`,
+                         lineHeight: getLineHeight(),
+                         scrollBehavior: synchronizedScrolling ? 'smooth' : 'auto'
+                       }}
+                       onScroll={(e) => {
+                         if (synchronizedScrolling && connectedPorts.length > 1) {
+                           const scrollTop = e.currentTarget.scrollTop;
+                           terminalRefs.current.forEach((ref, refIndex) => {
+                             if (ref && refIndex !== index) {
+                               ref.scrollTop = scrollTop;
+                             }
+                           });
+                         }
+                       }}
+                     >
+                       {(logs[index] || []).map((log) => (
+                         <div 
+                           key={log.id} 
+                           className="whitespace-pre-wrap break-all" 
+                           style={{ 
+                             marginBottom: `${settings.terminalRowGap}px`,
+                             lineHeight: getLineHeight()
+                           }}
+                         >
+                           {showTimestamp && (
+                             <span className="text-muted-foreground mr-2">
+                               [{log.timestamp.toLocaleTimeString()}]
+                             </span>
+                           )}
+                           <span className="text-xs text-muted-foreground mr-2 font-mono">
+                             {getBadgeContent(log.type)}
+                           </span>
+                           <span className={getTextColor(log.type)}>
+                             {formatData(log.data, displayFormat, log.format)}
+                           </span>
+                         </div>
+                       ))}
+                     </div>
 
                     {/* 端口统计 */}
                     <div className="p-2 border-t border-border bg-muted/30">
@@ -812,31 +847,35 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
             {/* 终端输出 */}
             <div 
               ref={el => terminalRefs.current[0] = el}
-              className="flex-1 overflow-auto p-2 font-mono text-sm bg-background"
-              style={{ fontSize: settings.fontSize ? `${settings.fontSize}px` : '12px' }}
+              className="flex-1 overflow-auto p-2 font-mono bg-background"
+              style={{ 
+                fontSize: `${settings.terminalFontSize}px`,
+                lineHeight: getLineHeight()
+              }}
             >
               {connectedPorts.length > 1 ? (
                 // 合并日志显示
                 mergedLogs.map((log) => (
-                  <div key={log.id} className="whitespace-pre-wrap break-all mb-1">
+                  <div 
+                    key={log.id} 
+                    className="whitespace-pre-wrap break-all" 
+                    style={{ 
+                      marginBottom: `${settings.terminalRowGap}px`,
+                      lineHeight: getLineHeight()
+                    }}
+                  >
                     {showTimestamp && (
                       <span className="text-muted-foreground mr-2">
                         [{log.timestamp.toLocaleTimeString()}]
                       </span>
                     )}
-                    <span className="inline-block w-8 text-center text-xs rounded mr-1 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                      {log.portLabel}
+                    <span className="text-xs text-muted-foreground mr-1 font-mono">
+                      [{log.portLabel}]
                     </span>
-                    <span className={`inline-block w-10 text-center text-xs rounded mr-2 ${
-                      log.type === 'sent' 
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' 
-                        : log.type === 'received'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                    }`}>
-                      {log.type === 'sent' ? t('terminal.ui.txShort') : log.type === 'received' ? t('terminal.ui.rxShort') : t('terminal.ui.systemShort')}
+                    <span className="text-xs text-muted-foreground mr-2 font-mono">
+                      {getBadgeContent(log.type)}
                     </span>
-                    <span className={log.type === 'sent' ? 'text-blue-600 dark:text-blue-400' : log.type === 'received' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
+                    <span className={getTextColor(log.type)}>
                       {formatData(log.data, displayFormat, log.format)}
                     </span>
                   </div>
@@ -844,22 +883,23 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               ) : (
                 // 单端口日志显示
                 (logs[0] || []).map((log) => (
-                  <div key={log.id} className="whitespace-pre-wrap break-all mb-1">
+                  <div 
+                    key={log.id} 
+                    className="whitespace-pre-wrap break-all" 
+                    style={{ 
+                      marginBottom: `${settings.terminalRowGap}px`,
+                      lineHeight: getLineHeight()
+                    }}
+                  >
                     {showTimestamp && (
                       <span className="text-muted-foreground mr-2">
                         [{log.timestamp.toLocaleTimeString()}]
                       </span>
                     )}
-                    <span className={`inline-block w-10 text-center text-xs rounded mr-2 ${
-                      log.type === 'sent' 
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' 
-                        : log.type === 'received'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                    }`}>
-                      {log.type === 'sent' ? t('terminal.ui.txShort') : log.type === 'received' ? t('terminal.ui.rxShort') : t('terminal.ui.systemShort')}
+                    <span className="text-xs text-muted-foreground mr-2 font-mono">
+                      {getBadgeContent(log.type)}
                     </span>
-                    <span className={log.type === 'sent' ? 'text-blue-600 dark:text-blue-400' : log.type === 'received' ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}>
+                    <span className={getTextColor(log.type)}>
                       {formatData(log.data, displayFormat, log.format)}
                     </span>
                   </div>

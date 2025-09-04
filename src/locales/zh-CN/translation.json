@@ -32,7 +32,8 @@
     "tabs": {
       "general": "通用",
       "serial": "串口",
-      "display": "显示"
+      "display": "显示",
+      "terminal": "终端"
     },
     "general": {
       "theme": "主题",
@@ -65,6 +66,20 @@
       "displayFormat": "显示格式",
       "formatAscii": "UTF-8",
       "formatHex": "HEX"
+    },
+    "terminal": {
+      "fontSize": "终端字体大小",
+      "fontSizeDesc": "设置终端日志的字体大小 (8-24px)",
+      "lineHeight": "行高设置",
+      "lineHeightCompact": "紧凑",
+      "lineHeightNormal": "标准", 
+      "lineHeightLoose": "宽松",
+      "rowGap": "行间距 (px)",
+      "rowGapDesc": "设置日志行之间的间距 (0-10px)",
+      "colorMode": "颜色模式",
+      "colorModeBlack": "统一黑色",
+      "colorModeByType": "按类型着色",
+      "colorModeDesc": "选择终端文本的颜色显示方式"
     },
     "summary": {
       "title": "当前设置摘要",

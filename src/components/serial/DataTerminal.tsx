@@ -695,7 +695,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                           {connectedPortLabels[index]?.label || `${t('terminal.port')} ${index + 1}`}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {portInfo.port?.getInfo?.().usbProductId || 'Serial Port'}
+                          Serial Port
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -789,7 +789,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                       {connectedPortLabels[0]?.label || t('terminal.port')}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {connectedPorts[0]?.port?.getInfo?.().usbProductId || 'Serial Port'}
+                      Serial Port
                     </span>
                   </>
                 )}

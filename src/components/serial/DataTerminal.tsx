@@ -229,6 +229,42 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
   // 发送数据到所有连接的端口
   const sendSerialData = async () => {
+    // 检查是否在演示模式（Web Serial API不可用）
+    if (!serialManager.serialManager.isSupported()) {
+      // 演示模式：模拟发送数据
+      if (!sendData.trim()) {
+        statusMessages?.addMessage(t('terminal.messages.noDataToSend'), 'warning');
+        return;
+      }
+      
+      let dataToSend = sendData;
+      
+      // 添加换行符
+      switch (newlineMode) {
+        case 'lf':
+          dataToSend += '\n';
+          break;
+        case 'cr':
+          dataToSend += '\r';
+          break;
+        case 'crlf':
+          dataToSend += '\r\n';
+          break;
+      }
+      
+      // 模拟发送到演示端口
+      addLog('sent', dataToSend, sendFormat, 0);
+      statusMessages?.addMessage(t('terminal.messages.demoModeSent', { data: sendData }), 'info');
+      
+      // 模拟接收回复（延迟500ms）
+      setTimeout(() => {
+        const mockResponse = `Echo: ${sendData}`;
+        addLog('received', mockResponse, 'utf8', 0);
+      }, 500);
+      
+      return;
+    }
+    
     if (connectedPorts.length === 0) {
       statusMessages?.addMessage(t('terminal.notConnected'), 'warning');
       return;

@@ -149,7 +149,9 @@
       "allPortsFailed": "All ports failed to send",
       "partialFailed": "Some ports failed to send",
       "autoSendStarted": "Auto send started (interval: {{interval}}ms)",
-      "exportSuccess": "Exported {{count}} log records"
+      "exportSuccess": "Exported {{count}} log records",
+      "noDataToSend": "No data to send",
+      "demoModeSent": "Demo mode: Sent '{{data}}' (Web Serial API not available)"
     }
   },
   "connection": {

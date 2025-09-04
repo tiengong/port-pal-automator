@@ -149,7 +149,9 @@
       "allPortsFailed": "所有端口发送失败",
       "partialFailed": "部分端口发送失败",
       "autoSendStarted": "自动发送已启动 (间隔: {{interval}}ms)",
-      "exportSuccess": "已导出 {{count}} 条日志记录"
+      "exportSuccess": "已导出 {{count}} 条日志记录",
+      "noDataToSend": "没有要发送的数据",
+      "demoModeSent": "演示模式：已发送 '{{data}}'（Web Serial API 不可用）"
     }
   },
   "connection": {

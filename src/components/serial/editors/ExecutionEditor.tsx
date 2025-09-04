@@ -308,52 +308,33 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
         </p>
       </div>
 
-      {/* 错误处理 */}
+      {/* 失败处理配置 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">{t('editor.execution.errorHandling')}</CardTitle>
+          <CardTitle className="text-sm">失败处理配置</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            配置命令级别的重试、严重程度和提示信息。停止/继续策略由测试用例级别控制。
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="failureHandling">{t('editor.execution.failureHandling')}</Label>
-            <Select
-              value={command.failureHandling || 'stop'}
-              onValueChange={(value) => updateCommand('failureHandling', value)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="stop">{t('editor.execution.stop')}</SelectItem>
-                <SelectItem value="continue">{t('editor.execution.continue')}</SelectItem>
-                <SelectItem value="prompt">{t('editor.execution.prompt')}</SelectItem>
-                <SelectItem value="retry">{t('editor.execution.retry')}</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="maxAttempts">重试次数</Label>
+            <Input
+              id="maxAttempts"
+              type="number"
+              value={command.maxAttempts || 1}
+              onChange={(e) => updateCommand('maxAttempts', parseInt(e.target.value) || 1)}
+              min="1"
+              max="10"
+              placeholder="1"
+            />
             <p className="text-xs text-muted-foreground mt-1">
-              停止: 命令失败时立即停止测试用例执行；继续: 忽略失败继续执行；提示: 弹框让用户决定；重试: 自动重试指定次数
+              命令执行失败时的重试次数（包含首次执行）
             </p>
           </div>
 
-          {command.failureHandling === 'retry' && (
-            <div>
-              <Label htmlFor="maxAttempts">{t('editor.execution.maxAttempts')}</Label>
-              <Input
-                id="maxAttempts"
-                type="number"
-                value={command.maxAttempts || 3}
-                onChange={(e) => updateCommand('maxAttempts', parseInt(e.target.value) || 3)}
-                min="1"
-                placeholder="3"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                {t('editor.execution.maxAttemptsDescription')}
-              </p>
-            </div>
-          )}
-          
           <div>
-            <Label htmlFor="failureSeverity">{t('editor.execution.failureSeverity')}</Label>
+            <Label htmlFor="failureSeverity">失败严重程度</Label>
             <Select
               value={command.failureSeverity || 'error'}
               onValueChange={(value) => updateCommand('failureSeverity', value)}
@@ -362,12 +343,25 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="warning">{t('editor.execution.warning')}</SelectItem>
-                <SelectItem value="error">{t('editor.execution.error')}</SelectItem>
+                <SelectItem value="warning">警告级别</SelectItem>
+                <SelectItem value="error">错误级别</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              失败严重程度影响测试用例的后续执行策略
+            </p>
           </div>
 
+          <div>
+            <Label htmlFor="failurePrompt">失败提示消息</Label>
+            <Textarea
+              id="failurePrompt"
+              value={command.failurePrompt || command.dialogContent || ''}
+              onChange={(e) => updateCommand('failurePrompt', e.target.value)}
+              placeholder="命令执行失败时显示的自定义提示消息（可选）"
+              rows={2}
+            />
+          </div>
         </CardContent>
       </Card>
 

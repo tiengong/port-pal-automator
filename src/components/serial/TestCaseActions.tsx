@@ -179,7 +179,10 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         isRunning: false,
         currentCommand: -1,
         selected: false,
-        status: 'pending'
+        status: 'pending',
+        failureStrategy: 'stop',
+        onWarningFailure: 'continue',
+        onErrorFailure: 'stop'
       };
 
       // 找到当前选中的命令位置，在其后插入子用例
@@ -400,6 +403,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         currentCommand: -1,
         selected: false,
         status: 'pending',
+        failureStrategy: 'stop',
+        onWarningFailure: 'continue',
+        onErrorFailure: 'stop',
         failureHandling: 'stop',
         validationLevel: 'error', // 默认错误级别
         runMode: 'auto', // 默认自动模式

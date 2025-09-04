@@ -368,6 +368,9 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
       currentCommand: -1,
       selected: false,
       status: 'pending',
+      failureStrategy: 'stop',
+      onWarningFailure: 'continue',
+      onErrorFailure: 'stop',
       isPreset: true
     };
   };

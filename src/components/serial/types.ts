@@ -1,4 +1,6 @@
 // types.ts
+import { CommandFailureConfig, CaseFailureHandling, LegacyFailureHandling } from './types/FailureHandling';
+
 export interface TestCommand {
   id: string;
   type: 'execution' | 'urc';
@@ -18,9 +20,14 @@ export interface TestCommand {
   // 执行命令扩展属性
   dataFormat?: 'string' | 'hex'; // 数据格式：字符串或十六进制
   timeout?: number; // 超时时间（毫秒）
-  failureHandling?: 'stop' | 'continue' | 'prompt' | 'retry'; // 失败处理方式
-  maxAttempts?: number; // 重复执行次数（默认3次）
-  failureSeverity?: 'warning' | 'error'; // 失败异常等级：警告/异常
+  
+  // New failure handling - only retries, severity, and prompts at command level
+  maxAttempts?: number; // 重试次数（默认1次）
+  failureSeverity?: 'warning' | 'error'; // 失败严重等级
+  failurePrompt?: string; // 失败提示消息
+  
+  // Legacy fields for backward compatibility (will be migrated)
+  failureHandling?: 'stop' | 'continue' | 'prompt' | 'retry';
   userActionDialog?: boolean; // 是否需要用户操作弹框
   dialogContent?: string; // 弹框内容
   
@@ -29,7 +36,9 @@ export interface TestCommand {
   urcMatchMode?: 'contains' | 'exact' | 'regex' | 'startsWith' | 'endsWith'; // URC匹配方式
   urcListenMode?: 'permanent' | 'once'; // 监听模式：永久监听或监听一次
   urcListenTimeout?: number; // 监听一次的超时时间（毫秒）
-  urcFailureHandling?: 'stop' | 'continue' | 'prompt'; // URC失败处理方式
+  
+  // Legacy URC fields for backward compatibility (will be migrated)
+  urcFailureHandling?: 'stop' | 'continue' | 'prompt';
   urcDialogContent?: string; // URC弹框内容
   
   // URC参数提取配置
@@ -63,7 +72,15 @@ export interface TestCase {
   currentCommand: number;
   selected: boolean;
   status: 'pending' | 'running' | 'success' | 'failed' | 'partial'; // 运行状态
-  failureHandling?: 'stop' | 'continue' | 'prompt'; // 失败处理方式
+  
+  // New failure handling - case level determines stop/continue behavior
+  failureStrategy: 'stop' | 'continue' | 'prompt'; // Primary failure strategy
+  onWarningFailure?: 'continue' | 'stop' | 'prompt'; // How to handle warning-level command failures
+  onErrorFailure?: 'continue' | 'stop' | 'prompt'; // How to handle error-level command failures
+  
+  // Legacy field for backward compatibility
+  failureHandling?: 'stop' | 'continue' | 'prompt'; // Will be migrated to failureStrategy
+  
   validationLevel?: 'warning' | 'error'; // 校验等级：警告级别或错误级别
   runMode?: 'auto' | 'single'; // 运行模式：自动连续执行或单步执行
   runCount?: number; // 运行次数配置

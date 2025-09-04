@@ -94,7 +94,10 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
         isRunning: false,
         currentCommand: -1,
         selected: false,
-        status: 'pending'
+        status: 'pending',
+        failureStrategy: 'stop',
+        onWarningFailure: 'continue',
+        onErrorFailure: 'stop'
       };
       await saveCase(newTestCase);
       setTestCases([...testCases, newTestCase]);

@@ -321,11 +321,11 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
               checked={command.dataParseConfig?.enabled || false}
               onCheckedChange={(checked) => {
                 const newConfig = { 
-                  enabled: checked,
                   parseType: 'regex' as const,
                   parsePattern: '',
                   parameterMap: {},
-                  ...command.dataParseConfig
+                  ...command.dataParseConfig,
+                  enabled: checked  // 确保 enabled 状态不被覆盖
                 };
                 updateCommand('dataParseConfig', newConfig);
               }}

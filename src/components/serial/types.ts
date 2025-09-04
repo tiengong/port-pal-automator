@@ -16,9 +16,9 @@ export interface TestCommand {
   // 执行命令扩展属性
   dataFormat?: 'string' | 'hex'; // 数据格式：字符串或十六进制
   timeout?: number; // 超时时间（毫秒）
-  failureHandling?: 'stop' | 'continue' | 'prompt' | 'retry'; // 失败处理方式
-  maxAttempts?: number; // 重复执行次数（默认3次）
+  maxAttempts?: number; // 重复执行次数（默认1次）
   failureSeverity?: 'warning' | 'error'; // 失败异常等级：警告/异常
+  failureMessage?: string; // 失败提示信息
   
   
   // URC特有字段
@@ -26,7 +26,6 @@ export interface TestCommand {
   urcMatchMode?: 'contains' | 'exact' | 'regex' | 'startsWith' | 'endsWith'; // URC匹配方式
   urcListenMode?: 'permanent' | 'once'; // 监听模式：永久监听或监听一次
   urcListenTimeout?: number; // 监听一次的超时时间（毫秒）
-  urcFailureHandling?: 'stop' | 'continue' | 'prompt'; // URC失败处理方式
   urcDialogContent?: string; // URC弹框内容
   
   // URC参数提取配置

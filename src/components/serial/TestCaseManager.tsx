@@ -1803,7 +1803,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   warnings++;
                 }
                 failedCommands++;
-                return; // 强制停止执行
+                break; // 使用break替代return，确保执行清理逻辑
               }
               
               // 命令失败，根据失败处理策略决定下一步
@@ -1826,7 +1826,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 
                 // 更新失败计数
                 failedCommands++;
-                return; // 停止执行
+                break; // 使用break替代return，确保执行清理逻辑
               } else if (command.failureHandling === 'retry') {
                 // 重试已在runCommand中处理，这里检查用例级失败策略
                 if (commandFailureSeverity === 'error' && testCase.failureHandling === 'stop') {
@@ -1842,7 +1842,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   
                   errors++;
                   failedCommands++;
-                  return;
+                  break; // 使用break替代return，确保执行清理逻辑
                 }
                 // 否则继续执行下一条命令，但记录失败
                 failureLogs.push({
@@ -1907,7 +1907,19 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 
                 if (!shouldContinue) {
                   statusMessages?.addMessage(`测试用例执行已停止 (用户选择停止)`, 'warning');
-                  break;
+                  failureLogs.push({
+                    commandIndex: commandIndex,
+                    commandText: command.command,
+                    error: commandResult.error || '用户选择停止执行',
+                    timestamp: new Date()
+                  });
+                  if (commandFailureSeverity === 'error') {
+                    errors++;
+                  } else {
+                    warnings++;
+                  }
+                  failedCommands++;
+                  break; // 使用break替代return，确保执行清理逻辑
                 }
                 
                 statusMessages?.addMessage(`命令失败，用户选择继续执行`, 'warning');
@@ -1998,6 +2010,35 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         status: 'failed'
       }));
       setTestCases(errorTestCases);
+
+      // 创建错误执行结果
+      const endTime = new Date();
+      const errorResult: TestRunResult = {
+        testCaseId: caseId,
+        testCaseName: testCase.name,
+        status: 'failed',
+        startTime,
+        endTime,
+        duration: endTime.getTime() - startTime.getTime(),
+        totalCommands: commandsToRun.length,
+        passedCommands,
+        failedCommands: failedCommands + 1, // 加上异常导致的失败
+        warnings,
+        errors: errors + 1, // 加上异常错误
+        failureLogs: [
+          ...failureLogs,
+          {
+            commandIndex: -1,
+            commandText: '执行异常',
+            error: `测试用例执行异常: ${error}`,
+            timestamp: new Date()
+          }
+        ]
+      };
+
+      // 显示错误结果对话框
+      setRunResult(errorResult);
+      setShowRunResult(true);
 
       statusMessages?.addMessage(`测试用例执行出错: ${error}`, 'error');
     }

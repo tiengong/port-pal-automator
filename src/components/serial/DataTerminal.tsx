@@ -78,7 +78,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   
   const terminalRefs = useRef<(HTMLDivElement | null)[]>([]);
   const autoSendTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isReadingRef = useRef<Set<string>>(new Set()); // Track reading status by port label
+  const isReadingRef = useRef<Set<'P1' | 'P2'>>(new Set()); // Track reading status by port label
 
   // 统计信息
   const [stats, setStats] = useState<{ [portIndex: number]: { sentBytes: number; receivedBytes: number; totalLogs: number } }>({});
@@ -162,7 +162,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   };
 
   // 开始监听数据 - 使用 SerialManager API
-  const startReading = async (portLabel: string, portIndex: number) => {
+  const startReading = async (portLabel: 'P1' | 'P2', portIndex: number) => {
     console.log(`[DataTerminal] Starting reading for ${portLabel}`);
     
     // 检查是否在演示模式
@@ -205,7 +205,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   };
 
   // 停止监听数据 - 使用 SerialManager API
-  const stopReading = async (portLabel: string) => {
+  const stopReading = async (portLabel: 'P1' | 'P2') => {
     console.log(`[DataTerminal] Stopping reading for ${portLabel}`);
     
     if (!isReadingRef.current.has(portLabel)) {

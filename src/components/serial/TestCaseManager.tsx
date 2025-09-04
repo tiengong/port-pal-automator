@@ -628,7 +628,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           if (commandResult.success) {
             passedCommands++;
           } else {
-            failedCommands++;
+            // 根据失败严重程度统计
+            const severity = command.failureSeverity || 'error';
+            if (severity === 'error') {
+              failedCommands++;
+              errors++;
+            } else {
+              warnings++;
+            }
             // 记录失败日志
             failureLogs.push({
               commandIndex: j,
@@ -636,13 +643,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               error: commandResult.error || '命令执行失败',
               timestamp: new Date()
             });
-            
-            // 根据失败严重程度统计
-            if (command.failureSeverity === 'error') {
-              errors++;
-            } else {
-              warnings++;
-            }
           }
           
           // 根据命令结果和失败处理策略决定是否继续
@@ -678,9 +678,17 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       runningCasesRef.current.delete(caseId);
       setExecutingCommand({ caseId: null, commandIndex: null });
       
-      // 确定最终状态
-      const finalStatus = failedCommands === 0 ? 'success' : 
-                         passedCommands === 0 ? 'failed' : 'partial';
+      // 确定最终状态 - 根据检测等级决定失败条件
+      const level = testCase.validationLevel || 'error';
+      let finalStatus: 'success' | 'failed' | 'partial';
+      
+      if (errors > 0) {
+        finalStatus = 'failed';
+      } else if (warnings > 0) {
+        finalStatus = 'partial';
+      } else {
+        finalStatus = 'success';
+      }
       
       const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
@@ -835,7 +843,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           statusMessages?.addMessage(message, severity === 'error' ? 'error' : 'warning');
         }
         
-        return { success: true };
+        return success ? { success: true } : { success: false, error: '命令执行失败' };
       } else {
         // 无验证的命令，直接发送
         const sendEvent: SendCommandEvent = {

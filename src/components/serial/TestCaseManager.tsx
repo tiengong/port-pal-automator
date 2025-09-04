@@ -1700,11 +1700,20 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             }
           }
           
-          // 根据命令结果和失败处理策略决定是否继续
+          // 根据命令结果、失败处理策略和校验等级决定是否继续
           if (!commandResult.success) {
-            // 命令失败，根据失败处理策略决定下一步
-            if (command.failureHandling === 'stop') {
-              statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
+            // 根据测试用例的校验等级判断是否应该视为失败
+            const testCaseValidationLevel = testCase.validationLevel || 'error';
+            const commandFailureSeverity = command.failureSeverity || 'error';
+            
+            // 如果校验等级为"警告"，那么警告和错误都算失败
+            // 如果校验等级为"错误"，那么只有错误才算失败，警告可以继续
+            const shouldTreatAsFailed = testCaseValidationLevel === 'warning' || commandFailureSeverity === 'error';
+            
+            if (shouldTreatAsFailed) {
+              // 命令失败，根据失败处理策略决定下一步
+              if (command.failureHandling === 'stop') {
+                statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
                 // 记录失败信息
                 failureLogs.push({
                   commandIndex: commandIndex,
@@ -1712,82 +1721,89 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   error: commandResult.error || '命令执行失败',
                   timestamp: new Date()
                 });
-              
-              // 根据失败严重程度统计
-              if (command.failureSeverity === 'error') {
-                errors++;
-              } else {
-                warnings++;
-              }
-              
-              // 更新失败计数
-              failedCommands++;
-              return; // 停止执行
-            } else if (command.failureHandling === 'retry') {
-              // 重试已在runCommand中处理，这里检查用例级失败策略
-              if (command.failureSeverity === 'error' && testCase.failureHandling === 'stop') {
-                statusMessages?.addMessage(`命令执行失败（严重错误），停止执行测试用例`, 'error');
                 
-                // 记录失败信息
+                // 根据失败严重程度统计
+                if (commandFailureSeverity === 'error') {
+                  errors++;
+                } else {
+                  warnings++;
+                }
+                
+                // 更新失败计数
+                failedCommands++;
+                return; // 停止执行
+              } else if (command.failureHandling === 'retry') {
+                // 重试已在runCommand中处理，这里检查用例级失败策略
+                if (commandFailureSeverity === 'error' && testCase.failureHandling === 'stop') {
+                  statusMessages?.addMessage(`命令执行失败（严重错误），停止执行测试用例`, 'error');
+                  
+                  // 记录失败信息
+                  failureLogs.push({
+                    commandIndex: commandIndex,
+                    commandText: command.command,
+                    error: commandResult.error || '命令执行失败（严重错误）',
+                    timestamp: new Date()
+                  });
+                  
+                  errors++;
+                  failedCommands++;
+                  return;
+                }
+                // 否则继续执行下一条命令，但记录失败
                 failureLogs.push({
                   commandIndex: commandIndex,
                   commandText: command.command,
-                  error: commandResult.error || '命令执行失败（严重错误）',
+                  error: commandResult.error || '命令执行失败但继续执行',
                   timestamp: new Date()
                 });
                 
-                errors++;
+                if (commandFailureSeverity === 'error') {
+                  errors++;
+                } else {
+                  warnings++;
+                }
                 failedCommands++;
-                return;
+              } else if (command.failureHandling === 'continue') {
+                // 继续执行下一条命令，记录失败
+                statusMessages?.addMessage(`命令失败，但继续执行下一条`, 'warning');
+                
+                failureLogs.push({
+                  commandIndex: commandIndex,
+                  commandText: command.command,
+                  error: commandResult.error || '命令执行失败但继续执行',
+                  timestamp: new Date()
+                });
+                
+                if (commandFailureSeverity === 'error') {
+                  errors++;
+                } else {
+                  warnings++;
+                }
+                failedCommands++;
+              } else if (command.failureHandling === 'prompt') {
+                // TODO: 实现用户提示逻辑，当前按继续处理
+                statusMessages?.addMessage(`命令失败，等待用户确认（暂时继续执行）`, 'warning');
+                
+                failureLogs.push({
+                  commandIndex: commandIndex,
+                  commandText: command.command,
+                  error: commandResult.error || '命令执行失败，等待用户确认',
+                  timestamp: new Date()
+                });
+                
+                if (commandFailureSeverity === 'error') {
+                  errors++;
+                } else {
+                  warnings++;
+                }
+                failedCommands++;
               }
-              // 否则继续执行下一条命令，但记录失败
-              failureLogs.push({
-                commandIndex: commandIndex,
-                commandText: command.command,
-                error: commandResult.error || '命令执行失败但继续执行',
-                timestamp: new Date()
-              });
-              
-              if (command.failureSeverity === 'error') {
-                errors++;
-              } else {
-                warnings++;
-              }
-              failedCommands++;
-            } else if (command.failureHandling === 'continue') {
-              // 继续执行下一条命令，记录失败
-              statusMessages?.addMessage(`命令失败，但继续执行下一条`, 'warning');
-              
-              failureLogs.push({
-                commandIndex: commandIndex,
-                commandText: command.command,
-                error: commandResult.error || '命令执行失败但继续执行',
-                timestamp: new Date()
-              });
-              
-              if (command.failureSeverity === 'error') {
-                errors++;
-              } else {
-                warnings++;
-              }
-              failedCommands++;
-            } else if (command.failureHandling === 'prompt') {
-              // TODO: 实现用户提示逻辑，当前按继续处理
-              statusMessages?.addMessage(`命令失败，等待用户确认（暂时继续执行）`, 'warning');
-              
-              failureLogs.push({
-                commandIndex: commandIndex,
-                commandText: command.command,
-                error: commandResult.error || '命令执行失败，等待用户确认',
-                timestamp: new Date()
-              });
-              
-              if (command.failureSeverity === 'error') {
-                errors++;
-              } else {
-                warnings++;
-              }
-              failedCommands++;
+            } else {
+              // 根据校验等级，这个失败不被视为真正的失败（例如：校验等级为"错误"，但命令失败严重性为"警告"）
+              statusMessages?.addMessage(`命令出现警告但根据校验等级继续执行: ${command.command}`, 'info');
+              // 记录为警告但不计入失败
+              warnings++;
+              passedCommands++; // 在校验等级允许的情况下，仍然算作通过
             }
           } else {
             // 命令成功
@@ -2723,7 +2739,45 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 />
               </div>
               
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="case-failure-handling">失败处理方式</Label>
+                  <Select
+                    value={editingCase.failureHandling || 'stop'}
+                    onValueChange={(value) => setEditingCase({ ...editingCase, failureHandling: value as 'stop' | 'continue' | 'prompt' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="stop">停止执行</SelectItem>
+                      <SelectItem value="continue">继续执行</SelectItem>
+                      <SelectItem value="prompt">提示用户</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="case-validation-level">校验等级</Label>
+                  <Select
+                    value={editingCase.validationLevel || 'error'}
+                    onValueChange={(value) => setEditingCase({ ...editingCase, validationLevel: value as 'warning' | 'error' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="warning">警告级别</SelectItem>
+                      <SelectItem value="error">错误级别</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    警告级别：警告也算失败；错误级别：只有错误才算失败
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="case-failure-handling">失败处理方式</Label>
                   <Select

@@ -64,6 +64,7 @@ export interface TestCase {
   selected: boolean;
   status: 'pending' | 'running' | 'success' | 'failed' | 'partial'; // 运行状态
   failureHandling?: 'stop' | 'continue' | 'prompt'; // 失败处理方式
+  validationLevel?: 'warning' | 'error'; // 校验等级：警告级别或错误级别
   runMode?: 'auto' | 'single'; // 运行模式：自动连续执行或单步执行
   runCount?: number; // 运行次数配置
   isPreset?: boolean; // 是否为预设用例

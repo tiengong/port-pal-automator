@@ -397,7 +397,11 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         isRunning: false,
         currentCommand: -1,
         selected: false,
-        status: 'pending'
+        status: 'pending',
+        failureHandling: 'stop',
+        validationLevel: 'error', // 默认错误级别
+        runMode: 'auto', // 默认自动模式
+        runCount: 1 // 默认运行1次
       };
       
       setTestCases([...testCases, newTestCase]);

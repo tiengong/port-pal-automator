@@ -1781,13 +1781,46 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 }
                 failedCommands++;
               } else if (command.failureHandling === 'prompt') {
-                // TODO: 实现用户提示逻辑，当前按继续处理
-                statusMessages?.addMessage(`命令失败，等待用户确认（暂时继续执行）`, 'warning');
+                // 实现用户提示逻辑
+                const shouldContinue = await new Promise<boolean>((resolve) => {
+                  const dialog = document.createElement('div');
+                  dialog.innerHTML = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                      <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; text-align: center;">
+                        <h3 style="margin: 0 0 10px 0; color: #d97706;">命令执行失败</h3>
+                        <p style="margin: 0 0 15px 0; color: #374151;">命令: ${command.command}</p>
+                        <p style="margin: 0 0 20px 0; color: #6b7280;">错误: ${commandResult.error || '执行失败'}</p>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                          <button id="continue-btn" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">继续执行</button>
+                          <button id="stop-btn" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">停止执行</button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                  document.body.appendChild(dialog);
+                  
+                  dialog.querySelector('#continue-btn')?.addEventListener('click', () => {
+                    document.body.removeChild(dialog);
+                    resolve(true);
+                  });
+                  
+                  dialog.querySelector('#stop-btn')?.addEventListener('click', () => {
+                    document.body.removeChild(dialog);
+                    resolve(false);
+                  });
+                });
+                
+                if (!shouldContinue) {
+                  statusMessages?.addMessage(`测试用例执行已停止 (用户选择停止)`, 'warning');
+                  break;
+                }
+                
+                statusMessages?.addMessage(`命令失败，用户选择继续执行`, 'warning');
                 
                 failureLogs.push({
                   commandIndex: commandIndex,
                   commandText: command.command,
-                  error: commandResult.error || '命令执行失败，等待用户确认',
+                  error: commandResult.error || '命令执行失败，用户选择继续',
                   timestamp: new Date()
                 });
                 
@@ -2778,23 +2811,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="case-failure-handling">失败处理方式</Label>
-                  <Select
-                    value={editingCase.failureHandling || 'stop'}
-                    onValueChange={(value) => setEditingCase({ ...editingCase, failureHandling: value as 'stop' | 'continue' | 'prompt' })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="stop">停止执行</SelectItem>
-                      <SelectItem value="continue">继续执行</SelectItem>
-                      <SelectItem value="prompt">提示用户</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
                 <div>
                   <Label htmlFor="case-run-mode">运行模式</Label>
                   <Select

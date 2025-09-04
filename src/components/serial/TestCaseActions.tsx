@@ -710,6 +710,34 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
+                onClick={() => {
+                  if (onUpdateCase) {
+                    onUpdateCase(currentTestCase.id, (testCase) => ({
+                      ...testCase,
+                      status: 'pending',
+                      currentCommand: -1,
+                      isRunning: false,
+                      commands: testCase.commands.map(cmd => ({
+                        ...cmd,
+                        status: 'pending'
+                      })),
+                      subCases: testCase.subCases.map(subcase => ({
+                        ...subcase,
+                        status: 'pending',
+                        currentCommand: -1,
+                        isRunning: false,
+                        commands: subcase.commands.map(cmd => ({
+                          ...cmd,
+                          status: 'pending'
+                        }))
+                      }))
+                    }));
+                  }
+                  toast({
+                    title: t("testCase.reset"),
+                    description: "测试用例状态已重置",
+                  });
+                }}
                 variant="outline" 
                 size="sm" 
                 className="h-8 w-8 p-0"

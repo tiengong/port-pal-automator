@@ -314,6 +314,13 @@
       "userActionDialogDescription": "Show dialog for user confirmation before executing this command",
       "dialogContent": "Dialog Content",
       "dialogContentPlaceholder": "Enter message to display to user",
+      "expectedResponseFormat": "Input Format",
+      "format": {
+        "text": "Text",
+        "hex": "HEX"
+      },
+      "expectedResponseHexPlaceholder": "e.g: 0D 0A or 30 31 32",
+      "expectedResponseHexHelp": "Supports spaces, commas, 0x prefix - separators will be ignored",
       "examples": {
         "basicAT": "Basic AT Command",
         "simStatus": "SIM Status",

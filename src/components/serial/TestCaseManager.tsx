@@ -1684,13 +1684,33 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 // 根据验证方法检查响应
                 let isValid = false;
                 const expectedResponse = command.expectedResponse || '';
+                const expectedResponseFormat = command.expectedResponseFormat || 'text';
                 
                 switch (command.validationMethod) {
                   case 'contains':
-                    isValid = responseData.includes(expectedResponse);
-                    break;
                   case 'equals':
-                    isValid = responseData.trim() === expectedResponse.trim();
+                    let actualData = responseData;
+                    let expectedData = expectedResponse;
+                    
+                    // 如果期望响应格式为HEX，进行HEX比较
+                    if (expectedResponseFormat === 'hex') {
+                      // 将实际响应转换为HEX格式
+                      actualData = Array.from(responseData)
+                        .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
+                        .join('').toUpperCase();
+                      
+                      // 规范化期望HEX：去除空格、逗号、换行、0x前缀，统一大写
+                      expectedData = expectedData
+                        .replace(/[\s,\n\r]/g, '') // 去除空格、逗号、换行
+                        .replace(/0[xX]/g, '') // 去除0x前缀
+                        .toUpperCase();
+                    }
+                    
+                    if (command.validationMethod === 'contains') {
+                      isValid = actualData.includes(expectedData);
+                    } else {
+                      isValid = actualData.trim() === expectedData.trim();
+                    }
                     break;
                   case 'regex':
                     try {

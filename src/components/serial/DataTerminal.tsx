@@ -479,16 +479,18 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
         .join(' ').toUpperCase();
     } else if (format === 'utf8' && originalFormat === 'hex') {
-      // HEX 转 UTF-8
+      // HEX 转 UTF-8 - 直接转换为UTF-8字符，不使用转义序列
       try {
         const hexData = data.replace(/\s/g, '');
-        let result = '';
+        const bytes = [];
         for (let i = 0; i < hexData.length; i += 2) {
           const hex = hexData.substr(i, 2);
-          const char = String.fromCharCode(parseInt(hex, 16));
-          result += char.charCodeAt(0) < 32 ? `\\x${hex}` : char;
+          bytes.push(parseInt(hex, 16));
         }
-        return result;
+        // 直接使用TextDecoder转换，控制字符会显示为实际字符
+        const uint8Array = new Uint8Array(bytes);
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        return decoder.decode(uint8Array);
       } catch {
         return data; // 转换失败时返回原数据
       }

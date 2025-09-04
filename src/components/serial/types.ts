@@ -3,6 +3,7 @@ export interface TestCommand {
   type: 'execution' | 'urc';
   command: string;
   expectedResponse?: string;
+  expectedResponseFormat?: 'text' | 'hex'; // 期望响应格式：文本或十六进制
   validationMethod: 'none' | 'contains' | 'equals' | 'regex';
   validationPattern?: string;
   waitTime: number;

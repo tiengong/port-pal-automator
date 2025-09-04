@@ -314,6 +314,13 @@
       "userActionDialogDescription": "在执行此命令前显示对话框让用户确认",
       "dialogContent": "对话框内容",
       "dialogContentPlaceholder": "输入要显示给用户的提示信息",
+      "expectedResponseFormat": "输入格式",
+      "format": {
+        "text": "文本",
+        "hex": "HEX"
+      },
+      "expectedResponseHexPlaceholder": "例如: 0D 0A 或 30 31 32",
+      "expectedResponseHexHelp": "支持空格、逗号、0x前缀，分隔符会自动忽略",
       "examples": {
         "basicAT": "基本AT命令",
         "simStatus": "SIM卡状态",

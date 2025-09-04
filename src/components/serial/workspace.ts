@@ -116,7 +116,8 @@ export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
     commands: testCase.commands.map(cmd => ({
       ...cmd,
       status: 'pending', // reset status
-      selected: false    // reset selection
+      selected: false,   // reset selection
+      expectedResponseFormat: cmd.expectedResponseFormat || 'text' // ensure backward compatibility
     })),
     subCases: testCase.subCases.map(toPersistedCase),
     childrenOrder: testCase.childrenOrder,

@@ -105,12 +105,13 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <Badge variant="secondary" className="text-xs">{t('editor.execution.hexFormat')}</Badge>
               )}
             </div>
-            <Input
+            <Textarea
               id="command"
               value={command.command}
               onChange={(e) => updateCommand('command', e.target.value)}
               placeholder={command.dataFormat === 'hex' ? t('editor.execution.hexPlaceholder') : t('editor.execution.atPlaceholder')}
               className={command.dataFormat === 'hex' ? "font-mono" : "font-mono"}
+              rows={2}
             />
             {command.dataFormat === 'hex' ? (
               <p className="text-xs text-muted-foreground mt-1">
@@ -213,33 +214,62 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="expectedResponse">{t('editor.execution.expectedResponse')}</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-6 text-xs"
-                  onClick={() => {
-                    if (command.command && !command.expectedResponse) {
-                      // Auto-suggest validation based on command
-                      if (command.command.includes('AT+')) {
-                        updateCommand('expectedResponse', 'OK');
-                      } else if (command.command.includes('CSQ')) {
-                        updateCommand('expectedResponse', '+CSQ:');
-                      } else if (command.command.includes('CREG')) {
-                        updateCommand('expectedResponse', '+CREG:');
+                <div className="flex items-center gap-2">
+                  {(command.validationMethod === 'contains' || command.validationMethod === 'equals') && (
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">{t('editor.execution.expectedResponseFormat')}</Label>
+                      <Select
+                        value={command.expectedResponseFormat || 'text'}
+                        onValueChange={(value) => updateCommand('expectedResponseFormat', value)}
+                      >
+                        <SelectTrigger className="h-6 w-16 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="text">{t('editor.execution.format.text')}</SelectItem>
+                          <SelectItem value="hex">{t('editor.execution.format.hex')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs"
+                    onClick={() => {
+                      if (command.command && !command.expectedResponse) {
+                        // Auto-suggest validation based on command
+                        if (command.command.includes('AT+')) {
+                          updateCommand('expectedResponse', 'OK');
+                        } else if (command.command.includes('CSQ')) {
+                          updateCommand('expectedResponse', '+CSQ:');
+                        } else if (command.command.includes('CREG')) {
+                          updateCommand('expectedResponse', '+CREG:');
+                        }
                       }
-                    }
-                  }}
-                >
-                  {t('editor.execution.autoFill')}
-                </Button>
+                    }}
+                  >
+                    {t('editor.execution.autoFill')}
+                  </Button>
+                </div>
               </div>
-              <Input
+              <Textarea
                 id="expectedResponse"
                 value={command.expectedResponse || ''}
                 onChange={(e) => updateCommand('expectedResponse', e.target.value)}
-                placeholder={t('editor.execution.expectedResponsePlaceholder')}
+                placeholder={
+                  command.expectedResponseFormat === 'hex' 
+                    ? t('editor.execution.expectedResponseHexPlaceholder')
+                    : t('editor.execution.expectedResponsePlaceholder')
+                }
                 className="font-mono"
+                rows={command.expectedResponseFormat === 'hex' ? 2 : 3}
               />
+              {command.expectedResponseFormat === 'hex' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('editor.execution.expectedResponseHexHelp')}
+                </p>
+              )}
               {!command.expectedResponse && (
                 <p className="text-xs text-amber-600 mt-1">
                   {t('editor.execution.expectedResponseWarning')}

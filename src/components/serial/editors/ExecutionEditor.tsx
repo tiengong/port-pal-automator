@@ -388,51 +388,25 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
             <Switch
-              id="userActionDialog"
-              checked={command.userActionDialog || false}
-              onCheckedChange={(checked) => updateCommand('userActionDialog', checked)}
-            />
-            <Label htmlFor="userActionDialog">{t('editor.execution.userActionDialog')}</Label>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {t('editor.execution.userActionDialogDescription')}
-          </p>
-          
-          {command.userActionDialog && (
-            <div>
-              <Label htmlFor="dialogContent">{t('editor.execution.dialogContent')}</Label>
-              <Textarea
-                id="dialogContent"
-                value={command.dialogContent || ''}
-                onChange={(e) => updateCommand('dialogContent', e.target.value)}
-                placeholder={t('editor.execution.dialogContentPlaceholder')}
-                rows={3}
-              />
-            </div>
-          )}
-
-          {/* 新增：用户操作确认配置 */}
-          <div className="flex items-center space-x-2">
-            <Switch
               id="requiresUserAction"
               checked={command.requiresUserAction || false}
               onCheckedChange={(checked) => updateCommand('requiresUserAction', checked)}
             />
-            <Label htmlFor="requiresUserAction">需要用户手动确认</Label>
+            <Label htmlFor="requiresUserAction">需要用户确认</Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            启用后，执行此命令前会等待用户手动确认
+            启用后，执行此命令前会显示确认对话框让用户确认
           </p>
           
           {command.requiresUserAction && (
             <div>
-              <Label htmlFor="userPrompt">用户确认提示</Label>
+              <Label htmlFor="userPrompt">确认提示内容</Label>
               <Textarea
                 id="userPrompt"
                 value={command.userPrompt || ''}
                 onChange={(e) => updateCommand('userPrompt', e.target.value)}
                 placeholder="请输入需要用户确认的提示信息，例如：请确认设备已连接并处于正确状态"
-                rows={2}
+                rows={3}
               />
             </div>
           )}

@@ -20,8 +20,6 @@ export interface TestCommand {
   failureHandling?: 'stop' | 'continue' | 'prompt' | 'retry'; // 失败处理方式
   maxAttempts?: number; // 重复执行次数（默认3次）
   failureSeverity?: 'warning' | 'error'; // 失败异常等级：警告/异常
-  userActionDialog?: boolean; // 是否需要用户操作弹框
-  dialogContent?: string; // 弹框内容
   
   
   // URC特有字段

@@ -229,6 +229,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
   // 发送数据到所有连接的端口
   const sendSerialData = async () => {
+    console.log('sendSerialData called', { 
+      sendData, 
+      supported: serialManager.serialManager.isSupported(),
+      connectedPorts: connectedPorts.length 
+    });
     // 检查是否在演示模式（Web Serial API不可用）
     if (!serialManager.serialManager.isSupported()) {
       // 演示模式：模拟发送数据
@@ -938,8 +943,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 <Switch
                   id="autoSendToggle"
                   checked={autoSend}
-                  onCheckedChange={toggleAutoSend}
-                  disabled={connectedPorts.length === 0}
+                   onCheckedChange={toggleAutoSend}
+                   disabled={connectedPorts.length === 0 && serialManager.serialManager.isSupported()}
                   className="scale-75"
                 />
                 <Label htmlFor="autoSendToggle" className="text-xs text-muted-foreground">{t('terminal.ui.auto')}</Label>
@@ -947,8 +952,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
               {!autoSend ? (
                 <Button 
-                  onClick={sendSerialData} 
-                  disabled={connectedPorts.length === 0}
+                   onClick={sendSerialData} 
+                   disabled={connectedPorts.length === 0 && serialManager.serialManager.isSupported()}
                   size="sm"
                   className="h-6 px-2"
                 >

@@ -309,6 +309,8 @@
       "failureSeverity": "Failure Severity",
       "warning": "Warning",
       "error": "Error",
+      "failureMessage": "Failure Message",
+      "failureMessagePlaceholder": "Custom failure message (optional)",
       "userInteraction": "User Interaction",
       "userActionDialog": "Show User Confirmation Dialog",
       "userActionDialogDescription": "Show dialog for user confirmation before executing this command",

@@ -20,8 +20,7 @@ import {
   FolderPlus,
   Edit,
   CheckSquare,
-  SquareIcon,
-  SkipForward
+  SquareIcon
 } from "lucide-react";
 import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
@@ -495,49 +494,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     }
   };
 
-  // 获取单步模式的运行按钮信息
-  const getSingleStepButtonInfo = () => {
-    if (!currentTestCase || currentTestCase.runMode !== 'single') {
-      return null;
-    }
-    
-    const selectedCommands = currentTestCase.commands.filter(cmd => cmd.selected);
-    const currentIndex = currentTestCase.currentCommand;
-    
-    if (selectedCommands.length === 0) {
-      return {
-        text: "无选中命令",
-        icon: Play,
-        disabled: true
-      };
-    }
-    
-    if (currentIndex === -1) {
-      return {
-        text: "开始单步执行",
-        icon: Play,
-        disabled: false
-      };
-    }
-    
-    if (currentIndex >= selectedCommands.length) {
-      return {
-        text: "单步执行完成",
-        icon: RotateCcw,
-        disabled: false
-      };
-    }
-    
-    return {
-      text: `执行下一步 (${currentIndex + 1}/${selectedCommands.length})`,
-      icon: SkipForward,
-      disabled: false
-    };
-  };
-
-  const singleStepInfo = getSingleStepButtonInfo();
-  
   const handleToggleSelectAll = () => {
+    if (!currentTestCase) return;
     
     const allSelected = currentTestCase.commands.length > 0 && 
       currentTestCase.commands.every(cmd => cmd.selected);
@@ -718,26 +676,17 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 variant={currentTestCase.isRunning ? "destructive" : "default"} 
                 size="sm" 
                 className="h-8 w-8 p-0" 
-                disabled={connectedPorts.length === 0 || (singleStepInfo?.disabled ?? false)}
+                disabled={connectedPorts.length === 0}
               >
                 {currentTestCase.isRunning ? (
                   <Pause className="w-4 h-4" />
-                ) : currentTestCase.runMode === 'single' && singleStepInfo ? (
-                  <singleStepInfo.icon className="w-4 h-4" />
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>
-                {currentTestCase.isRunning 
-                  ? t("testCase.pause") 
-                  : currentTestCase.runMode === 'single' && singleStepInfo
-                    ? singleStepInfo.text
-                    : t("testCase.run")
-                }
-              </p>
+              <p>{currentTestCase.isRunning ? t("testCase.pause") : t("testCase.run")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

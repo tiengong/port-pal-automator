@@ -1968,8 +1968,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       setRunResult(result);
       setShowRunResult(true);
 
+      console.log('TEST CASE EXECUTION COMPLETED');
       statusMessages?.addMessage(`测试用例 "${testCase.name}" 执行完成`, finalStatus === 'success' ? 'success' : 'warning');
+      console.log('ABOUT TO REACH CATCH BLOCK');
     } catch (error) {
+      console.log('ENTERED CATCH BLOCK:', error);
       // 执行出错，清除运行状态
       runningCasesRef.current.delete(caseId);
       setExecutingCommand({ caseId: null, commandIndex: null });

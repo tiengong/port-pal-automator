@@ -80,7 +80,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       command: 'AT',
       validationMethod: 'none',
       waitTime: 1000,
-      failureHandling: 'stop',
+      maxAttempts: 1,
+      failureSeverity: 'error',
       lineEnding: 'crlf',
       selected: false,
       status: 'pending'
@@ -121,15 +122,15 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       command: t("testCase.urcListener"),
       validationMethod: 'none',
       waitTime: 0,
-      failureHandling: 'stop',
+      maxAttempts: 1,
+      failureSeverity: 'error',
       lineEnding: 'none',
       selected: true,
       status: 'pending',
       urcPattern: '+CREG:',
       urcMatchMode: 'startsWith',
       urcListenMode: 'once',
-      urcListenTimeout: 10000,
-      urcFailureHandling: 'stop'
+      urcListenTimeout: 10000
     };
 
     if (onUpdateCase) {

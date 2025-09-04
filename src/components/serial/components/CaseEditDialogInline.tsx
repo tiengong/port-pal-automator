@@ -117,22 +117,44 @@ export const CaseEditDialogInline: React.FC<CaseEditDialogInlineProps> = ({
               </div>
               
               <div>
-                <Label htmlFor="case-run-count">运行次数</Label>
-                <Input
-                  id="case-run-count"
-                  type="number"
-                  min="1"
-                  max="999"
-                  value={editingCase.runCount || 1}
-                  onChange={(e) => setEditingCase({ 
+                <Label htmlFor="case-run-mode">运行模式</Label>
+                <Select
+                  value={editingCase.runMode || 'auto'}
+                  onValueChange={(value) => setEditingCase({ 
                     ...editingCase, 
-                    runCount: parseInt(e.target.value) || 1 
+                    runMode: value as 'auto' | 'single' 
                   })}
-                  placeholder="1"
-                />
-                <div className="text-xs text-muted-foreground mt-1">
-                  设置测试用例执行次数 (1-999次)
-                </div>
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">自动连续执行</SelectItem>
+                    <SelectItem value="single">单步执行</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  自动模式：连续执行所有命令；单步模式：每个命令需手动确认
+                </p>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="case-run-count">运行次数</Label>
+              <Input
+                id="case-run-count"
+                type="number"
+                min="1"
+                max="999"
+                value={editingCase.runCount || 1}
+                onChange={(e) => setEditingCase({ 
+                  ...editingCase, 
+                  runCount: parseInt(e.target.value) || 1 
+                })}
+                placeholder="1"
+              />
+              <div className="text-xs text-muted-foreground mt-1">
+                设置测试用例执行次数 (1-999次)
               </div>
             </div>
             

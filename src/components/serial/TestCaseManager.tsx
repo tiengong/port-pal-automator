@@ -102,7 +102,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   });
   const [nextUniqueId, setNextUniqueId] = useState(1);
   const [currentWorkspace, setCurrentWorkspace] = useState<string>('');
-  const [dragInfo, setDragInfo] = useState<any>(null);
+  const [dragInfo, setDragInfo] = useState<any>({ draggedItem: null, dropTarget: null });
   const [inlineEdit, setInlineEdit] = useState<{ commandId: string | null; value: string }>({
     commandId: null,
     value: ''

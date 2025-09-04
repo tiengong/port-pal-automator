@@ -126,44 +126,84 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: pwsh
 
-      # 步骤7：构建Tauri应用（显式指定配置和包信息）
-      - name: Build Tauri app (release mode)
+      # 步骤7：构建Tauri应用 Release版本
+      - name: Build Tauri app (Release)
         run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json
         env:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot"
           TAURI_APP_VERSION: "0.1.0"
           TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
-        working-directory: ./  # 确保在项目根目录执行（npx找node_modules）
+        working-directory: ./
 
-      # 步骤8：构建Tauri应用（控制台调试版本）
-      - name: Build Tauri app (console debug mode)
+      # 步骤8：重命名Release构建产物以区分版本
+      - name: Rename Release build artifacts
+        run: |
+          echo "=== Renaming Release artifacts ==="
+          if (Test-Path "src-tauri/target/release/bundle/msi") {
+            Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object {
+              $newName = $_.Name -replace "\.msi$", "-Release.msi"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed to: $newName"
+            }
+          }
+          if (Test-Path "src-tauri/target/release/bundle/app") {
+            Get-ChildItem "src-tauri/target/release/bundle/app" -Directory | ForEach-Object {
+              $newName = $_.Name + "-Release"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed app folder to: $newName"
+            }
+          }
+        shell: pwsh
+
+      # 步骤9：构建Tauri应用 Debug版本（带控制台）
+      - name: Build Tauri app (Debug with console)
         run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --features console
         env:
           TAURI_BUILD_MODE: release
-          TAURI_APP_NAME: "Serial Pilot (Console)"
+          TAURI_APP_NAME: "Serial Pilot Debug"
           TAURI_APP_VERSION: "0.1.0"
           TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
         working-directory: ./
 
-      # 步骤9：上传构建产物（按平台分类，保留7天）
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: serial-pilot-windows
-          path: |
-            ./src-tauri/target/release/bundle/**/*
-            !./src-tauri/target/release/bundle/**/temp/
-          retention-days: 7
-          compression-level: 6
+      # 步骤10：重命名Debug构建产物以区分版本
+      - name: Rename Debug build artifacts
+        run: |
+          echo "=== Renaming Debug artifacts ==="
+          if (Test-Path "src-tauri/target/release/bundle/msi") {
+            Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | Where-Object { $_.Name -notlike "*Release*" } | ForEach-Object {
+              $newName = $_.Name -replace "\.msi$", "-Debug.msi"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed to: $newName"
+            }
+          }
+          if (Test-Path "src-tauri/target/release/bundle/app") {
+            Get-ChildItem "src-tauri/target/release/bundle/app" -Directory | Where-Object { $_.Name -notlike "*Release*" } | ForEach-Object {
+              $newName = $_.Name + "-Debug"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed app folder to: $newName"
+            }
+          }
+        shell: pwsh
 
-      # 步骤10：上传控制台调试版构建产物
-      - name: Upload console debug artifacts  
+      # 步骤11：上传Release版本构建产物（无压缩）
+      - name: Upload Release build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: serial-pilot-windows-console
+          name: serial-pilot-windows-release
           path: |
-            ./src-tauri/target/release/bundle/**/*
+            ./src-tauri/target/release/bundle/**/*Release*
             !./src-tauri/target/release/bundle/**/temp/
-          retention-days: 7
-          compression-level: 6
+          retention-days: 30
+          compression-level: 0
+
+      # 步骤12：上传Debug版本构建产物（无压缩）
+      - name: Upload Debug build artifacts  
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-pilot-windows-debug
+          path: |
+            ./src-tauri/target/release/bundle/**/*Debug*
+            !./src-tauri/target/release/bundle/**/temp/
+          retention-days: 30
+          compression-level: 0

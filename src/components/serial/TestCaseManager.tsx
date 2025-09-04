@@ -728,52 +728,59 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               // 显示用户确认对话框
               const promptText = command.failurePrompt || `命令执行失败（${severity}级）: ${command.command}\n\n是否继续执行测试用例？`;
               
-              return new Promise<void>((resolve, reject) => {
-                setFailurePromptDialog({
-                  isOpen: true,
-                  promptText,
-                  onContinue: () => {
-                    setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
-                    statusMessages?.addMessage(`用户选择继续执行`, 'info');
-                    resolve();
-                  },
-                  onStop: () => {
-                    setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
-                    statusMessages?.addMessage(`用户选择停止执行`, 'warning');
-                    runningCasesRef.current.delete(caseId);
-                    setExecutingCommand({ caseId: null, commandIndex: null });
-                    
-                    // 用户选择停止时也要显示测试结果
-                    const endTime = new Date();
-                    const result: TestRunResult = {
-                      testCaseId: caseId,
-                      testCaseName: testCase.name,
-                      status: 'failed',
-                      startTime,
-                      endTime,
-                      duration: endTime.getTime() - startTime.getTime(),
-                      totalCommands: commandsToRun.length,
-                      passedCommands,
-                      failedCommands,
-                      warnings,
-                      errors,
-                      failureLogs
-                    };
-                    
-                    const stoppedTestCases = updateCaseById(testCases, caseId, (tc) => ({
-                      ...tc,
-                      isRunning: false,
-                      status: 'failed'
-                    }));
-                    setTestCases(stoppedTestCases);
-                    
-                    setRunResult(result);
-                    setShowRunResult(true);
-                    
-                    reject(new Error('用户选择停止执行'));
-                  }
+              try {
+                await new Promise<void>((resolve, reject) => {
+                  setFailurePromptDialog({
+                    isOpen: true,
+                    promptText,
+                    onContinue: () => {
+                      setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
+                      statusMessages?.addMessage(`用户选择继续执行`, 'info');
+                      resolve();
+                    },
+                    onStop: () => {
+                      setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
+                      statusMessages?.addMessage(`用户选择停止执行`, 'warning');
+                      runningCasesRef.current.delete(caseId);
+                      setExecutingCommand({ caseId: null, commandIndex: null });
+                      
+                      // 用户选择停止时也要显示测试结果
+                      const endTime = new Date();
+                      const result: TestRunResult = {
+                        testCaseId: caseId,
+                        testCaseName: testCase.name,
+                        status: 'failed',
+                        startTime,
+                        endTime,
+                        duration: endTime.getTime() - startTime.getTime(),
+                        totalCommands: commandsToRun.length,
+                        passedCommands,
+                        failedCommands,
+                        warnings,
+                        errors,
+                        failureLogs
+                      };
+                      
+                      const stoppedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+                        ...tc,
+                        isRunning: false,
+                        status: 'failed'
+                      }));
+                      setTestCases(stoppedTestCases);
+                      
+                      setRunResult(result);
+                      setShowRunResult(true);
+                      
+                      reject(new Error('用户选择停止执行'));
+                    }
+                  });
                 });
-              });
+                // 用户选择继续，继续执行下一条命令
+                statusMessages?.addMessage(`继续执行下一条命令`, 'info');
+              } catch (error) {
+                // 用户选择停止，结果对话框已在onStop中显示，这里直接返回
+                return;
+              }
             } else {
               // continue - 继续执行下一条命令
               statusMessages?.addMessage(`命令失败（${severity}级），但继续执行下一条`, 'warning');

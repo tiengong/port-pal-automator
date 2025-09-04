@@ -23,6 +23,7 @@ export interface TestCommand {
   
   // New failure handling - only retries, severity, and prompts at command level
   maxAttempts?: number; // 重试次数（默认1次）
+  retryDelay?: number; // 重试间隔时间（毫秒，默认1000）
   failureSeverity?: 'warning' | 'error'; // 失败严重等级
   failurePrompt?: string; // 失败提示消息
   

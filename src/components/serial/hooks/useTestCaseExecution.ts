@@ -38,11 +38,14 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
     testCase: TestCase
   ): Promise<ExecutionResult> => {
     const maxAttempts = command.maxAttempts || 1;
+    const retryDelay = command.retryDelay || 1000; // Default 1 second between retries
     let lastResult: ExecutionResult | null = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       options.onStatusUpdate?.(
-        `执行命令 (尝试 ${attempt}/${maxAttempts}): ${command.command}`,
+        maxAttempts > 1 
+          ? `执行命令 (尝试 ${attempt}/${maxAttempts}): ${command.command}`
+          : `执行命令: ${command.command}`,
         'info'
       );
 
@@ -78,21 +81,26 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
 
         if (success) {
           options.onStatusUpdate?.(
-            `命令执行成功: ${command.command}`,
+            maxAttempts > 1 && attempt > 1
+              ? `命令重试成功 (第${attempt}次尝试): ${command.command}`
+              : `命令执行成功: ${command.command}`,
             'info'
           );
           options.onCommandUpdate?.(testCase.id,
             testCase.commands.indexOf(command),
             { status: 'success' }
           );
-          break;
+          return lastResult; // 成功立即返回
         } else {
+          const isLastAttempt = attempt === maxAttempts;
           options.onStatusUpdate?.(
-            `命令执行失败 (尝试 ${attempt}/${maxAttempts}): ${command.command}`,
+            isLastAttempt
+              ? `命令执行失败 (已尝试 ${maxAttempts} 次): ${command.command}`
+              : `命令执行失败 (尝试 ${attempt}/${maxAttempts}): ${command.command}`,
             command.failureSeverity === 'warning' ? 'warning' : 'error'
           );
           
-          if (attempt === maxAttempts) {
+          if (isLastAttempt) {
             options.onCommandUpdate?.(testCase.id,
               testCase.commands.indexOf(command),
               { status: 'failed' }
@@ -100,6 +108,7 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
           }
         }
       } catch (error) {
+        const isLastAttempt = attempt === maxAttempts;
         lastResult = {
           commandId: command.id,
           success: false,
@@ -107,7 +116,14 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
           error: error instanceof Error ? error.message : 'Unknown error'
         };
         
-        if (attempt === maxAttempts) {
+        options.onStatusUpdate?.(
+          isLastAttempt
+            ? `命令执行异常 (已尝试 ${maxAttempts} 次): ${error instanceof Error ? error.message : 'Unknown error'}`
+            : `命令执行异常 (尝试 ${attempt}/${maxAttempts}): ${error instanceof Error ? error.message : 'Unknown error'}`,
+          'error'
+        );
+        
+        if (isLastAttempt) {
           options.onCommandUpdate?.(testCase.id,
             testCase.commands.indexOf(command),
             { status: 'failed' }
@@ -116,8 +132,12 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
       }
 
       // Wait between retries if not the last attempt
-      if (attempt < maxAttempts && command.waitTime > 0) {
-        await new Promise(resolve => setTimeout(resolve, command.waitTime));
+      if (attempt < maxAttempts) {
+        options.onStatusUpdate?.(
+          `等待 ${retryDelay}ms 后进行重试...`,
+          'info'
+        );
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
 

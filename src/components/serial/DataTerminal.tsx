@@ -163,6 +163,12 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
   // 开始监听数据
   const startReading = async (port: any, portIndex: number) => {
+    // 检查是否在演示模式
+    if (!serialManager.serialManager.isSupported()) {
+      console.log('Demo mode: Skipping port reading setup');
+      return;
+    }
+
     if (readersRef.current.has(port)) return;
 
     try {
@@ -207,8 +213,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         }
       }
     } catch (error) {
-      console.error(t('terminal.messages.cannotStartReading'), error);
-      statusMessages?.addMessage(t('terminal.messages.cannotStartReading'), 'error');
+      // 在演示模式下，不显示错误消息
+      if (serialManager.serialManager.isSupported()) {
+        console.error(t('terminal.messages.cannotStartReading'), error);
+        statusMessages?.addMessage(t('terminal.messages.cannotStartReading'), 'error');
+      }
     }
   };
 

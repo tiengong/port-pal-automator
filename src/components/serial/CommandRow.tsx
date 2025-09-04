@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PlayCircle, Settings } from "lucide-react";
+import { PlayCircle, Settings, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
 

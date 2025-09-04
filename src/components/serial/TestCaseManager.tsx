@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "@/components/ui/context-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { 
   Plus, 
   Play, 
@@ -1547,7 +1547,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 setEditingCommandIndex(commandIndex);
               }}
               onSaveInlineEdit={saveInlineEdit}
-              onSetLastFocusedChild={setLastFocusedChild}
+              onSetLastFocusedChild={(caseId, type, itemId, index) => 
+                setLastFocusedChild({ caseId, type, itemId, index })
+              }
               inlineEdit={inlineEdit}
               setInlineEdit={setInlineEdit}
             />
@@ -1638,7 +1640,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   setEditingCommandIndex(commandIndex);
                 }}
                 onSaveInlineEdit={saveInlineEdit}
-                onSetLastFocusedChild={setLastFocusedChild}
+                onSetLastFocusedChild={(caseId, type, itemId, index) => 
+                  setLastFocusedChild({ caseId, type, itemId, index })
+                }
                 inlineEdit={inlineEdit}
                 setInlineEdit={setInlineEdit}
               />

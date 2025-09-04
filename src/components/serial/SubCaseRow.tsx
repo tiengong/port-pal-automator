@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronDown, ChevronRight, PlayCircle, Settings } from "lucide-react";
+import { ChevronDown, ChevronRight, PlayCircle, Settings, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { TestCase } from "./types";
 
 interface SubCaseRowProps {

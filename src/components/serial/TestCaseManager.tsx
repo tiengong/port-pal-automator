@@ -499,6 +499,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         currentCommand: -1,
         selected: false,
         status: 'pending',
+        failureStrategy: 'stop',
+        onWarningFailure: 'continue',
+        onErrorFailure: 'stop',
         subCases: [],
         commands: [
           {
@@ -1718,10 +1721,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               isRunning: false,
               currentCommand: -1,
               selected: false,
-        failureStrategy: 'stop',
-        onWarningFailure: 'continue',
-        onErrorFailure: 'stop'
-      };
+              status: 'pending',
+              failureStrategy: 'stop',
+              onWarningFailure: 'continue',
+              onErrorFailure: 'stop'
+            };
 
             // 获取目标父用例
             const parentCase = findTestCaseById(parentId, testCases);

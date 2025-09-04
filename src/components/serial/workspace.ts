@@ -23,7 +23,15 @@ export interface PersistedTestCase {
   commands: any[];
   subCases: PersistedTestCase[];
   childrenOrder?: Array<{ type: 'command' | 'subcase'; id: string; index: number }>;
+  
+  // Legacy failure handling
   failureHandling?: 'stop' | 'continue' | 'prompt';
+  
+  // New failure handling structure
+  failureStrategy?: 'stop' | 'continue' | 'prompt';
+  onWarningFailure?: 'continue' | 'stop' | 'prompt';
+  onErrorFailure?: 'continue' | 'stop' | 'prompt';
+  
   validationLevel?: 'warning' | 'error';
   runMode?: 'auto' | 'single';
   runCount?: number;
@@ -141,7 +149,13 @@ export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
     commands: cleanCommands(testCase.commands),
     subCases: testCase.subCases.map(toPersistedCase),
     childrenOrder: testCase.childrenOrder,
+    
+    // Save both legacy and new failure handling for compatibility
     failureHandling: testCase.failureHandling,
+    failureStrategy: testCase.failureStrategy,
+    onWarningFailure: testCase.onWarningFailure,
+    onErrorFailure: testCase.onErrorFailure,
+    
     validationLevel: testCase.validationLevel,
     runMode: testCase.runMode,
     runCount: testCase.runCount,
@@ -181,10 +195,18 @@ export const fromPersistedCase = (persistedCase: PersistedTestCase): TestCase =>
     selected: false,
     status: 'pending',
     subCases: persistedCase.subCases.map(fromPersistedCase),
+    
+    // New failure handling with migration
+    failureStrategy: persistedCase.failureStrategy || persistedCase.failureHandling || 'stop',
+    onWarningFailure: persistedCase.onWarningFailure || 'continue',
+    onErrorFailure: persistedCase.onErrorFailure || persistedCase.failureHandling || 'stop',
+    
     runMode: persistedCase.runMode || 'auto',
     runCount: persistedCase.runCount || 1,
-    validationLevel: persistedCase.validationLevel || 'error'
-  };
+    validationLevel: persistedCase.validationLevel || 'error',
+    isPreset: persistedCase.isPreset,
+    failureHandling: persistedCase.failureHandling // Legacy field for compatibility
+  } as TestCase;
 };
 
 // Get next unique ID for workspace

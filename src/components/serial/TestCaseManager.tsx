@@ -1387,7 +1387,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             validationMethod: 'contains',
             validationPattern: 'OK',
             waitTime: 2000,
-            failureHandling: 'stop',
+            maxAttempts: 3,
+            failureSeverity: 'error',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1398,7 +1399,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             command: 'AT+CGMR',
             validationMethod: 'none',
             waitTime: 3000,
-            failureHandling: 'continue',
+            maxAttempts: 3,
+            failureSeverity: 'warning',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1424,7 +1426,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             validationMethod: 'contains',
             validationPattern: '+CREG:',
             waitTime: 2000,
-            failureHandling: 'stop',
+            maxAttempts: 3,
+            failureSeverity: 'error',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1436,7 +1439,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             validationMethod: 'regex',
             validationPattern: '\\+CSQ: \\d+,\\d+',
             waitTime: 2000,
-            failureHandling: 'continue',
+            maxAttempts: 3,
+            failureSeverity: 'warning',
             lineEnding: 'crlf',
             selected: false,
             status: 'pending'
@@ -1786,9 +1790,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                                       (testCaseValidationLevel === 'error' && commandFailureSeverity === 'error');
             
             if (shouldTreatAsFailed) {
-              // 命令失败，根据失败处理策略决定下一步
-              if (command.failureHandling === 'stop') {
-                statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
+            // 命令失败，根据测试用例级别的失败处理策略决定下一步
+            if (testCase.failureHandling === 'stop') {
+              statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
                 // 记录失败信息
                 failureLogs.push({
                   commandIndex: commandIndex,
@@ -1807,10 +1811,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 // 更新失败计数
                 failedCommands++;
                 break; // 使用break替代return，确保执行清理逻辑
-              } else if (command.failureHandling === 'retry') {
-                // 重试已在runCommand中处理，这里检查用例级失败策略
-                if (commandFailureSeverity === 'error' && testCase.failureHandling === 'stop') {
-                  statusMessages?.addMessage(`命令执行失败（严重错误），停止执行测试用例`, 'error');
+            } else {
+              // Use the new unified approach: check test case failure handling
+              if (commandFailureSeverity === 'error' && testCase.failureHandling === 'stop') {
+                statusMessages?.addMessage(`命令执行失败（严重错误），停止执行测试用例`, 'error');
                   
                   // 记录失败信息
                   failureLogs.push({
@@ -1838,9 +1842,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   warnings++;
                 }
                 failedCommands++;
-              } else if (command.failureHandling === 'continue') {
-                // 继续执行下一条命令，记录失败
-                statusMessages?.addMessage(`命令失败，但继续执行下一条`, 'warning');
+            } else if (testCase.failureHandling === 'continue') {
+              // 继续执行下一条命令，记录失败
+              statusMessages?.addMessage(`命令失败，但继续执行下一条`, 'warning');
                 
                 failureLogs.push({
                   commandIndex: commandIndex,
@@ -1855,7 +1859,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   warnings++;
                 }
                 failedCommands++;
-              } else if (command.failureHandling === 'prompt') {
+              } else if (testCase.failureHandling === 'prompt') {
                 // 实现用户提示逻辑
                 const shouldContinue = await new Promise<boolean>((resolve) => {
                   const dialog = document.createElement('div');
@@ -2040,7 +2044,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       
       // 如果有验证方法且不是none，使用重试逻辑
       if (command.validationMethod && command.validationMethod !== 'none') {
-        const maxAttempts = command.failureHandling === 'retry' ? (command.maxAttempts || 3) : 1;
+        const maxAttempts = command.maxAttempts || 3;
         let success = false;
         
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -2320,7 +2324,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       command: 'AT',
       validationMethod: 'none',
       waitTime: 1000,
-      failureHandling: 'continue',
+      maxAttempts: 3,
+      failureSeverity: 'warning',
       lineEnding: 'crlf',
       selected: false,
       status: 'pending'
@@ -2355,7 +2360,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       urcMatchMode: 'startsWith',
       urcListenMode: 'once',
       urcListenTimeout: 10000,
-      urcFailureHandling: 'stop'
+      maxAttempts: 3,
+      failureSeverity: 'error'
     };
 
     const updatedCommands = [...currentTestCase.commands, newUrc];

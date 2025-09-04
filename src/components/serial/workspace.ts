@@ -118,16 +118,15 @@ export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
         ...cmd,
         status: 'pending', // reset status
         selected: false,   // reset selection
-        expectedResponseFormat: cmd.expectedResponseFormat || 'text' // ensure backward compatibility
+        expectedResponseFormat: cmd.expectedResponseFormat || 'text', // ensure backward compatibility
+        maxAttempts: cmd.maxAttempts || 3, // default retry attempts
+        failureSeverity: cmd.failureSeverity || 'error' // default severity
       };
       
-      // Remove deprecated stopOnFailure property if it exists
+      // Remove deprecated properties if they exist
       delete cleanedCmd.stopOnFailure;
-      
-      // Ensure failureHandling has a valid value
-      if (!cleanedCmd.failureHandling) {
-        cleanedCmd.failureHandling = 'stop';
-      }
+      delete cleanedCmd.failureHandling;
+      delete cleanedCmd.urcFailureHandling;
       
       return cleanedCmd;
     });
@@ -151,21 +150,19 @@ export const toPersistedCase = (testCase: TestCase): PersistedTestCase => {
 
 // Convert PersistedTestCase to TestCase (add runtime fields and migrate old properties)
 export const fromPersistedCase = (persistedCase: PersistedTestCase): TestCase => {
-  // Migration logic: convert old stopOnFailure to failureHandling
+  // Migration logic: remove old command level failure handling properties
   const migrateCommands = (commands: any[]): any[] => {
     return commands.map(cmd => {
       const migratedCmd = { ...cmd };
       
-      // Migrate stopOnFailure to failureHandling for backward compatibility
-      if (typeof migratedCmd.stopOnFailure === 'boolean') {
-        migratedCmd.failureHandling = migratedCmd.stopOnFailure ? 'stop' : 'continue';
-        delete migratedCmd.stopOnFailure; // Remove old property
-      }
+      // Remove deprecated properties from old versions
+      delete migratedCmd.stopOnFailure;
+      delete migratedCmd.failureHandling;
+      delete migratedCmd.urcFailureHandling;
       
-      // Ensure failureHandling has a default value
-      if (!migratedCmd.failureHandling) {
-        migratedCmd.failureHandling = 'stop';
-      }
+      // Ensure new properties have default values
+      migratedCmd.maxAttempts = migratedCmd.maxAttempts || 3;
+      migratedCmd.failureSeverity = migratedCmd.failureSeverity || 'error';
       
       return migratedCmd;
     });

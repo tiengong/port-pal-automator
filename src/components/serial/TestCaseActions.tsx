@@ -25,7 +25,7 @@ import {
 import { TestCase, TestCommand } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
-import { OneNetTestCase } from "./OneNetTestCase";
+import { createOneNetTestCase } from "./OneNetTestCase";
 import { normalizeImportedCases, ensureUniqueIds } from "@/lib/testCaseUtils";
 import { scheduleAutoSave } from './workspace';
 
@@ -80,7 +80,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       command: 'AT',
       validationMethod: 'none',
       waitTime: 1000,
-      failureHandling: 'stop',
+      maxAttempts: 3,
+      failureSeverity: 'error',
       lineEnding: 'crlf',
       selected: false,
       status: 'pending'
@@ -121,15 +122,15 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       command: t("testCase.urcListener"),
       validationMethod: 'none',
       waitTime: 0,
-      failureHandling: 'stop',
+      maxAttempts: 3,
+      failureSeverity: 'error',
       lineEnding: 'none',
       selected: true,
       status: 'pending',
       urcPattern: '+CREG:',
       urcMatchMode: 'startsWith',
       urcListenMode: 'once',
-      urcListenTimeout: 10000,
-      urcFailureHandling: 'stop'
+      urcListenTimeout: 10000
     };
 
     if (onUpdateCase) {
@@ -758,11 +759,17 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
           <DialogHeader>
             <DialogTitle>选择预设测试用例</DialogTitle>
           </DialogHeader>
-          <OneNetTestCase
-            testCases={testCases}
-            setTestCases={setTestCases}
-            onClose={() => setShowPresetDialog(false)}
-          />
+          <div>
+            {/* Placeholder for preset cases - implementation needed */}
+            <p>Preset test cases functionality will be implemented here.</p>
+            <Button onClick={() => {
+              const oneNetCase = createOneNetTestCase(`DT${String(testCases.length + 1).padStart(3, '0')}`);
+              setTestCases([...testCases, oneNetCase]);
+              setShowPresetDialog(false);
+            }}>
+              Create OneNet Test Case
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

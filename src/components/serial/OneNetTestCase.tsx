@@ -31,8 +31,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: 'OK',
         validationMethod: 'contains',
         waitTime: 1000,
-        maxAttempts: 1,
-        failureSeverity: 'warning',
+        failureHandling: 'continue',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -44,8 +43,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: 'VER:001',
         validationMethod: 'contains',
         waitTime: 1000,
-        maxAttempts: 1,
-        failureSeverity: 'warning',
+        failureHandling: 'continue',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -59,8 +57,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: '+MIPLCREATE:0',
         validationMethod: 'contains',
         waitTime: 2000,
-        maxAttempts: 1,
-        failureSeverity: 'error',
+        failureHandling: 'stop',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -72,8 +69,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: 'OK',
         validationMethod: 'contains',
         waitTime: 1000,
-        maxAttempts: 1,
-        failureSeverity: 'error',
+        failureHandling: 'stop',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -87,8 +83,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: 'OK',
         validationMethod: 'contains',
         waitTime: 1000,
-        maxAttempts: 1,
-        failureSeverity: 'error',
+        failureHandling: 'stop',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -108,8 +103,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcMatchMode: 'contains',
         urcListenMode: 'once',
         urcListenTimeout: 10000,
-        maxAttempts: 1,
-        failureSeverity: 'warning'
+        urcFailureHandling: 'continue'
       },
       {
         id: `${caseId}_urc_2`,
@@ -124,8 +118,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcMatchMode: 'contains',
         urcListenMode: 'once',
         urcListenTimeout: 30000,
-        maxAttempts: 1,
-        failureSeverity: 'error'
+        urcFailureHandling: 'stop'
       },
       {
         id: `${caseId}_urc_3`,
@@ -140,8 +133,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcMatchMode: 'contains',
         urcListenMode: 'once',
         urcListenTimeout: 30000,
-        maxAttempts: 1,
-        failureSeverity: 'error'
+        urcFailureHandling: 'stop'
       },
 
       // 4. 处理服务器观察请求
@@ -157,8 +149,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcPattern: '+MIPLOBSERVE:0,',
         urcMatchMode: 'startsWith',
         urcListenMode: 'permanent',
-        maxAttempts: 1,
-        failureSeverity: 'warning',
+        urcFailureHandling: 'continue',
         dataParseConfig: {
           enabled: true,
           parseType: 'regex',
@@ -178,8 +169,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           expectedResponse: 'OK',
           validationMethod: 'contains',
           waitTime: 1000,
-          maxAttempts: 1,
-          failureSeverity: 'warning',
+          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -198,8 +188,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcPattern: '+MIPLDISCOVER:0,',
         urcMatchMode: 'startsWith',
         urcListenMode: 'permanent',
-        maxAttempts: 1,
-        failureSeverity: 'warning',
+        urcFailureHandling: 'continue',
         dataParseConfig: {
           enabled: true,
           parseType: 'regex',
@@ -214,8 +203,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           expectedResponse: 'OK',
           validationMethod: 'contains',
           waitTime: 1000,
-          maxAttempts: 1,
-          failureSeverity: 'warning',
+          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -229,8 +217,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           expectedResponse: 'OK',
           validationMethod: 'contains',
           waitTime: 1000,
-          maxAttempts: 1,
-          failureSeverity: 'warning',
+          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -248,8 +235,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcMatchMode: 'contains',
         urcListenMode: 'once',
         urcListenTimeout: 10000,
-        maxAttempts: 1,
-        failureSeverity: 'warning'
+        urcFailureHandling: 'continue'
       },
 
       // 7. 处理服务器写请求
@@ -265,8 +251,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcPattern: '+MIPLWRITE:0,',
         urcMatchMode: 'startsWith',
         urcListenMode: 'permanent',
-        maxAttempts: 1,
-        failureSeverity: 'warning',
+        urcFailureHandling: 'continue',
         dataParseConfig: {
           enabled: true,
           parseType: 'regex',
@@ -281,8 +266,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           expectedResponse: 'OK',
           validationMethod: 'contains',
           waitTime: 1000,
-          maxAttempts: 1,
-          failureSeverity: 'warning',
+          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -301,8 +285,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcPattern: '+MIPLREAD:0,',
         urcMatchMode: 'startsWith',
         urcListenMode: 'permanent',
-        maxAttempts: 1,
-        failureSeverity: 'warning',
+        urcFailureHandling: 'continue',
         dataParseConfig: {
           enabled: true,
           parseType: 'regex',
@@ -317,8 +300,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           expectedResponse: 'OK',
           validationMethod: 'contains',
           waitTime: 1000,
-          maxAttempts: 1,
-          failureSeverity: 'warning',
+          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -332,8 +314,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: 'OK',
         validationMethod: 'contains',
         waitTime: 1000,
-        maxAttempts: 1,
-        failureSeverity: 'warning',
+        failureHandling: 'continue',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -351,8 +332,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         urcMatchMode: 'contains',
         urcListenMode: 'once',
         urcListenTimeout: 10000,
-        maxAttempts: 1,
-        failureSeverity: 'warning'
+        urcFailureHandling: 'continue'
       }
     ];
 

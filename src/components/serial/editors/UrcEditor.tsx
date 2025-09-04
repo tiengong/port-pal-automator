@@ -268,29 +268,31 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
         </CardContent>
       </Card>
 
-      {/* 失败配置 */}
+      {/* 错误处理 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">失败配置</CardTitle>
+          <CardTitle className="text-sm">错误处理</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="maxAttempts">重复执行次数</Label>
-            <Input
-              id="maxAttempts"
-              type="number"
-              value={command.maxAttempts || 1}
-              onChange={(e) => updateCommand('maxAttempts', parseInt(e.target.value) || 1)}
-              min="1"
-              placeholder="1"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              URC监听失败时的重试次数（包含首次执行）
-            </p>
+            <Label htmlFor="urcFailureHandling">错误处理</Label>
+            <Select
+              value={command.urcFailureHandling || 'stop'}
+              onValueChange={(value) => updateCommand('urcFailureHandling', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stop">停止执行</SelectItem>
+                <SelectItem value="continue">继续执行</SelectItem>
+                <SelectItem value="prompt">提示用户</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div>
-            <Label htmlFor="failureSeverity">失败严重性</Label>
+            <Label htmlFor="failureSeverity">失败异常等级</Label>
             <Select
               value={command.failureSeverity || 'error'}
               onValueChange={(value) => updateCommand('failureSeverity', value)}
@@ -303,38 +305,20 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
                 <SelectItem value="error">异常</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              失败时的严重性等级，警告级别可能会被忽略（取决于测试用例配置）
-            </p>
           </div>
 
-          <div>
-            <Label htmlFor="failureMessage">失败提示词</Label>
-            <Textarea
-              id="failureMessage"
-              value={command.failureMessage || ''}
-              onChange={(e) => updateCommand('failureMessage', e.target.value)}
-              placeholder="URC监听失败时显示的提示信息"
-              rows={2}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              URC监听失败时显示给用户的自定义提示信息
-            </p>
-          </div>
-
-          <div>
-            <Label htmlFor="urcDialogContent">弹框内容</Label>
-            <Textarea
-              id="urcDialogContent"
-              value={command.urcDialogContent || ''}
-              onChange={(e) => updateCommand('urcDialogContent', e.target.value)}
-              placeholder="URC触发时显示的弹框内容"
-              rows={3}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              URC成功匹配时可选择显示的弹框内容
-            </p>
-          </div>
+          {command.urcFailureHandling === 'prompt' && (
+            <div>
+              <Label htmlFor="urcDialogContent">失败提示内容</Label>
+              <Textarea
+                id="urcDialogContent"
+                value={command.urcDialogContent || ''}
+                onChange={(e) => updateCommand('urcDialogContent', e.target.value)}
+                placeholder="当URC监听失败时显示给用户的提示信息"
+                rows={3}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

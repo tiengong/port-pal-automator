@@ -55,17 +55,6 @@
     "dialog": null,
     "shell": null,
     "window": null,
-    "serialplugin": {
-      "scope": {
-        "allow": [
-          "available_ports",
-          "open", 
-          "close",
-          "write",
-          "start_reading",
-          "stop_reading"
-        ]
-      }
-    }
+    "serialplugin": null
   }
 }

@@ -109,7 +109,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   });
   const [executingCommand, setExecutingCommand] = useState<string | null>(null);
   const [lastFocusedChild, setLastFocusedChild] = useState<any>(null);
-  const [storedParameters, setStoredParameters] = useState<Record<string, string>>({});
+  const [storedParameters, setStoredParameters] = useState<Record<string, { value: string; timestamp: number }>>({});
   const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
   
   const runningCasesRef = useRef<Set<string>>(new Set());
@@ -124,11 +124,122 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   
   // Initialize workspace and load test cases  
   useEffect(() => {
-  } = testCaseActions;
-  
-  // Get current test case and visible root
-  const getCurrentTestCase = () => getTestCase(selectedTestCaseId);
-  const getVisibleRootCase = () => getVisibleRoot(selectedTestCaseId);
+    const initWorkspace = async () => {
+      try {
+        await initializeDefaultWorkspace();
+        const testCasesData = await loadCases();
+        setCurrentWorkspace('Default');
+        setTestCases(Array.isArray(testCasesData) ? testCasesData : []);
+        
+        // Select last opened test case
+        const lastOpened = await getLastOpenedTestCase();
+        const cases = Array.isArray(testCasesData) ? testCasesData : [];
+        if (lastOpened && cases.some(c => c.id === lastOpened)) {
+          setSelectedTestCaseId(lastOpened);
+        } else if (cases.length > 0) {
+          setSelectedTestCaseId(cases[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to initialize workspace:', error);
+      }
+    };
+    
+    initWorkspace();
+  }, []);
+
+  // Handle workspace changes
+  const handleWorkspaceChange = async () => {
+    try {
+      const testCasesData = await loadCases();
+      setCurrentWorkspace('Default');
+      setTestCases(Array.isArray(testCasesData) ? testCasesData : []);
+      
+      // Select last opened test case or first available
+      const lastOpened = await getLastOpenedTestCase();
+      const cases = Array.isArray(testCasesData) ? testCasesData : [];
+      if (lastOpened && cases.some(c => c.id === lastOpened)) {
+        setSelectedTestCaseId(lastOpened);
+      } else if (cases.length > 0) {
+        setSelectedTestCaseId(cases[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to load workspace:', error);
+    }
+  };
+
+  // Track selected test case changes
+  useEffect(() => {
+    if (selectedTestCaseId) {
+      setLastOpenedTestCase(selectedTestCaseId);
+    }
+  }, [selectedTestCaseId]);
+
+  // Helper functions for missing actions
+  const handleUnifiedReorder = (testCase: TestCase, fromIndex: number, toIndex: number, position: 'above' | 'below') => {
+    // Simplified reorder logic
+    console.log('Reorder not implemented yet');
+  };
+
+  const updateCommandSelection = (caseId: string, commandId: string, selected: boolean) => {
+    const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+      ...testCase,
+      commands: testCase.commands.map(cmd =>
+        cmd.id === commandId ? { ...cmd, selected } : cmd
+      )
+    }));
+    setTestCases(updatedTestCases);
+  };
+
+  const saveInlineEdit = (caseId: string, commandId: string) => {
+    if (inlineEdit.commandId === commandId && inlineEdit.value.trim()) {
+      const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+        ...testCase,
+        commands: testCase.commands.map(cmd =>
+          cmd.id === commandId 
+            ? { ...cmd, [cmd.type === 'urc' ? 'urcPattern' : 'command']: inlineEdit.value.trim() }
+            : cmd
+        )
+      }));
+      setTestCases(updatedTestCases);
+      
+      toast({
+        title: t("testCase.modifySuccess"),
+        description: t("testCase.modifySuccessDesc")
+      });
+    }
+    setInlineEdit({ commandId: null, value: '' });
+  };
+
+  const getTargetCaseForActions = (selectedCase: TestCase | null): TestCase | null => {
+    if (!selectedCase) return null;
+    
+    if (isStatsCase(selectedCase)) {
+      const parent = findParentCase(selectedCase.id, testCases);
+      return parent || selectedCase;
+    }
+    
+    return selectedCase;
+  };
+  const getCurrentTestCase = (selectedId?: string) => {
+    const id = selectedId || selectedTestCaseId;
+    if (!Array.isArray(testCases) || !id) {
+      return testCases[0] || null;
+    }
+    return findTestCaseById(id, testCases);
+  };
+
+  const getVisibleRootCase = (selectedId?: string) => {
+    const id = selectedId || selectedTestCaseId;
+    if (!Array.isArray(testCases) || !id) {
+      return testCases[0] || null;
+    }
+    
+    const casePath = findCasePath(id, testCases);
+    if (casePath && casePath.length > 0) {
+      return casePath[0]; // Return root ancestor
+    }
+    return testCases[0] || null;
+  };
   
   // 运行结果状态
   const [runResult, setRunResult] = useState<TestRunResult | null>(null);
@@ -196,7 +307,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   
                   eventBus.emit(EVENTS.PARAMETER_EXTRACTED, { 
                     commandId: command.id, 
-                    parameters: extractedParams
+                    parameters: Object.keys(extractedParams).reduce((acc, key) => {
+                      acc[key] = extractedParams[key].value;
+                      return acc;
+                    }, {} as Record<string, string>)
                   });
                   
                   toast({
@@ -455,7 +569,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           // 检查是否被暂停
           if (!runningCasesRef.current.has(caseId)) {
             console.log('Test case execution stopped (paused during command loop)');
-            setExecutingCommand({ caseId: null, commandIndex: null });
+          setExecutingCommand(null);
             return;
           }
 
@@ -481,7 +595,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     setUserActionDialog(prev => ({ ...prev, isOpen: false }));
                     statusMessages?.addMessage(`单步模式：用户取消执行`, 'warning');
                     runningCasesRef.current.delete(caseId);
-                    setExecutingCommand({ caseId: null, commandIndex: null });
+                    setExecutingCommand(null);
                     reject(new Error('用户取消单步执行'));
                   }
                 });
@@ -559,7 +673,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             if (caseAction === 'stop') {
               statusMessages?.addMessage(`命令失败（${severity}级），停止执行测试用例`, 'error');
               runningCasesRef.current.delete(caseId);
-              setExecutingCommand({ caseId: null, commandIndex: null });
+              setExecutingCommand(null);
               
               // 停止执行时也要显示测试结果
               const endTime = new Date();
@@ -608,7 +722,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
                       statusMessages?.addMessage(`用户选择停止执行`, 'warning');
                       runningCasesRef.current.delete(caseId);
-                      setExecutingCommand({ caseId: null, commandIndex: null });
+                      setExecutingCommand(null);
                       
                       // 用户选择停止时也要显示测试结果
                       const endTime = new Date();
@@ -662,7 +776,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       // 执行完成，清除运行状态
       runningCasesRef.current.delete(caseId);
-      setExecutingCommand({ caseId: null, commandIndex: null });
+      setExecutingCommand(null);
       
       // 确定最终状态 - 根据检测等级决定失败条件
       const level = testCase.validationLevel || 'error';
@@ -708,7 +822,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     } catch (error) {
       // 执行出错，清除运行状态并显示结果
       runningCasesRef.current.delete(caseId);
-      setExecutingCommand({ caseId: null, commandIndex: null });
+      setExecutingCommand(null);
       const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: false,
@@ -781,7 +895,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
     
     // 设置当前执行的命令高亮
-    setExecutingCommand({ caseId, commandIndex });
+    setExecutingCommand(`${caseId}-${commandIndex}`);
     
     if (command.type === 'execution') {
       const substitutedCommand = substituteVariables(command.command, storedParameters);
@@ -1579,7 +1693,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               isDragging={dragInfo.draggedItem?.caseId === testCase.id && dragInfo.draggedItem?.itemId === command.id}
               isDropTarget={dragInfo.dropTarget?.caseId === testCase.id && dragInfo.dropTarget?.index === sortedIndex}
               dropPosition={dragInfo.dropTarget?.position || null}
-              isExecuting={executingCommand.caseId === testCase.id && executingCommand.commandIndex === originalIndex}
+              isExecuting={executingCommand === `${testCase.id}-${originalIndex}`}
               onDragStart={(e, caseId, type, itemId, index) => {
                 setDragInfo(prev => ({
                   ...prev,
@@ -1672,7 +1786,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 isDragging={dragInfo.draggedItem?.caseId === testCase.id && dragInfo.draggedItem?.itemId === command.id}
                 isDropTarget={dragInfo.dropTarget?.caseId === testCase.id && dragInfo.dropTarget?.index === child.index}
                 dropPosition={dragInfo.dropTarget?.position || null}
-                isExecuting={executingCommand.caseId === testCase.id && executingCommand.commandIndex === originalIndex}
+                isExecuting={executingCommand === `${testCase.id}-${originalIndex}`}
                 onDragStart={(e, caseId, type, itemId, index) => {
                   setDragInfo(prev => ({
                     ...prev,

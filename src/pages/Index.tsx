@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings2, TestTube2, Terminal, Wifi, WifiOff, Power, PowerOff, Plug } from "lucide-react";
 import { SerialConnection } from "@/components/serial/SerialConnection";
 import { DataTerminal } from "@/components/serial/DataTerminal";
-import TestCaseManager from "@/components/serial/TestCaseManager";
+import { TestCaseManager } from "@/components/serial/TestCaseManager";
 import { SettingsPanel } from "@/components/serial/SettingsPanel";
 import { StatusFooter } from "@/components/StatusFooter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -202,6 +202,7 @@ const Index = () => {
                 <TestCaseManager 
                   connectedPorts={serialManager.getConnectedPorts()}
                   receivedData={receivedData}
+                  statusMessages={globalMessages}
                 />
               </div>
             </TabsContent>

@@ -1456,6 +1456,147 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const runTestCase = async (caseId: string) => {
     const testCase = findTestCaseById(caseId);
     if (!testCase) return;
+    
+    // 防止重复运行
+    if (runningCasesRef.current.has(caseId)) {
+      toast({
+        title: "测试用例正在运行",
+        description: "请等待当前测试用例执行完成"
+      });
+      return;
+    }
+    
+    // 检查运行模式
+    const runMode = testCase.runMode || 'auto';
+    
+    if (runMode === 'single') {
+      // 单步模式：执行下一个命令
+      runSingleStep(caseId);
+    } else {
+      // 自动模式：连续执行所有命令
+      runAutoMode(caseId);
+    }
+  };
+  
+  // 单步执行模式
+  const runSingleStep = async (caseId: string) => {
+    const testCase = findTestCaseById(caseId);
+    if (!testCase) return;
+    
+    // 找到下一个要执行的命令
+    const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
+    const commandsToRun = selectedCommands.length > 0 ? selectedCommands : testCase.commands;
+    
+    // 找到当前应该执行的命令（第一个pending或failed的命令）
+    const nextCommandIndex = commandsToRun.findIndex(cmd => 
+      cmd.status === 'pending' || cmd.status === 'failed'
+    );
+    
+    if (nextCommandIndex === -1) {
+      // 所有命令都已执行完成
+      statusMessages?.addMessage('所有命令已执行完成', 'success');
+      return;
+    }
+    
+    const command = commandsToRun[nextCommandIndex];
+    const actualCommandIndex = testCase.commands.indexOf(command);
+    
+    // 标记为运行状态
+    runningCasesRef.current.add(caseId);
+    
+    const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+      ...tc,
+      isRunning: true,
+      status: 'running'
+    }));
+    setTestCases(updatedTestCases);
+    
+    try {
+      console.log(`Single step execution: command ${nextCommandIndex + 1}/${commandsToRun.length}: ${command.command}`);
+      
+      // 执行单个命令
+      const commandResult = await runCommand(caseId, actualCommandIndex);
+      
+      if (commandResult.success) {
+        statusMessages?.addMessage(`单步执行成功: ${command.command}`, 'success');
+      } else {
+        statusMessages?.addMessage(`单步执行失败: ${command.command} - ${commandResult.error}`, 'error');
+      }
+      
+      // 检查是否所有命令都已完成
+      const remainingCommands = commandsToRun.filter(cmd => 
+        cmd.status === 'pending' || cmd.status === 'failed'
+      );
+      
+      if (remainingCommands.length === 0) {
+        // 所有命令执行完成，显示结果
+        const allCommands = commandsToRun;
+        const successCount = allCommands.filter(cmd => cmd.status === 'success').length;
+        const failedCount = allCommands.filter(cmd => cmd.status === 'failed').length;
+        
+        const finalStatus = failedCount === 0 ? 'success' : 
+                           successCount === 0 ? 'failed' : 'partial';
+        
+        const finalTestCases = updateCaseById(testCases, caseId, (tc) => ({
+          ...tc,
+          isRunning: false,
+          status: finalStatus
+        }));
+        setTestCases(finalTestCases);
+        
+        // 创建并显示执行结果
+        const endTime = new Date();
+        const result: TestRunResult = {
+          testCaseId: caseId,
+          testCaseName: testCase.name,
+          status: finalStatus,
+          startTime: new Date(), // 在单步模式下，这可能不准确，但提供一个合理的时间
+          endTime,
+          duration: 0, // 单步模式下难以计算准确duration
+          totalCommands: allCommands.length,
+          passedCommands: successCount,
+          failedCommands: failedCount,
+          warnings: 0, // 简化处理
+          errors: failedCount,
+          failureLogs: [] // 简化处理
+        };
+        
+        setRunResult(result);
+        setShowRunResult(true);
+        
+        statusMessages?.addMessage(`单步模式执行完成 - 成功: ${successCount}, 失败: ${failedCount}`, 
+          finalStatus === 'success' ? 'success' : 'warning');
+      } else {
+        // 还有命令待执行，更新状态但保持运行状态
+        const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+          ...tc,
+          isRunning: false // 单步模式下，执行完一步后变为非运行状态，等待下次点击
+        }));
+        setTestCases(updatedTestCases);
+        
+        statusMessages?.addMessage(`单步执行完成，剩余 ${remainingCommands.length} 个命令待执行`, 'info');
+      }
+      
+    } catch (error) {
+      console.error('Single step execution error:', error);
+      statusMessages?.addMessage(`单步执行出错: ${error}`, 'error');
+      
+      const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
+        ...tc,
+        isRunning: false,
+        status: 'failed'
+      }));
+      setTestCases(errorTestCases);
+    } finally {
+      runningCasesRef.current.delete(caseId);
+      setExecutingCommand({ caseId: null, commandIndex: null });
+    }
+  };
+  
+  // 自动执行模式（原有逻辑）
+  const runAutoMode = async (caseId: string) => {
+    const testCase = findTestCaseById(caseId);
+    if (!testCase) return;
 
     // 如果正在运行，则暂停
     if (runningCasesRef.current.has(caseId)) {
@@ -1564,21 +1705,93 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             // 命令失败，根据失败处理策略决定下一步
             if (command.failureHandling === 'stop') {
               statusMessages?.addMessage(`命令失败，停止执行测试用例`, 'error');
-              return;
+                // 记录失败信息
+                failureLogs.push({
+                  commandIndex: commandIndex,
+                  commandText: command.command,
+                  error: commandResult.error || '命令执行失败',
+                  timestamp: new Date()
+                });
+              
+              // 根据失败严重程度统计
+              if (command.failureSeverity === 'error') {
+                errors++;
+              } else {
+                warnings++;
+              }
+              
+              // 更新失败计数
+              failedCommands++;
+              return; // 停止执行
             } else if (command.failureHandling === 'retry') {
               // 重试已在runCommand中处理，这里检查用例级失败策略
               if (command.failureSeverity === 'error' && testCase.failureHandling === 'stop') {
                 statusMessages?.addMessage(`命令执行失败（严重错误），停止执行测试用例`, 'error');
+                
+                // 记录失败信息
+                failureLogs.push({
+                  commandIndex: commandIndex,
+                  commandText: command.command,
+                  error: commandResult.error || '命令执行失败（严重错误）',
+                  timestamp: new Date()
+                });
+                
+                errors++;
+                failedCommands++;
                 return;
               }
-              // 否则继续执行下一条命令
+              // 否则继续执行下一条命令，但记录失败
+              failureLogs.push({
+                commandIndex: commandIndex,
+                commandText: command.command,
+                error: commandResult.error || '命令执行失败但继续执行',
+                timestamp: new Date()
+              });
+              
+              if (command.failureSeverity === 'error') {
+                errors++;
+              } else {
+                warnings++;
+              }
+              failedCommands++;
             } else if (command.failureHandling === 'continue') {
-              // 继续执行下一条命令
+              // 继续执行下一条命令，记录失败
               statusMessages?.addMessage(`命令失败，但继续执行下一条`, 'warning');
+              
+              failureLogs.push({
+                commandIndex: commandIndex,
+                commandText: command.command,
+                error: commandResult.error || '命令执行失败但继续执行',
+                timestamp: new Date()
+              });
+              
+              if (command.failureSeverity === 'error') {
+                errors++;
+              } else {
+                warnings++;
+              }
+              failedCommands++;
             } else if (command.failureHandling === 'prompt') {
               // TODO: 实现用户提示逻辑，当前按继续处理
               statusMessages?.addMessage(`命令失败，等待用户确认（暂时继续执行）`, 'warning');
+              
+              failureLogs.push({
+                commandIndex: commandIndex,
+                commandText: command.command,
+                error: commandResult.error || '命令执行失败，等待用户确认',
+                timestamp: new Date()
+              });
+              
+              if (command.failureSeverity === 'error') {
+                errors++;
+              } else {
+                warnings++;
+              }
+              failedCommands++;
             }
+          } else {
+            // 命令成功
+            passedCommands++;
           }
           
           // 命令间等待时间
@@ -1740,6 +1953,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           } else if (attempt < maxAttempts) {
             statusMessages?.addMessage(`命令执行失败，正在重试 (${attempt}/${maxAttempts})`, 'warning');
             await new Promise(resolve => setTimeout(resolve, 1000)); // 重试间隔
+          } else {
+            // 所有重试都失败了，记录失败
+            statusMessages?.addMessage(`命令执行失败，已达到最大重试次数: ${substitutedCommand}`, 'error');
           }
         }
         
@@ -1753,6 +1969,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           }));
           setTestCases(updatedTestCases);
           statusMessages?.addMessage(`执行命令: ${substitutedCommand} - 成功`, 'success');
+          return { success: true };
         } else {
           // 更新命令状态为失败
           const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
@@ -1767,11 +1984,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           const severity = command.failureSeverity || 'error';
           const message = `命令执行失败: ${substitutedCommand}`;
           statusMessages?.addMessage(message, severity === 'error' ? 'error' : 'warning');
+          return { success: false, error: message };
         }
-        
-        return { success: true };
       } else {
-        // 无验证的命令，直接发送
+        // 无验证的命令，直接发送并标记为成功
         const sendEvent: SendCommandEvent = {
           command: substitutedCommand,
           format: command.dataFormat === 'hex' ? 'hex' : 'utf8',
@@ -1781,6 +1997,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         
         console.log('Emitting SEND_COMMAND', sendEvent);
         eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
+        
+        // 更新命令状态为成功（无验证的命令默认成功）
+        const updatedTestCases = updateCaseById(testCases, caseId, (tc) => ({
+          ...tc,
+          commands: tc.commands.map((cmd, idx) => 
+            idx === commandIndex ? { ...cmd, status: 'success' } : cmd
+          )
+        }));
+        setTestCases(updatedTestCases);
+        
         statusMessages?.addMessage(`执行命令: ${substitutedCommand}`, 'info');
         return { success: true };
       }
@@ -2497,7 +2723,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="case-failure-handling">失败处理方式</Label>
                   <Select
@@ -2513,6 +2739,25 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       <SelectItem value="prompt">提示用户</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="case-run-mode">运行模式</Label>
+                  <Select
+                    value={editingCase.runMode || 'auto'}
+                    onValueChange={(value) => setEditingCase({ ...editingCase, runMode: value as 'auto' | 'single' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">自动模式</SelectItem>
+                      <SelectItem value="single">单步模式</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    自动：连续执行；单步：逐步执行
+                  </div>
                 </div>
                 
                 <div>

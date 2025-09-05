@@ -1,0 +1,26 @@
+# Netlify configuration for Serial Pilot
+[build]
+  publish = "dist"
+  command = "npm run build:standalone"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect all routes to index.html for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Security headers for Web Serial API
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Enable Web Serial API
+    Permissions-Policy = "serial=(self)"
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # HTTPS enforcement
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"

@@ -1,36 +1,33 @@
+// Web-specific Vite configuration for pure web builds
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   server: {
     host: "::",
     port: 8080,
   },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   define: {
-    // Prevent Tauri APIs from causing issues in web builds
+    // Disable Tauri for web builds
     __TAURI__: false,
   },
   build: {
     rollupOptions: {
-      external: mode === 'web' ? [
+      // Exclude Tauri dependencies from web bundle
+      external: [
         '@tauri-apps/api',
         '@tauri-apps/plugin-dialog', 
         '@tauri-apps/plugin-fs',
         'tauri-plugin-serialplugin'
-      ] : [],
+      ],
     }
   }
-}));
+});

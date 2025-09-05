@@ -7,12 +7,18 @@ export class SerialManager {
   private connections = new Map<string, SerialConnection>(); // label -> connection
 
   constructor() {
-    // Choose transport based on environment - use more reliable detection
-    if (typeof window !== 'undefined' && window.__TAURI__) {
+    // Choose transport based on environment - prioritize web for broader compatibility
+    const isWebEnv = typeof window !== 'undefined' && !window.__TAURI__;
+    const hasWebSerial = typeof window !== 'undefined' && 'serial' in navigator;
+    
+    if (isWebEnv && hasWebSerial) {
+      console.log('Initializing Web Serial transport');
+      this.transport = new WebSerialTransport();
+    } else if (typeof window !== 'undefined' && window.__TAURI__) {
       console.log('Initializing Tauri serial transport');
       this.transport = new TauriSerialTransport();
     } else {
-      console.log('Initializing Web serial transport');
+      console.log('Fallback: Initializing Web Serial transport');
       this.transport = new WebSerialTransport();
     }
   }

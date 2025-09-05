@@ -5,7 +5,11 @@ export class WebSerialTransport extends SerialTransport {
   private readers = new Map<string, ReadableStreamDefaultReader>();
 
   isSupported(): boolean {
-    return 'serial' in navigator;
+    return typeof window !== 'undefined' && 
+           'serial' in navigator && 
+           (window.location.protocol === 'https:' || 
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1');
   }
 
   async listPorts(): Promise<SerialPortInfo[]> {

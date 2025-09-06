@@ -2012,23 +2012,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </Tooltip>
             </TooltipProvider>
             
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => handleEditCase(testCase)}
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>设置</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
       </div>

@@ -188,7 +188,7 @@ export const CommandRow: React.FC<CommandRowProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0"
+                    className="h-7 w-7 p-0"
                   onClick={() => onRunCommand(caseId, commandIndex)}
                 >
                   <PlayCircle className="w-3.5 h-3.5" />
@@ -206,7 +206,7 @@ export const CommandRow: React.FC<CommandRowProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0"
+                  className="h-7 w-7 p-0"
                   onClick={() => {
                     onSelectCase(caseId);
                     onEditCommand(caseId, commandIndex);

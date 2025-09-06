@@ -377,7 +377,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={handleToggleSelectAll}
                 variant="outline" 
                 size="sm" 
-                className="h-6 w-6 p-0"
+                className="h-7 w-7 p-0"
               >
                 {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected) ? (
                   <CheckSquare className="w-3.5 h-3.5" />
@@ -407,7 +407,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={onDeleteSelectedCommands || handleDeleteSelectedCommands} 
                 variant="destructive" 
                 size="sm" 
-                className="h-6 w-6 p-0"
+                className="h-7 w-7 p-0"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </Button>
@@ -428,9 +428,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={() => onEditCase(currentTestCase)} 
                 variant="outline" 
                 size="sm" 
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 p-0"
               >
-                <Edit className="w-4 h-4" />
+                <Edit className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -449,13 +449,13 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={() => onRunTestCase(currentTestCase.id)} 
                 variant={currentTestCase.isRunning ? "destructive" : "default"} 
                 size="sm" 
-                className="h-8 w-8 p-0" 
+                className="h-7 w-7 p-0"
                 disabled={connectedPorts.length === 0}
               >
                 {currentTestCase.isRunning ? (
-                  <Pause className="w-4 h-4" />
+                  <Pause className="w-3.5 h-3.5" />
                 ) : (
-                  <Play className="w-4 h-4" />
+                  <Play className="w-3.5 h-3.5" />
                 )}
               </Button>
             </TooltipTrigger>
@@ -474,9 +474,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
               <Button 
                 variant="destructive" 
                 size="sm" 
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 p-0"
               >
-                <Square className="w-4 h-4" />
+                <Square className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -522,9 +522,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 }}
                 variant="outline" 
                 size="sm" 
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 p-0"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

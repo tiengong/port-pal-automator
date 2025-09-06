@@ -1923,7 +1923,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-7 w-7 p-0"
                     onClick={() => runTestCase(testCase.id)}
                     disabled={connectedPorts.length === 0}
                   >
@@ -1943,7 +1943,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-7 w-7 p-0"
                     onClick={() => {
                       const updatedTestCases = toggleExpandById(testCases, testCase.id);
                       setTestCases(updatedTestCases);
@@ -2150,13 +2150,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-3.5 h-3.5 text-green-500" />;
       case 'failed':
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-3.5 h-3.5 text-red-500" />;
       case 'running':
-        return <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />;
+        return <AlertCircle className="w-3.5 h-3.5 text-yellow-500 animate-pulse" />;
       case 'partial':
-        return <AlertCircle className="w-4 h-4 text-blue-500" />;
+        return <AlertCircle className="w-3.5 h-3.5 text-blue-500" />;
       default:
         return null;
     }

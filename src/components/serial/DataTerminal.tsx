@@ -578,7 +578,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                 onClick={() => setDisplayFormat(displayFormat === 'utf8' ? 'hex' : 'utf8')}
                 className="w-16 font-mono"
               >
-                {displayFormat === 'utf8' ? 'UTF-8' : displayFormat.toUpperCase()}
+                {displayFormat === 'utf8' ? 'UTF-8' : 'HEX'}
               </Button>
               
               <Button 

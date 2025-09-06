@@ -1273,6 +1273,181 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  // 新建子用例 - 通过右键菜单
+  const addSubCaseViaContextMenu = () => {
+    if (!currentTestCase) return;
+    
+    const newSubCase: TestCase = {
+      id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      uniqueId: generateUniqueId(),
+      name: '新建子用例',
+      description: '',
+      commands: [],
+      subCases: [],
+      isExpanded: true,
+      isRunning: false,
+      currentCommand: -1,
+      selected: false,
+      status: 'pending',
+      failureStrategy: 'stop',
+      onWarningFailure: 'continue',
+      onErrorFailure: 'stop'
+    };
+
+    let updatedTestCases: TestCase[];
+    let insertPosition = "末尾";
+
+    if (lastFocusedChild && lastFocusedChild.caseId === currentTestCase.id) {
+      // 根据最后焦点位置插入子用例
+      const parentCase = findTestCaseById(lastFocusedChild.caseId, testCases);
+      if (parentCase) {
+        const sortedChildren = getSortedChildren(parentCase);
+        const focusedChildIndex = sortedChildren.findIndex(child => 
+          child.type === lastFocusedChild.type && 
+          (child.type === 'command' ? (child.item as TestCommand).id : (child.item as TestCase).id) === lastFocusedChild.itemId
+        );
+        
+        if (focusedChildIndex >= 0) {
+          // 在焦点子项后插入
+          updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => {
+            const newSubCases = [...testCase.subCases, newSubCase];
+            let newOrder = generateChildrenOrder(testCase);
+            
+            // 在指定位置插入子用例
+            const subcaseOrderItem = { type: 'subcase' as const, id: newSubCase.id, index: testCase.subCases.length };
+            newOrder.splice(focusedChildIndex + 1, 0, subcaseOrderItem);
+            
+            // 重新调整后续项的索引
+            newOrder = newOrder.map((item, idx) => ({
+              ...item,
+              index: idx
+            }));
+
+            return {
+              ...testCase,
+              subCases: newSubCases,
+              childrenOrder: newOrder
+            };
+          });
+          
+          if (lastFocusedChild.type === 'command') {
+            insertPosition = "选中命令后";
+          } else {
+            insertPosition = "选中子用例后";
+          }
+        } else {
+          // 默认添加到末尾
+          updatedTestCases = addSubCaseById(testCases, currentTestCase.id, newSubCase);
+        }
+      } else {
+        updatedTestCases = addSubCaseById(testCases, currentTestCase.id, newSubCase);
+      }
+    } else {
+      // 没有焦点子项，添加到末尾
+      updatedTestCases = addSubCaseById(testCases, currentTestCase.id, newSubCase);
+    }
+
+    setTestCases(updatedTestCases);
+    
+    // 保存更新后的用例
+    const updatedCase = findTestCaseById(currentTestCase.id, updatedTestCases);
+    if (updatedCase) {
+      scheduleAutoSave(updatedCase);
+    }
+
+    toast({
+      title: "新建子用例",
+      description: `已在${insertPosition}添加子用例: ${newSubCase.name}`,
+    });
+  };
+
+  // 全选/取消全选 - 通过右键菜单
+  const toggleSelectAllViaContextMenu = () => {
+    if (!currentTestCase) return;
+
+    let targetCase: TestCase = currentTestCase;
+    let targetCommands: TestCommand[] = [];
+    let scopeDescription = "当前用例";
+
+    if (lastFocusedChild) {
+      if (lastFocusedChild.type === 'subcase') {
+        // 如果选中的是子用例，全选该子用例内的所有命令
+        const subCase = findTestCaseById(lastFocusedChild.itemId, testCases);
+        if (subCase) {
+          targetCase = subCase;
+          targetCommands = subCase.commands;
+          scopeDescription = `子用例"${subCase.name}"`;
+        }
+      } else if (lastFocusedChild.type === 'command') {
+        // 如果选中的是命令，全选同级别的所有命令
+        const parentCase = findTestCaseById(lastFocusedChild.caseId, testCases);
+        if (parentCase) {
+          targetCase = parentCase;
+          targetCommands = parentCase.commands;
+          scopeDescription = parentCase.id === currentTestCase.id ? "当前用例" : `子用例"${parentCase.name}"`;
+        }
+      }
+    } else {
+      // 什么都没选，全选当前用例的所有命令
+      targetCommands = currentTestCase.commands;
+    }
+
+    if (targetCommands.length === 0) {
+      toast({
+        title: "无可选择项",
+        description: `${scopeDescription}中没有命令可以选择`,
+        variant: "default"
+      });
+      return;
+    }
+
+    // 检查是否全部已选中
+    const allSelected = targetCommands.every(cmd => cmd.selected);
+    const newSelectedState = !allSelected;
+
+    // 更新选择状态
+    const updatedTestCases = updateCaseById(testCases, targetCase.id, (testCase) => ({
+      ...testCase,
+      commands: testCase.commands.map(cmd => ({
+        ...cmd,
+        selected: newSelectedState
+      }))
+    }));
+
+    setTestCases(updatedTestCases);
+
+    toast({
+      title: newSelectedState ? "全选完成" : "取消全选",
+      description: `已${newSelectedState ? '选中' : '取消选中'}${scopeDescription}中的 ${targetCommands.length} 个命令`,
+    });
+  };
+
+  // 运行选中项 - 通过右键菜单
+  const runSelectedViaContextMenu = () => {
+    if (!currentTestCase) return;
+
+    if (lastFocusedChild) {
+      if (lastFocusedChild.type === 'subcase') {
+        // 运行选中的子用例
+        const subCase = findTestCaseById(lastFocusedChild.itemId, testCases);
+        if (subCase) {
+          runTestCase(subCase.id);
+          return;
+        }
+      } else if (lastFocusedChild.type === 'command') {
+        // 运行选中命令所在的用例
+        const parentCase = findTestCaseById(lastFocusedChild.caseId, testCases);
+        if (parentCase) {
+          runTestCase(parentCase.id);
+          return;
+        }
+      }
+    }
+
+    // 默认运行当前用例
+    runTestCase(currentTestCase.id);
+  };
+
   const loadTestCaseToCurrentCase = (sourceCase: TestCase) => {
     if (!currentTestCase) return;
 
@@ -2031,7 +2206,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               <Plus className="w-4 h-4" />
               新建
             </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-48">
+            <ContextMenuSubContent className="w-48 bg-popover z-50">
               <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
                 <Hash className="w-4 h-4" />
                 新建命令
@@ -2039,6 +2214,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
                 <Search className="w-4 h-4" />
                 新建URC
+              </ContextMenuItem>
+              <ContextMenuItem onClick={addSubCaseViaContextMenu} className="flex items-center gap-2">
+                <TestTube2 className="w-4 h-4" />
+                新建子用例
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
@@ -2100,6 +2279,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </ContextMenuSub>
             </ContextMenuSubContent>
           </ContextMenuSub>
+          
+          <ContextMenuSeparator />
+          
+          <ContextMenuItem 
+            onClick={toggleSelectAllViaContextMenu} 
+            className="flex items-center gap-2"
+            disabled={!currentTestCase || currentTestCase.commands.length === 0}
+          >
+            <CheckSquare className="w-4 h-4" />
+            全选/取消全选
+          </ContextMenuItem>
+          
+          <ContextMenuItem 
+            onClick={runSelectedViaContextMenu} 
+            className="flex items-center gap-2"
+            disabled={!currentTestCase || connectedPorts.length === 0}
+          >
+            <Play className="w-4 h-4" />
+            运行
+          </ContextMenuItem>
           
           <ContextMenuSeparator />
           

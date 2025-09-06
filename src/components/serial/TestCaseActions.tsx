@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
-  Plus, 
   Play, 
   Settings,
   Upload,
@@ -14,10 +12,7 @@ import {
   Pause,
   Trash2,
   FilePlus,
-  Radio,
-  FileCode,
   Package,
-  FolderPlus,
   Edit,
   CheckSquare,
   SquareIcon
@@ -41,7 +36,6 @@ interface TestCaseActionsProps {
   onCreateTestCase?: () => void;
   onDeleteSelectedCommands?: () => void;
   onDeletePresetCases?: () => void;
-  onAddSubCase?: (parentId: string) => void;
   onUpdateCase?: (caseId: string, updater: (c: TestCase) => TestCase) => void;
   onSelectTestCase?: (caseId: string) => void;
   hasSelectedItems?: (testCase: TestCase) => boolean;
@@ -59,7 +53,6 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onCreateTestCase,
   onDeleteSelectedCommands,
   onDeletePresetCases,
-  onAddSubCase,
   onUpdateCase,
   onSelectTestCase,
   hasSelectedItems
@@ -68,185 +61,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showPresetDialog, setShowPresetDialog] = useState(false);
-
-  const addCommand = () => {
-    if (!currentTestCase) return;
-    
-    const newCommand: TestCommand = {
-      id: `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: 'execution',
-      command: 'AT',
-      validationMethod: 'none',
-      waitTime: 1000,
-      stopOnFailure: false,
-      failureHandling: 'stop',
-      lineEnding: 'crlf',
-      selected: false,
-      status: 'pending'
-    };
-
-    if (onUpdateCase) {
-      // 使用递归更新回调
-      onUpdateCase(currentTestCase.id, (testCase) => ({
-        ...testCase,
-        commands: [...testCase.commands, newCommand]
-      }));
-    } else {
-      // 回退到顶层更新
-      const updatedCommands = [...currentTestCase.commands, newCommand];
-      const updatedCase = { ...currentTestCase, commands: updatedCommands };
-      const updatedTestCases = testCases.map(tc => 
-        tc.id === currentTestCase.id ? updatedCase : tc
-      );
-      setTestCases(updatedTestCases);
-      
-      // 兜底自动保存
-      scheduleAutoSave(updatedCase);
-    }
-
-    toast({
-      title: t("testCase.addCommand"),
-      description: t("testCase.addCommandDesc", { command: newCommand.command }),
-    });
-    setShowAddMenu(false);
-  };
-
-  const addUrc = () => {
-    if (!currentTestCase) return;
-    
-    const newUrc: TestCommand = {
-      id: `urc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: 'urc',
-      command: t("testCase.urcListener"),
-      validationMethod: 'none',
-      waitTime: 0,
-      stopOnFailure: false,
-      failureHandling: 'stop',
-      lineEnding: 'none',
-      selected: true,
-      status: 'pending',
-      urcPattern: '+CREG:',
-      urcMatchMode: 'startsWith',
-      urcListenMode: 'once',
-      urcListenTimeout: 10000,
-      urcFailureHandling: 'stop'
-    };
-
-    if (onUpdateCase) {
-      // 使用递归更新回调
-      onUpdateCase(currentTestCase.id, (testCase) => ({
-        ...testCase,
-        commands: [...testCase.commands, newUrc]
-      }));
-    } else {
-      // 回退到顶层更新
-      const updatedCommands = [...currentTestCase.commands, newUrc];
-      const updatedCase = { ...currentTestCase, commands: updatedCommands };
-      const updatedTestCases = testCases.map(tc => 
-        tc.id === currentTestCase.id ? updatedCase : tc
-      );
-      setTestCases(updatedTestCases);
-      
-      // 兜底自动保存
-      scheduleAutoSave(updatedCase);
-    }
-
-    toast({
-      title: t("testCase.addUrc"),
-      description: t("testCase.addUrcDesc", { pattern: newUrc.urcPattern }),
-    });
-    setShowAddMenu(false);
-  };
-
-  const addSubCase = () => {
-    if (!currentTestCase) return;
-    
-    if (onAddSubCase) {
-      // 使用递归添加回调
-      onAddSubCase(currentTestCase.id);
-    } else {
-      // 回退到顶层更新（仅用于顶层用例）
-      const newSubCase: TestCase = {
-        id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
-        name: t("testCase.newSubCase"),
-        description: '',
-        commands: [],
-        subCases: [],
-        isExpanded: false,
-        isRunning: false,
-        currentCommand: -1,
-        selected: false,
-        status: 'pending',
-        failureStrategy: 'stop',
-        onWarningFailure: 'continue',
-        onErrorFailure: 'stop'
-      };
-
-      // 找到当前选中的命令位置，在其后插入子用例
-      const targetCase = currentTestCase;
-      const currentOrder = targetCase.childrenOrder || [];
-      
-      // 生成默认顺序（如果不存在）
-      let newOrder: Array<{ type: 'command' | 'subcase'; id: string; index: number }> = [];
-      
-      if (currentOrder.length === 0) {
-        // 生成默认顺序：先命令，后子用例
-        targetCase.commands.forEach((cmd, index) => {
-          newOrder.push({ type: 'command', id: cmd.id, index });
-        });
-        targetCase.subCases.forEach((subcase, index) => {
-          newOrder.push({ type: 'subcase', id: subcase.id, index });
-        });
-      } else {
-        newOrder = [...currentOrder];
-      }
-      
-      // 找到最后一个选中的命令位置
-      let insertIndex = newOrder.length; // 默认在末尾插入
-      const selectedCommands = targetCase.commands.filter(cmd => cmd.selected);
-      
-      if (selectedCommands.length > 0) {
-        // 找到最后一个选中命令在顺序中的位置
-        const lastSelectedCommand = selectedCommands[selectedCommands.length - 1];
-        const lastSelectedIndex = newOrder.findIndex(item => 
-          item.type === 'command' && item.id === lastSelectedCommand.id
-        );
-        
-        if (lastSelectedIndex !== -1) {
-          insertIndex = lastSelectedIndex + 1;
-        }
-      }
-      
-      // 在指定位置插入新子用例
-      newOrder.splice(insertIndex, 0, { 
-        type: 'subcase', 
-        id: newSubCase.id, 
-        index: targetCase.subCases.length 
-      });
-      
-      const updatedCase = { 
-        ...targetCase, 
-        subCases: [...targetCase.subCases, newSubCase],
-        childrenOrder: newOrder
-      };
-      const updatedTestCases = testCases.map(tc => 
-        tc.id === currentTestCase.id ? updatedCase : tc
-      );
-      setTestCases(updatedTestCases);
-
-      toast({
-        title: t("testCase.addSubCase"),
-        description: selectedCommands.length > 0 
-          ? `已在选中命令后添加子用例：${newSubCase.name}`
-          : t("testCase.addSubCaseDesc", { name: newSubCase.name }),
-      });
-    }
-    setShowAddMenu(false);
-  };
-
 
   const handleUpload = () => {
     const input = document.createElement('input');
@@ -533,67 +348,6 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
 
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
-      {/* 新增按钮 */}
-      <Popover open={showAddMenu} onOpenChange={setShowAddMenu}>
-        <PopoverTrigger asChild>
-          <Button 
-            size="sm" 
-            className="h-8 w-8 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowAddMenu(!showAddMenu);
-            }}
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-48 p-2 z-50" align="start" side="bottom">
-          <div className="space-y-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start h-8 px-2 text-sm"
-              onClick={addCommand}
-            >
-              <FileCode className="w-3 h-3 mr-2" />
-              {t("testCase.addCommand")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start h-8 px-2 text-sm"
-              onClick={addUrc}
-            >
-              <Radio className="w-3 h-3 mr-2" />
-              {t("testCase.addUrc")}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start h-8 px-2 text-sm"
-              onClick={addSubCase}
-            >
-              <FolderPlus className="w-3 h-3 mr-2" />
-              {t("testCase.addSubCase")}
-            </Button>
-            {testCases.some(tc => tc.isPreset) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start h-8 px-2 text-sm text-red-600 hover:text-red-700"
-                onClick={() => {
-                  setShowAddMenu(false);
-                  handleDeletePresetCases();
-                }}
-              >
-                <Trash2 className="w-3 h-3 mr-2" />
-                {t("testCase.deletePresetCases")}
-              </Button>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
       {/* 全选/取消全选按钮 */}
       {currentTestCase && currentTestCase.commands.length > 0 && (
         <TooltipProvider>

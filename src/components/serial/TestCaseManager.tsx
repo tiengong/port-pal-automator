@@ -1812,26 +1812,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         }}
       >
         <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
-          {/* 展开/折叠按钮 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 flex-shrink-0"
-            onClick={() => {
-              const updatedTestCases = toggleExpandById(testCases, subCase.id);
-              setTestCases(updatedTestCases);
-            }}
-          >
-            {subCase.subCases.length > 0 || subCase.commands.length > 0 ? (
-              subCase.isExpanded ? (
-                <ChevronDown className="w-4 h-4" />
-              ) : (
-                <ChevronRight className="w-4 h-4" />
-              )
-            ) : (
-              <div className="w-4 h-4" />
-            )}
-          </Button>
 
           {/* 复选框 */}
           <Checkbox

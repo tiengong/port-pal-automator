@@ -2390,26 +2390,18 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-64">
-          <ContextMenuSub>
-            <ContextMenuSubTrigger className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              新建
-            </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-48 bg-popover z-50">
-              <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
-                <Hash className="w-4 h-4" />
-                新建命令
-              </ContextMenuItem>
-              <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
-                <Search className="w-4 h-4" />
-                新建URC
-              </ContextMenuItem>
-              <ContextMenuItem onClick={addSubCaseViaContextMenu} className="flex items-center gap-2">
-                <TestTube2 className="w-4 h-4" />
-                新建子用例
-              </ContextMenuItem>
-            </ContextMenuSubContent>
-          </ContextMenuSub>
+          <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
+            <Hash className="w-4 h-4" />
+            新建命令
+          </ContextMenuItem>
+          <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
+            <Search className="w-4 h-4" />
+            新建URC
+          </ContextMenuItem>
+          <ContextMenuItem onClick={addSubCaseViaContextMenu} className="flex items-center gap-2">
+            <TestTube2 className="w-4 h-4" />
+            新建子用例
+          </ContextMenuItem>
           
           <ContextMenuSeparator />
           

@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, TestTube2, FilePlus, Trash2, RotateCcw, Upload, Download, FolderOpen, Copy } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, TestTube2, FilePlus, Trash2, RotateCcw, Upload, Download, FolderOpen, Copy, FileCode, Play, Settings, Square } from "lucide-react";
 import { TestCase } from "./types";
+import { Script } from "./types/ScriptTypes";
 import { useToast } from "@/hooks/use-toast";
 import { createWorkspace, openWorkspace, cloneCase, getNextUniqueId, saveCase, deleteCase, getCurrentWorkspace } from "./workspace";
 import { normalizeImportedCases, ensureUniqueIds } from "@/lib/testCaseUtils";
@@ -22,6 +24,12 @@ interface TestCaseSwitcherProps {
   onCreateTestCase?: () => void;
   onSync?: () => void;
   onWorkspaceChange?: () => void;
+  // Script related props
+  scripts?: Script[];
+  currentScript?: Script | null;
+  onSelectScript?: (scriptId: string) => void;
+  onCreateScript?: (script: Script) => void;
+  onDeleteScript?: (scriptId: string) => void;
 }
 
 export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
@@ -32,7 +40,12 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   onDeleteTestCase,
   onCreateTestCase,
   onSync,
-  onWorkspaceChange
+  onWorkspaceChange,
+  scripts = [],
+  currentScript,
+  onSelectScript,
+  onCreateScript,
+  onDeleteScript
 }) => {
   const {
     toast
@@ -49,11 +62,26 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   const [cloneNewName, setCloneNewName] = useState('');
   const [confirmNewWorkspace, setConfirmNewWorkspace] = useState(false);
   const [deleteConfirmCase, setDeleteConfirmCase] = useState<TestCase | null>(null);
+  
+  // Script related state
+  const [showNewScriptDialog, setShowNewScriptDialog] = useState(false);
+  const [newScriptName, setNewScriptName] = useState('');
+  const [newScriptDescription, setNewScriptDescription] = useState('');
+  const [newScriptLanguage, setNewScriptLanguage] = useState<'lua' | 'javascript' | 'python'>('lua');
+  const [deleteConfirmScript, setDeleteConfirmScript] = useState<Script | null>(null);
+  
   console.log('TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE', {
     testCases,
-    currentTestCase
+    currentTestCase,
+    scripts,
+    currentScript
   });
   const filteredTestCases = testCases.filter(tc => tc.name.toLowerCase().includes(searchQuery.toLowerCase()) || tc.uniqueId.includes(searchQuery) || tc.description.toLowerCase().includes(searchQuery.toLowerCase()));
+  
+  const filteredScripts = scripts.filter(script => 
+    script.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    script.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Handle new workspace creation
   const handleOpenNewWorkspace = async () => {
@@ -332,6 +360,93 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
       });
     }
   };
+
+  // Script handlers
+  const handleCreateNewScript = async () => {
+    if (!newScriptName.trim()) return;
+    
+    const newScript: Script = {
+      id: `script_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: newScriptName.trim(),
+      description: newScriptDescription.trim(),
+      filePath: `./scripts/${newScriptName.trim()}.${newScriptLanguage}`,
+      content: getDefaultScriptContent(newScriptLanguage),
+      language: newScriptLanguage,
+      createdAt: new Date(),
+      modifiedAt: new Date(),
+      isRunning: false,
+      status: 'pending'
+    };
+
+    if (onCreateScript) {
+      onCreateScript(newScript);
+    }
+
+    // Reset form
+    setNewScriptName('');
+    setNewScriptDescription('');
+    setNewScriptLanguage('lua');
+    setShowNewScriptDialog(false);
+
+    toast({
+      title: "脚本已创建",
+      description: `已创建脚本: ${newScript.name}`
+    });
+  };
+
+  const handleDeleteScript = async (script: Script) => {
+    if (onDeleteScript) {
+      onDeleteScript(script.id);
+    }
+
+    toast({
+      title: "删除成功", 
+      description: `已删除脚本: ${script.name}`
+    });
+    
+    setDeleteConfirmScript(null);
+  };
+
+  const getDefaultScriptContent = (language: 'lua' | 'javascript' | 'python'): string => {
+    switch (language) {
+      case 'lua':
+        return `-- Lua脚本示例
+-- 在这里编写您的Lua代码
+
+print("Hello, World!")
+
+-- 串口通信示例
+-- serial.send("AT\\r\\n")
+-- response = serial.read(1000) -- 等待1秒读取响应
+-- print("Response:", response)`;
+      
+      case 'javascript':
+        return `// JavaScript脚本示例
+// 在这里编写您的JavaScript代码
+
+console.log("Hello, World!");
+
+// 串口通信示例  
+// serial.send("AT\\r\\n");
+// const response = await serial.read(1000); // 等待1秒读取响应
+// console.log("Response:", response);`;
+      
+      case 'python':
+        return `# Python脚本示例
+# 在这里编写您的Python代码
+
+print("Hello, World!")
+
+# 串口通信示例
+# serial.send("AT\\r\\n")
+# response = serial.read(1000)  # 等待1秒读取响应
+# print(f"Response: {response}")`;
+      
+      default:
+        return '';
+    }
+  };
+
   return <>
       {/* 底部工具栏 */}
       <div className="flex-shrink-0 p-3 border-t border-border/50 bg-card/80 backdrop-blur-sm">
@@ -367,97 +482,227 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
         </div>
       </div>
 
-      {/* 测试用例选择窗口 */}
+      {/* 测试用例与脚本选择窗口 */}
       <Dialog open={showCaseSelector} onOpenChange={setShowCaseSelector}>
-        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>选择测试用例</DialogTitle>
+            <DialogTitle>项目管理器</DialogTitle>
           </DialogHeader>
           
-          {/* 搜索框 */}
-          <div className="relative mb-4">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="搜索测试用例名称、编号或描述..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-8" />
-          </div>
-          
-          {/* 操作按钮工具栏 */}
-          <div className="flex items-center gap-2 mb-4 pb-4 border-b">
-            <Button variant="outline" size="sm" onClick={() => setShowNewCaseDialog(true)} className="flex items-center gap-2">
-              <FilePlus className="w-4 h-4" />
-              新增用例
-            </Button>
-            
-            <Button variant="outline" size="sm" onClick={() => setConfirmNewWorkspace(true)} className="flex items-center gap-2">
-              <FolderOpen className="w-4 h-4" />
-              新建并切换工作区
-            </Button>
-            
-            <Button variant="outline" size="sm" onClick={onSync} className="flex items-center gap-2">
-              <RotateCcw className="w-4 h-4" />
-              刷新
-            </Button>
-            
-            <Button variant="outline" size="sm" onClick={() => setShowCloneDialog(true)} className="flex items-center gap-2" disabled={testCases.length === 0}>
-              <Copy className="w-4 h-4" />
-              新增用例自..
-            </Button>
-          </div>
-          
-          {/* 测试用例表格 */}
-          <div className="flex-1 overflow-y-auto max-h-[400px]">
-            {filteredTestCases.length === 0 ? <div className="text-center text-muted-foreground py-8">
-                {searchQuery ? '未找到匹配的测试用例' : '暂无测试用例'}
-              </div> : <Table>
-                 <TableHeader>
-                   <TableRow>
-                     <TableHead className="w-20">用例ID</TableHead>
-                     <TableHead>用例名</TableHead>
-                     <TableHead>用例简述</TableHead>
-                     <TableHead className="w-20">操作</TableHead>
-                   </TableRow>
-                 </TableHeader>
-                 <TableBody>
-                   {filteredTestCases.map(testCase => <TableRow key={testCase.id} className={`hover:bg-accent/50 ${currentTestCase?.id === testCase.id ? 'bg-accent/30' : ''}`}>
-                       <TableCell className="font-mono text-sm cursor-pointer" onClick={() => {
-                         onSelectTestCase(testCase.id);
-                         setShowCaseSelector(false);
-                         setSearchQuery('');
-                       }}>
-                         #{testCase.uniqueId}
-                       </TableCell>
-                       <TableCell className="font-medium cursor-pointer" onClick={() => {
-                         onSelectTestCase(testCase.id);
-                         setShowCaseSelector(false);
-                         setSearchQuery('');
-                       }}>
-                         {testCase.name}
-                       </TableCell>
-                       <TableCell className="text-muted-foreground cursor-pointer" onClick={() => {
-                         onSelectTestCase(testCase.id);
-                         setShowCaseSelector(false);
-                         setSearchQuery('');
-                       }}>
-                         {testCase.description || '-'}
-                       </TableCell>
-                       <TableCell>
-                         <Button
-                           variant="ghost"
-                           size="sm"
-                           className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setDeleteConfirmCase(testCase);
-                           }}
-                         >
-                           <Trash2 className="w-4 h-4" />
-                         </Button>
-                       </TableCell>
-                     </TableRow>)}
-                 </TableBody>
-              </Table>}
-          </div>
+          <Tabs defaultValue="testcases" className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="testcases" className="flex items-center gap-2">
+                <TestTube2 className="w-4 h-4" />
+                测试用例
+              </TabsTrigger>
+              <TabsTrigger value="scripts" className="flex items-center gap-2">
+                <FileCode className="w-4 h-4" />
+                脚本
+              </TabsTrigger>
+            </TabsList>
+
+            {/* 测试用例标签页 */}
+            <TabsContent value="testcases" className="flex-1 flex flex-col">
+              {/* 搜索框 */}
+              <div className="relative mb-4">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="搜索测试用例名称、编号或描述..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  className="pl-8" 
+                />
+              </div>
+              
+              {/* 操作按钮工具栏 */}
+              <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+                <Button variant="outline" size="sm" onClick={() => setShowNewCaseDialog(true)} className="flex items-center gap-2">
+                  <FilePlus className="w-4 h-4" />
+                  新增用例
+                </Button>
+                
+                <Button variant="outline" size="sm" onClick={() => setConfirmNewWorkspace(true)} className="flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4" />
+                  新建并切换工作区
+                </Button>
+                
+                <Button variant="outline" size="sm" onClick={onSync} className="flex items-center gap-2">
+                  <RotateCcw className="w-4 h-4" />
+                  刷新
+                </Button>
+                
+                <Button variant="outline" size="sm" onClick={() => setShowCloneDialog(true)} className="flex items-center gap-2" disabled={testCases.length === 0}>
+                  <Copy className="w-4 h-4" />
+                  新增用例自..
+                </Button>
+              </div>
+              
+              {/* 测试用例表格 */}
+              <div className="flex-1 overflow-y-auto">
+                {filteredTestCases.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    {searchQuery ? '未找到匹配的测试用例' : '暂无测试用例'}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-20">用例ID</TableHead>
+                        <TableHead>用例名</TableHead>
+                        <TableHead>用例简述</TableHead>
+                        <TableHead className="w-20">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTestCases.map(testCase => (
+                        <TableRow key={testCase.id} className={`hover:bg-accent/50 ${currentTestCase?.id === testCase.id ? 'bg-accent/30' : ''}`}>
+                          <TableCell className="font-mono text-sm cursor-pointer" onClick={() => {
+                            onSelectTestCase(testCase.id);
+                            setShowCaseSelector(false);
+                            setSearchQuery('');
+                          }}>
+                            #{testCase.uniqueId}
+                          </TableCell>
+                          <TableCell className="font-medium cursor-pointer" onClick={() => {
+                            onSelectTestCase(testCase.id);
+                            setShowCaseSelector(false);
+                            setSearchQuery('');
+                          }}>
+                            {testCase.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground cursor-pointer" onClick={() => {
+                            onSelectTestCase(testCase.id);
+                            setShowCaseSelector(false);
+                            setSearchQuery('');
+                          }}>
+                            {testCase.description || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmCase(testCase);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* 脚本标签页 */}
+            <TabsContent value="scripts" className="flex-1 flex flex-col">
+              {/* 搜索框 */}
+              <div className="relative mb-4">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="搜索脚本名称或描述..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  className="pl-8" 
+                />
+              </div>
+              
+              {/* 脚本操作工具栏 */}
+              <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+                <Button variant="outline" size="sm" onClick={() => setShowNewScriptDialog(true)} className="flex items-center gap-2">
+                  <FilePlus className="w-4 h-4" />
+                  新增脚本
+                </Button>
+              </div>
+              
+              {/* 脚本列表 */}
+              <div className="flex-1 overflow-y-auto">
+                {filteredScripts.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    {searchQuery ? '未找到匹配的脚本' : '暂无脚本'}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredScripts.map(script => (
+                      <Card 
+                        key={script.id} 
+                        className={`cursor-pointer hover:bg-accent/50 transition-colors ${currentScript?.id === script.id ? 'ring-2 ring-primary' : ''}`}
+                        onClick={() => {
+                          if (onSelectScript) {
+                            onSelectScript(script.id);
+                          }
+                          setShowCaseSelector(false);
+                          setSearchQuery('');
+                        }}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <FileCode className="w-4 h-4" />
+                                <h4 className="font-medium">{script.name}</h4>
+                                <Badge variant="outline" className="text-xs">
+                                  {script.language.toUpperCase()}
+                                </Badge>
+                                {script.status !== 'pending' && (
+                                  <Badge variant={
+                                    script.status === 'success' ? 'default' : 
+                                    script.status === 'error' ? 'destructive' : 
+                                    'secondary'
+                                  } className="text-xs">
+                                    {script.status}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {script.description || '无描述'}
+                              </p>
+                              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2">
+                                <span>创建: {script.createdAt.toLocaleDateString()}</span>
+                                <span>修改: {script.modifiedAt.toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {script.isRunning && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Handle stop script
+                                  }}
+                                >
+                                  <Square className="w-4 h-4 text-red-600" />
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirmScript(script);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
-       </Dialog>
+      </Dialog>
 
        {/* 删除用例确认对话框 */}
        <AlertDialog open={!!deleteConfirmCase} onOpenChange={() => setDeleteConfirmCase(null)}>
@@ -555,6 +800,78 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
                 </Button>
                 <Button onClick={handleCloneCase} disabled={!cloneSourceId || !cloneNewName.trim()}>
                   克隆
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* 删除脚本确认对话框 */}
+        <AlertDialog open={!!deleteConfirmScript} onOpenChange={() => setDeleteConfirmScript(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认删除脚本</AlertDialogTitle>
+              <AlertDialogDescription>
+                确定要删除脚本 "{deleteConfirmScript?.name}" 吗？此操作不可撤销。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeleteConfirmScript(null)}>
+                取消
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => deleteConfirmScript && handleDeleteScript(deleteConfirmScript)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* 新增脚本对话框 */}
+        <Dialog open={showNewScriptDialog} onOpenChange={setShowNewScriptDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>新增脚本</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">脚本名称</label>
+                <Input 
+                  value={newScriptName} 
+                  onChange={e => setNewScriptName(e.target.value)} 
+                  placeholder="请输入脚本名称" 
+                  className="mt-1" 
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">脚本描述</label>
+                <Input 
+                  value={newScriptDescription} 
+                  onChange={e => setNewScriptDescription(e.target.value)} 
+                  placeholder="请输入脚本描述（可选）" 
+                  className="mt-1" 
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">脚本语言</label>
+                <select 
+                  value={newScriptLanguage} 
+                  onChange={e => setNewScriptLanguage(e.target.value as 'lua' | 'javascript' | 'python')} 
+                  className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background"
+                >
+                  <option value="lua">Lua</option>
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setShowNewScriptDialog(false)}>
+                  取消
+                </Button>
+                <Button onClick={handleCreateNewScript} disabled={!newScriptName.trim()}>
+                  创建
                 </Button>
               </div>
             </div>

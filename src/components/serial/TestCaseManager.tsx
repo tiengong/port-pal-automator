@@ -42,11 +42,13 @@ import { useTranslation } from "react-i18next";
 import { TestCaseHeader } from './TestCaseHeader';
 import { TestCaseActions } from './TestCaseActions';
 import { TestCaseSwitcher } from './TestCaseSwitcher';
+import { ScriptEditor } from './ScriptEditor';
 import { ExecutionEditor } from './editors/ExecutionEditor';
 import { UrcEditor } from './editors/UrcEditor';
 import { VariableDisplay } from '../VariableDisplay';
 import { RunResultDialog, TestRunResult } from './RunResultDialog';
 import { TestCase, TestCommand, ExecutionResult, ContextMenuState } from './types';
+import { Script } from './types/ScriptTypes';
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from '@/lib/eventBus';
 import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace, fromPersistedCase, scheduleAutoSave, getLastOpenedTestCase, setLastOpenedTestCase } from './workspace';
 

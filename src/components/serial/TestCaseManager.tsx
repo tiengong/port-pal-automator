@@ -1972,6 +1972,32 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </Tooltip>
             </TooltipProvider>
             
+            {/* 折叠展开按钮 */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      const updatedTestCases = toggleExpandById(testCases, testCase.id);
+                      setTestCases(updatedTestCases);
+                    }}
+                  >
+                    {testCase.isExpanded ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{testCase.isExpanded ? '折叠' : '展开'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
           </div>
         </div>
       </div>

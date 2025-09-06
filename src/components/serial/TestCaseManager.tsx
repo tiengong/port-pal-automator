@@ -33,7 +33,9 @@ import {
   Square,
   PlayCircle,
   RotateCcw,
-  Hash
+  Hash,
+  FolderTree,
+  FileCode
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -1271,6 +1273,45 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     });
   };
 
+  const addSubCaseViaContextMenu = () => {
+    if (!currentTestCase) return;
+    
+    const newSubCase: TestCase = {
+      id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      uniqueId: generateUniqueId(),
+      name: '新建子用例',
+      description: '',
+      commands: [],
+      subCases: [],
+      isExpanded: true,
+      isRunning: false,
+      currentCommand: 0,
+      selected: false,
+      status: 'pending',
+      failureStrategy: 'stop'
+    };
+
+    const updatedSubCases = [...currentTestCase.subCases, newSubCase];
+    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
+      ...testCase,
+      subCases: updatedSubCases
+    }));
+    setTestCases(updatedTestCases);
+
+    toast({
+      title: "新增子用例",
+      description: `已添加子用例: ${newSubCase.name}`,
+    });
+  };
+
+  const addScriptViaContextMenu = () => {
+    toast({
+      title: "功能开发中",
+      description: "脚本功能正在开发中，敬请期待",
+      variant: "default"
+    });
+  };
+
   const loadTestCaseToCurrentCase = (sourceCase: TestCase) => {
     if (!currentTestCase) return;
 
@@ -2037,6 +2078,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
                 <Search className="w-4 h-4" />
                 新建URC
+              </ContextMenuItem>
+              <ContextMenuItem onClick={addSubCaseViaContextMenu} className="flex items-center gap-2">
+                <FolderTree className="w-4 h-4" />
+                新建子用例
+              </ContextMenuItem>
+              <ContextMenuItem onClick={addScriptViaContextMenu} className="flex items-center gap-2">
+                <FileCode className="w-4 h-4" />
+                新建脚本
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>

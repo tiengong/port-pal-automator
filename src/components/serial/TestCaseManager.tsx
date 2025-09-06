@@ -1894,7 +1894,34 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               </Tooltip>
             </TooltipProvider>
             
-            {/* Settings button hidden for sub-cases - replaced by collapse/expand button at the beginning */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => {
+                      const updatedTestCases = toggleExpandById(testCases, subCase.id);
+                      setTestCases(updatedTestCases);
+                    }}
+                  >
+                    {subCase.subCases.length > 0 || subCase.commands.length > 0 ? (
+                      subCase.isExpanded ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )
+                    ) : (
+                      <div className="w-4 h-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{subCase.isExpanded ? '折叠' : '展开'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>

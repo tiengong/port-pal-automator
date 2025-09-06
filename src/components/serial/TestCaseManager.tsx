@@ -1952,9 +1952,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               ) : (
                 <ChevronRight className="w-4 h-4" />
               )
-            ) : (
-              <div className="w-4 h-4" />
-            )}
+            ) : null}
           </Button>
 
           {/* 复选框 */}

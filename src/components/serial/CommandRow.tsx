@@ -62,13 +62,13 @@ export const CommandRow: React.FC<CommandRowProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-3.5 h-3.5 text-green-500" />;
       case 'failed':
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-3.5 h-3.5 text-red-500" />;
       case 'running':
-        return <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />;
+        return <AlertCircle className="w-3.5 h-3.5 text-yellow-500 animate-pulse" />;
       case 'partial':
-        return <AlertCircle className="w-4 h-4 text-blue-500" />;
+        return <AlertCircle className="w-3.5 h-3.5 text-blue-500" />;
       default:
         return null;
     }
@@ -85,7 +85,7 @@ export const CommandRow: React.FC<CommandRowProps> = ({
   return (
     <div 
       key={command.id} 
-      className={`p-3 hover:bg-muted/50 transition-colors cursor-move select-none ${
+      className={`p-2 hover:bg-muted/50 transition-colors cursor-move select-none ${
         isDragging ? 'opacity-50' : ''
       } ${
         isDropTarget && dropPosition === 'above' ? 'border-t-2 border-primary' : ''
@@ -110,8 +110,8 @@ export const CommandRow: React.FC<CommandRowProps> = ({
       onDrop={onDrop}
     >
       <div 
-        className="flex items-center gap-3 cursor-pointer" 
-        style={{ paddingLeft: `${level * 16}px` }}
+        className="flex items-center gap-2 cursor-pointer" 
+        style={{ paddingLeft: `${level * 12}px` }}
         onClick={() => {
           onSelectCase(caseId);
           onSetLastFocusedChild(caseId, 'command', command.id, commandIndex);
@@ -124,13 +124,13 @@ export const CommandRow: React.FC<CommandRowProps> = ({
             onSelectCase(caseId);
             onUpdateCommandSelection(caseId, command.id, checked as boolean);
           }}
-          className="flex-shrink-0"
+          className="flex-shrink-0 w-3.5 h-3.5"
         />
         
         {/* 命令内容 */}
         <div className="flex-1 min-w-0">
           <div 
-            className="flex items-center gap-2 cursor-pointer hover:bg-muted/30 rounded p-1 -m-1 transition-colors"
+            className="flex items-center gap-1.5 cursor-pointer hover:bg-muted/30 rounded p-0.5 -m-0.5 transition-colors"
             onDoubleClick={() => {
               if (command.type === 'urc') {
                 const currentValue = command.urcPattern || '';
@@ -157,41 +157,41 @@ export const CommandRow: React.FC<CommandRowProps> = ({
                     setLocalEditValue("");
                   }
                 }}
-                className="font-mono text-sm h-6 px-1"
+                className="font-mono text-xs h-5 px-1"
                 placeholder={command.type === 'urc' ? "输入URC校验内容" : "输入命令内容"}
                 autoFocus
               />
             ) : (
-              <span className="font-mono text-sm truncate">
+              <span className="font-mono text-xs truncate">
                 {command.type === 'urc' ? (command.urcPattern || '点击编辑URC校验内容') : command.command}
               </span>
             )}
           </div>
           
           {command.expectedResponse && (
-            <div className="text-xs text-muted-foreground truncate mt-1">
+            <div className="text-xs text-muted-foreground truncate">
               期望: {command.expectedResponse}
             </div>
           )}
         </div>
         
         {/* 状态指示器 */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0">
           {getStatusIcon(command.status)}
         </div>
         
         {/* 操作按钮 */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-6 w-6 p-0"
                   onClick={() => onRunCommand(caseId, commandIndex)}
                 >
-                  <PlayCircle className="w-4 h-4" />
+                  <PlayCircle className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -206,13 +206,13 @@ export const CommandRow: React.FC<CommandRowProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-6 w-6 p-0"
                   onClick={() => {
                     onSelectCase(caseId);
                     onEditCommand(caseId, commandIndex);
                   }}
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>

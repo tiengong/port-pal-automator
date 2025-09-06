@@ -1878,8 +1878,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     
     // 渲染用例行
     elements.push(
-      <div key={testCase.id} className="p-3 hover:bg-muted/50 transition-colors">
-        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
+      <div key={testCase.id} className="p-2 hover:bg-muted/50 transition-colors">
+        <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 12}px` }}>
 
           {/* 复选框 */}
           <Checkbox
@@ -1891,7 +1891,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               }));
               setTestCases(updatedTestCases);
             }}
-            className="flex-shrink-0"
+            className="flex-shrink-0 w-3.5 h-3.5"
           />
           
           {/* 用例内容 */}
@@ -1899,8 +1899,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             className="flex-1 min-w-0 cursor-pointer"
             onClick={() => setSelectedTestCaseId(testCase.id)}
           >
-            <div className="flex items-center gap-2">
-              <span className={`font-medium text-sm truncate ${
+            <div className="flex items-center gap-1.5">
+              <span className={`font-medium text-xs truncate ${
                 selectedTestCaseId === testCase.id ? 'text-primary' : ''
               }`}>
                 {testCase.name}
@@ -1911,7 +1911,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </div>
           
           {/* 状态指示器 */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {getStatusIcon(testCase.status)}
           </div>
           
@@ -1923,11 +1923,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    className="h-6 w-6 p-0"
                     onClick={() => runTestCase(testCase.id)}
                     disabled={connectedPorts.length === 0}
                   >
-                    <PlayCircle className="w-4 h-4" />
+                    <PlayCircle className="w-3.5 h-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -1943,16 +1943,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    className="h-6 w-6 p-0"
                     onClick={() => {
                       const updatedTestCases = toggleExpandById(testCases, testCase.id);
                       setTestCases(updatedTestCases);
                     }}
                   >
                     {testCase.isExpanded ? (
-                      <ChevronDown className="w-4 h-4" />
+                      <ChevronDown className="w-3.5 h-3.5" />
                     ) : (
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3.5 h-3.5" />
                     )}
                   </Button>
                 </TooltipTrigger>
@@ -2167,17 +2167,17 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       {/* ========== 模块化测试页面布局 - 2024年版本 ========== */}
       
       {/* 1. 当前信息显示 */}
-      <div className="flex-shrink-0 p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
+      <div className="flex-shrink-0 p-2 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         {/* 🎯 新模块化布局已激活 - 2024版本 */}
         {currentScript ? (
           // Script header
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <FileCode className="w-6 h-6 text-primary" />
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FileCode className="w-5 h-5 text-primary" />
               <div>
-                <h2 className="text-lg font-semibold flex items-center gap-2">
+                <h2 className="text-base font-semibold flex items-center gap-2">
                   {currentScript.name}
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-xs h-5">
                     {currentScript.language.toUpperCase()}
                   </Badge>
                   <Badge 
@@ -2187,7 +2187,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       currentScript.status === 'running' ? 'secondary' : 
                       'outline'
                     }
-                    className="flex items-center gap-1 text-xs"
+                    className="flex items-center gap-1 text-xs h-5"
                   >
                     {currentScript.status === 'success' && <CheckCircle className="w-3 h-3" />}
                     {currentScript.status === 'error' && <XCircle className="w-3 h-3" />}
@@ -2195,21 +2195,21 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     {currentScript.status}
                   </Badge>
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {currentScript.description || '无描述'}
                 </p>
               </div>
             </div>
             
             {/* Script actions */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handleSaveScript(currentScript)}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 h-7 px-2"
               >
-                <Save className="w-4 h-4" />
+                <Save className="w-3.5 h-3.5" />
                 保存
               </Button>
               
@@ -2218,16 +2218,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 disabled={currentScript.status === 'running'}
                 variant={currentScript.isRunning ? "destructive" : "default"}
                 size="sm"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 h-7 px-2"
               >
                 {currentScript.isRunning ? (
                   <>
-                    <Square className="w-4 h-4" />
+                    <Square className="w-3.5 h-3.5" />
                     停止
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4" />
+                    <Play className="w-3.5 h-3.5" />
                     运行
                   </>
                 )}
@@ -2237,7 +2237,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         ) : (
           // Test case header
           <>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <TestCaseHeader 
                 currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id, testCases) || currentTestCase) : currentTestCase} 
                 onUpdateCase={applyUpdateAndAutoSave}
@@ -2279,14 +2279,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       ) : (
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 max-h-[calc(100vh-320px)]">
+            <div className="flex-1 min-h-0 overflow-y-auto p-2 max-h-[calc(100vh-280px)]">
               {testCases.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
+                  <TestTube2 className="w-10 h-10 mb-3 opacity-30" />
                   <p className="text-sm">暂无测试用例，点击新建用例开始</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {/* 参数显示面板 */}
                   {Object.keys(storedParameters).length > 0 && (
                     <VariableDisplay

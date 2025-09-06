@@ -367,7 +367,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-1 flex-shrink-0">
+    <div className="flex items-center gap-0.5 flex-shrink-0">
       {/* 全选/取消全选按钮 */}
       {currentTestCase && currentTestCase.commands.length > 0 && (
         <TooltipProvider>
@@ -377,12 +377,12 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={handleToggleSelectAll}
                 variant="outline" 
                 size="sm" 
-                className="h-8 w-8 p-0"
+                className="h-6 w-6 p-0"
               >
                 {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected) ? (
-                  <CheckSquare className="w-4 h-4" />
+                  <CheckSquare className="w-3.5 h-3.5" />
                 ) : (
-                  <SquareIcon className="w-4 h-4" />
+                  <SquareIcon className="w-3.5 h-3.5" />
                 )}
               </Button>
             </TooltipTrigger>
@@ -407,9 +407,9 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={onDeleteSelectedCommands || handleDeleteSelectedCommands} 
                 variant="destructive" 
                 size="sm" 
-                className="h-8 w-8 p-0"
+                className="h-6 w-6 p-0"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>

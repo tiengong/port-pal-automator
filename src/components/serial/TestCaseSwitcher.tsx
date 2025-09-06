@@ -363,20 +363,6 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             {/* 分隔线 */}
             <div className="w-px h-4 bg-border mx-1" />
             
-            {/* 同步 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={onSync} variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <RotateCcw className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>同步测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
             {/* 导入 */}
             <TooltipProvider>
               <Tooltip>

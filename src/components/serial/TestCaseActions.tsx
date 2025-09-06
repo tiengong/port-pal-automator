@@ -63,6 +63,26 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   const { t } = useTranslation();
   const [showPresetDialog, setShowPresetDialog] = useState(false);
 
+  // 检查测试用例是否有执行记录
+  const hasExecutionHistory = (testCase: TestCase): boolean => {
+    // 检查用例本身的状态
+    if (testCase.status !== 'pending' || testCase.currentCommand !== -1 || testCase.isRunning) {
+      return true;
+    }
+    
+    // 检查命令是否有执行记录
+    if (testCase.commands.some(cmd => cmd.status !== 'pending')) {
+      return true;
+    }
+    
+    // 递归检查子用例
+    if (testCase.subCases.some(subcase => hasExecutionHistory(subcase))) {
+      return true;
+    }
+    
+    return false;
+  };
+
   const handleUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -466,8 +486,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
         </TooltipProvider>
       )}
       
-      {/* 重置按钮 */}
-      {currentTestCase && (
+      {/* 重置按钮 - 只有在测试用例有执行记录时才显示 */}
+      {currentTestCase && hasExecutionHistory(currentTestCase) && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>

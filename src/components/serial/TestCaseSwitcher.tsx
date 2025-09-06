@@ -363,19 +363,6 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
             {/* 分隔线 */}
             <div className="w-px h-4 bg-border mx-1" />
             
-            {/* 导入 */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={handleUpload} variant="outline" size="sm" className="h-8 w-8 p-0">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>导入测试用例</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
       </div>

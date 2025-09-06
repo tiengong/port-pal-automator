@@ -1217,6 +1217,67 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const handleSelectScript = (scriptId: string) => {
     const script = scripts.find(s => s.id === scriptId);
     setCurrentScript(script || null);
+    // Clear test case selection when selecting a script
+    if (script) {
+      setSelectedTestCaseId('');
+    }
+  };
+
+  const handleScriptUpdate = (updatedScript: Script) => {
+    setScripts(scripts.map(s => s.id === updatedScript.id ? updatedScript : s));
+    setCurrentScript(updatedScript);
+  };
+
+  const handleSaveScript = (script: Script) => {
+    // TODO: Implement script saving logic
+    console.log('Save script:', script);
+  };
+
+  const handleRunScript = (scriptId: string) => {
+    const script = scripts.find(s => s.id === scriptId);
+    if (script) {
+      setScripts(scripts.map(s => 
+        s.id === scriptId 
+          ? { ...s, isRunning: true, status: 'running' }
+          : s
+      ));
+      setCurrentScript(prev => prev?.id === scriptId ? { ...prev, isRunning: true, status: 'running' } : prev);
+      
+      // TODO: Implement actual script execution
+      setTimeout(() => {
+        setScripts(scripts.map(s => 
+          s.id === scriptId 
+            ? { ...s, isRunning: false, status: 'success', lastRunResult: {
+                success: true,
+                output: 'Script executed successfully',
+                timestamp: new Date()
+              } }
+            : s
+        ));
+        setCurrentScript(prev => prev?.id === scriptId ? { 
+          ...prev, 
+          isRunning: false, 
+          status: 'success',
+          lastRunResult: {
+            success: true,
+            output: 'Script executed successfully',
+            timestamp: new Date()
+          }
+        } : prev);
+      }, 2000);
+    }
+  };
+
+  const handleStopScript = (scriptId: string) => {
+    const script = scripts.find(s => s.id === scriptId);
+    if (script) {
+      setScripts(scripts.map(s => 
+        s.id === scriptId 
+          ? { ...s, isRunning: false, status: 'stopped' }
+          : s
+      ));
+      setCurrentScript(prev => prev?.id === scriptId ? { ...prev, isRunning: false, status: 'stopped' } : prev);
+    }
   };
 
   // 统一自动保存入口（核心）
@@ -1240,6 +1301,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   // 选择测试用例
   const handleSelectTestCase = (caseId: string) => {
     setSelectedTestCaseId(caseId);
+    // Clear script selection when selecting a test case
+    setCurrentScript(null);
   };
 
   // 右击菜单功能
@@ -2185,51 +2248,63 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         />
       </div>
 
-      {/* 3. 中间测试用例展示区 */}
-      <ContextMenu>
-        <ContextMenuTrigger asChild>
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 max-h-[calc(100vh-320px)]">
-            {testCases.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
-                <p className="text-sm">暂无测试用例，点击新建用例开始</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* 参数显示面板 */}
-                {Object.keys(storedParameters).length > 0 && (
-                  <VariableDisplay
-                    storedParameters={storedParameters}
-                    onClearParameter={(key) => {
-                      setStoredParameters(prev => {
-                        const newParams = { ...prev };
-                        delete newParams[key];
-                        return newParams;
-                      });
-                      toast({
-                        title: "参数已清除",
-                        description: `已清除参数: ${key}`,
-                      });
-                    }}
-                    onClearAll={() => {
-                      setStoredParameters({});
-                      toast({
-                        title: "全部参数已清除",
-                        description: "所有解析的参数已被清空",
-                      });
-                    }}
-                  />
-                )}
-                
-                {/* 统一层级树 */}
-                <div className="border border-border rounded-lg bg-card">
-                  <div className="divide-y divide-border">
-                    {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
+      {/* 3. 中间内容展示区 - 脚本编辑器或测试用例 */}
+      {currentScript ? (
+        <div className="flex-1 min-h-0 overflow-hidden p-4">
+          <ScriptEditor
+            script={currentScript}
+            onScriptUpdate={handleScriptUpdate}
+            onRunScript={handleRunScript}
+            onStopScript={handleStopScript}
+            onSaveScript={handleSaveScript}
+            statusMessages={statusMessages}
+          />
+        </div>
+      ) : (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 max-h-[calc(100vh-320px)]">
+              {testCases.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                  <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
+                  <p className="text-sm">暂无测试用例，点击新建用例开始</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* 参数显示面板 */}
+                  {Object.keys(storedParameters).length > 0 && (
+                    <VariableDisplay
+                      storedParameters={storedParameters}
+                      onClearParameter={(key) => {
+                        setStoredParameters(prev => {
+                          const newParams = { ...prev };
+                          delete newParams[key];
+                          return newParams;
+                        });
+                        toast({
+                          title: "参数已清除",
+                          description: `已清除参数: ${key}`,
+                        });
+                      }}
+                      onClearAll={() => {
+                        setStoredParameters({});
+                        toast({
+                          title: "全部参数已清除",
+                          description: "所有解析的参数已被清空",
+                        });
+                      }}
+                    />
+                  )}
+                   
+                  {/* 统一层级树 */}
+                  <div className="border border-border rounded-lg bg-card">
+                    <div className="divide-y divide-border">
+                      {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-64">
           <ContextMenuSub>
@@ -2354,6 +2429,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      )}
 
       {/* 4. 测试用例切换区 */}
       <TestCaseSwitcher 

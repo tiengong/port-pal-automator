@@ -1970,26 +1970,28 @@ print("Hello from Python script!")
     elements.push(
       <div key={testCase.id} className="p-3 hover:bg-muted/50 transition-colors">
         <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
-          {/* 展开/折叠按钮 */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 flex-shrink-0"
-            onClick={() => {
-              const updatedTestCases = toggleExpandById(testCases, testCase.id);
-              setTestCases(updatedTestCases);
-            }}
-          >
-            {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
-              testCase.isExpanded ? (
-                <ChevronDown className="w-4 h-4" />
+          {/* 展开/折叠按钮 - 仅对根用例显示 */}
+          {level === 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 flex-shrink-0"
+              onClick={() => {
+                const updatedTestCases = toggleExpandById(testCases, testCase.id);
+                setTestCases(updatedTestCases);
+              }}
+            >
+              {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
+                testCase.isExpanded ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )
               ) : (
-                <ChevronRight className="w-4 h-4" />
-              )
-            ) : (
-              <div className="w-4 h-4" />
-            )}
-          </Button>
+                <div className="w-4 h-4" />
+              )}
+            </Button>
+          )}
 
           {/* 复选框 */}
           <Checkbox
@@ -2046,23 +2048,56 @@ print("Hello from Python script!")
               </Tooltip>
             </TooltipProvider>
             
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => handleEditCase(testCase)}
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>设置</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            {/* 对于子用例（level > 0），显示折叠展开按钮替代设置按钮 */}
+            {level > 0 ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        const updatedTestCases = toggleExpandById(testCases, testCase.id);
+                        setTestCases(updatedTestCases);
+                      }}
+                    >
+                      {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
+                        testCase.isExpanded ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )
+                      ) : (
+                        <ChevronRight className="w-4 h-4 opacity-50" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{testCase.isExpanded ? '折叠' : '展开'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              /* 对于根用例（level === 0），显示设置按钮 */
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleEditCase(testCase)}
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>设置</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
         </div>
       </div>

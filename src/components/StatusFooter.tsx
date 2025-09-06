@@ -5,17 +5,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, AlertCircle, XCircle, Info, X, Wifi, WifiOff, History, Trash } from 'lucide-react';
-import { GlobalMessage } from '@/hooks/useGlobalMessages';
+import { StatusMessage } from '@/hooks/useStatusMessages';
 import { useSerialManager } from '@/hooks/useSerialManager';
 import { useTranslation } from 'react-i18next';
 
 interface StatusFooterProps {
+  currentMessage: StatusMessage | null;
+  onClearMessage: () => void;
   isSerialSupported: boolean;
-  messages: GlobalMessage[];
+  messages: StatusMessage[];
   onClearAllMessages: () => void;
 }
 
 export const StatusFooter: React.FC<StatusFooterProps> = ({
+  currentMessage,
+  onClearMessage,
   isSerialSupported,
   messages,
   onClearAllMessages
@@ -24,20 +28,20 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   const serialManager = useSerialManager();
   const connectionStatus = serialManager.getConnectionStatus();
 
-  const getMessageIcon = (type: GlobalMessage['type']) => {
+  const getMessageIcon = (type: StatusMessage['type']) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-3 h-3 text-success" />;
+        return <CheckCircle className="w-4 h-4 text-success" />;
       case 'warning':
-        return <AlertCircle className="w-3 h-3 text-warning" />;
+        return <AlertCircle className="w-4 h-4 text-warning" />;
       case 'error':
-        return <XCircle className="w-3 h-3 text-destructive" />;
+        return <XCircle className="w-4 h-4 text-destructive" />;
       default:
-        return <Info className="w-3 h-3 text-primary" />;
+        return <Info className="w-4 h-4 text-primary" />;
     }
   };
 
-  const getMessageStyles = (type: GlobalMessage['type']) => {
+  const getMessageStyles = (type: StatusMessage['type']) => {
     switch (type) {
       case 'success':
         return 'text-success border-success/20 bg-success/10';
@@ -51,29 +55,40 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
   };
 
   return (
-    <footer className="h-6 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
+    <footer className="h-12 bg-gradient-to-r from-card to-secondary/50 border-t border-border/50 px-6 flex items-center justify-between text-sm backdrop-blur-sm">
       {/* Left: Status Message */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        {/* Scrollable Messages Area */}
-        <div className="flex-1 min-w-0">
-          <ScrollArea className="h-5 w-full">
-            <div className="flex items-center gap-1 py-1">
-              {messages.length === 0 ? (
-                <span className="text-muted-foreground/70 text-xs">{t('status.ready')}</span>
-              ) : (
-                messages.slice(-3).map((msg) => (
-                  <div key={msg.id} className={`flex items-center gap-1 px-2 py-0.5 rounded border text-xs whitespace-nowrap ${getMessageStyles(msg.type)}`}>
-                    {getMessageIcon(msg.type)}
-                    <span className="font-medium text-xs">{msg.message}</span>
-                    <span className="text-muted-foreground text-xs">
-                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
+        {currentMessage ? (
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all ${getMessageStyles(currentMessage.type)}`}>
+            {getMessageIcon(currentMessage.type)}
+            <span className="font-medium truncate max-w-md" title={currentMessage.message}>
+              {currentMessage.message}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 w-5 p-0 hover:bg-transparent"
+              onClick={onClearMessage}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-6">
+            <span className="font-medium text-muted-foreground">{t('status.serialTool')}</span>
+            {isSerialSupported ? (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse"></div>
+                <span className="text-success font-medium">{t('status.webSerialSupported')}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
+                <span className="text-warning font-medium">{t('status.webSerialNotSupported')}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Right: Connection Status & History */}
@@ -96,11 +111,11 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
             >
               <History className="w-4 h-4" />
               {messages.length > 0 && (
-                <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 p-0 text-xs bg-primary">
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-primary">
                   {messages.length > 99 ? '99+' : messages.length}
                 </Badge>
               )}
@@ -113,7 +128,7 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onClearAllMessages}
-                className="h-6 w-6 p-0"
+                className="h-8 w-8 p-0"
               >
                 <Trash className="w-4 h-4" />
               </Button>

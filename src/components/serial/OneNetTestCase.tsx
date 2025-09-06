@@ -32,7 +32,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         validationMethod: 'contains',
         waitTime: 1000,
         stopOnFailure: false,
-        failureHandling: 'continue',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -45,7 +44,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         validationMethod: 'contains',
         waitTime: 1000,
         stopOnFailure: false,
-        failureHandling: 'continue',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -59,8 +57,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: '+MIPLCREATE:0',
         validationMethod: 'contains',
         waitTime: 2000,
-        stopOnFailure: false,
-        failureHandling: 'stop',
+        stopOnFailure: true,
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -72,8 +69,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: 'OK',
         validationMethod: 'contains',
         waitTime: 1000,
-        stopOnFailure: false,
-        failureHandling: 'stop',
+        stopOnFailure: true,
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -87,8 +83,7 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         expectedResponse: 'OK',
         validationMethod: 'contains',
         waitTime: 1000,
-        stopOnFailure: false,
-        failureHandling: 'stop',
+        stopOnFailure: true,
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -179,7 +174,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           validationMethod: 'contains',
           waitTime: 1000,
           stopOnFailure: false,
-          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -215,7 +209,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           validationMethod: 'contains',
           waitTime: 1000,
           stopOnFailure: false,
-          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -230,7 +223,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           validationMethod: 'contains',
           waitTime: 1000,
           stopOnFailure: false,
-          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -282,7 +274,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           validationMethod: 'contains',
           waitTime: 1000,
           stopOnFailure: false,
-          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -318,7 +309,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
           validationMethod: 'contains',
           waitTime: 1000,
           stopOnFailure: false,
-          failureHandling: 'continue',
           lineEnding: 'crlf',
           selected: false,
           status: 'pending'
@@ -333,7 +323,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
         validationMethod: 'contains',
         waitTime: 1000,
         stopOnFailure: false,
-        failureHandling: 'continue',
         lineEnding: 'crlf',
         selected: false,
         status: 'pending'
@@ -368,9 +357,6 @@ export const OneNetTestCase: React.FC<OneNetTestCaseProps> = ({
       currentCommand: -1,
       selected: false,
       status: 'pending',
-      failureStrategy: 'stop',
-      onWarningFailure: 'continue',
-      onErrorFailure: 'stop',
       isPreset: true
     };
   };

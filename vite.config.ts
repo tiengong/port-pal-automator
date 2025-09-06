@@ -19,18 +19,4 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  define: {
-    // Prevent Tauri APIs from causing issues in web builds
-    __TAURI__: false,
-  },
-  build: {
-    rollupOptions: {
-      external: mode === 'web' ? [
-        '@tauri-apps/api',
-        '@tauri-apps/plugin-dialog', 
-        '@tauri-apps/plugin-fs',
-        'tauri-plugin-serialplugin'
-      ] : [],
-    }
-  }
 }));

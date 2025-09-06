@@ -105,13 +105,12 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <Badge variant="secondary" className="text-xs">{t('editor.execution.hexFormat')}</Badge>
               )}
             </div>
-            <Textarea
+            <Input
               id="command"
               value={command.command}
               onChange={(e) => updateCommand('command', e.target.value)}
               placeholder={command.dataFormat === 'hex' ? t('editor.execution.hexPlaceholder') : t('editor.execution.atPlaceholder')}
               className={command.dataFormat === 'hex' ? "font-mono" : "font-mono"}
-              rows={2}
             />
             {command.dataFormat === 'hex' ? (
               <p className="text-xs text-muted-foreground mt-1">
@@ -214,62 +213,33 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="expectedResponse">{t('editor.execution.expectedResponse')}</Label>
-                <div className="flex items-center gap-2">
-                  {(command.validationMethod === 'contains' || command.validationMethod === 'equals') && (
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">{t('editor.execution.expectedResponseFormat')}</Label>
-                      <Select
-                        value={command.expectedResponseFormat || 'text'}
-                        onValueChange={(value) => updateCommand('expectedResponseFormat', value)}
-                      >
-                        <SelectTrigger className="h-6 w-16 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="text">{t('editor.execution.format.text')}</SelectItem>
-                          <SelectItem value="hex">{t('editor.execution.format.hex')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={() => {
-                      if (command.command && !command.expectedResponse) {
-                        // Auto-suggest validation based on command
-                        if (command.command.includes('AT+')) {
-                          updateCommand('expectedResponse', 'OK');
-                        } else if (command.command.includes('CSQ')) {
-                          updateCommand('expectedResponse', '+CSQ:');
-                        } else if (command.command.includes('CREG')) {
-                          updateCommand('expectedResponse', '+CREG:');
-                        }
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={() => {
+                    if (command.command && !command.expectedResponse) {
+                      // Auto-suggest validation based on command
+                      if (command.command.includes('AT+')) {
+                        updateCommand('expectedResponse', 'OK');
+                      } else if (command.command.includes('CSQ')) {
+                        updateCommand('expectedResponse', '+CSQ:');
+                      } else if (command.command.includes('CREG')) {
+                        updateCommand('expectedResponse', '+CREG:');
                       }
-                    }}
-                  >
-                    {t('editor.execution.autoFill')}
-                  </Button>
-                </div>
+                    }
+                  }}
+                >
+                  {t('editor.execution.autoFill')}
+                </Button>
               </div>
-              <Textarea
+              <Input
                 id="expectedResponse"
                 value={command.expectedResponse || ''}
                 onChange={(e) => updateCommand('expectedResponse', e.target.value)}
-                placeholder={
-                  command.expectedResponseFormat === 'hex' 
-                    ? t('editor.execution.expectedResponseHexPlaceholder')
-                    : t('editor.execution.expectedResponsePlaceholder')
-                }
+                placeholder={t('editor.execution.expectedResponsePlaceholder')}
                 className="font-mono"
-                rows={command.expectedResponseFormat === 'hex' ? 2 : 3}
               />
-              {command.expectedResponseFormat === 'hex' && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('editor.execution.expectedResponseHexHelp')}
-                </p>
-              )}
               {!command.expectedResponse && (
                 <p className="text-xs text-amber-600 mt-1">
                   {t('editor.execution.expectedResponseWarning')}
@@ -308,33 +278,31 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
         </p>
       </div>
 
-      {/* 失败处理配置 */}
+      {/* 错误处理 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">失败处理配置</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            配置命令级别的重试、严重程度和提示信息。停止/继续策略由测试用例级别控制。
-          </p>
+          <CardTitle className="text-sm">{t('editor.execution.errorHandling')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="maxAttempts">重试次数</Label>
-            <Input
-              id="maxAttempts"
-              type="number"
-              value={command.maxAttempts || 1}
-              onChange={(e) => updateCommand('maxAttempts', parseInt(e.target.value) || 1)}
-              min="1"
-              max="10"
-              placeholder="1"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              命令执行失败时的重试次数（包含首次执行）
-            </p>
+            <Label htmlFor="failureHandling">{t('editor.execution.failureHandling')}</Label>
+            <Select
+              value={command.failureHandling || 'stop'}
+              onValueChange={(value) => updateCommand('failureHandling', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stop">{t('editor.execution.stop')}</SelectItem>
+                <SelectItem value="continue">{t('editor.execution.continue')}</SelectItem>
+                <SelectItem value="prompt">{t('editor.execution.prompt')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-
+          
           <div>
-            <Label htmlFor="failureSeverity">失败严重程度</Label>
+            <Label htmlFor="failureSeverity">{t('editor.execution.failureSeverity')}</Label>
             <Select
               value={command.failureSeverity || 'error'}
               onValueChange={(value) => updateCommand('failureSeverity', value)}
@@ -343,24 +311,10 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="warning">警告级别</SelectItem>
-                <SelectItem value="error">错误级别</SelectItem>
+                <SelectItem value="warning">{t('editor.execution.warning')}</SelectItem>
+                <SelectItem value="error">{t('editor.execution.error')}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              失败严重程度影响测试用例的后续执行策略
-            </p>
-          </div>
-
-          <div>
-            <Label htmlFor="failurePrompt">失败提示消息</Label>
-            <Textarea
-              id="failurePrompt"
-              value={command.failurePrompt || command.dialogContent || ''}
-              onChange={(e) => updateCommand('failurePrompt', e.target.value)}
-              placeholder="命令执行失败时显示的自定义提示消息（可选）"
-              rows={2}
-            />
           </div>
         </CardContent>
       </Card>
@@ -373,24 +327,24 @@ export const ExecutionEditor: React.FC<ExecutionEditorProps> = ({
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
             <Switch
-              id="requiresUserAction"
-              checked={command.requiresUserAction || false}
-              onCheckedChange={(checked) => updateCommand('requiresUserAction', checked)}
+              id="userActionDialog"
+              checked={command.userActionDialog || false}
+              onCheckedChange={(checked) => updateCommand('userActionDialog', checked)}
             />
-            <Label htmlFor="requiresUserAction">需要用户确认</Label>
+            <Label htmlFor="userActionDialog">{t('editor.execution.userActionDialog')}</Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            启用后，执行此命令前会显示确认对话框让用户确认
+            {t('editor.execution.userActionDialogDescription')}
           </p>
           
-          {command.requiresUserAction && (
+          {command.userActionDialog && (
             <div>
-              <Label htmlFor="userPrompt">确认提示内容</Label>
+              <Label htmlFor="dialogContent">{t('editor.execution.dialogContent')}</Label>
               <Textarea
-                id="userPrompt"
-                value={command.userPrompt || ''}
-                onChange={(e) => updateCommand('userPrompt', e.target.value)}
-                placeholder="请输入需要用户确认的提示信息，例如：请确认设备已连接并处于正确状态"
+                id="dialogContent"
+                value={command.dialogContent || ''}
+                onChange={(e) => updateCommand('dialogContent', e.target.value)}
+                placeholder={t('editor.execution.dialogContentPlaceholder')}
                 rows={3}
               />
             </div>

@@ -8,32 +8,21 @@ import { DataTerminal } from "@/components/serial/DataTerminal";
 import { TestCaseManager } from "@/components/serial/TestCaseManager";
 import { SettingsPanel } from "@/components/serial/SettingsPanel";
 import { StatusFooter } from "@/components/StatusFooter";
-import { AsciiUI } from "@/components/AsciiUI";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSerialManager } from "@/hooks/useSerialManager";
-import { useGlobalMessages } from "@/hooks/useGlobalMessages";
+import { useStatusMessages } from "@/hooks/useStatusMessages";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
 
 const Index = () => {
   const { t } = useTranslation();
   const serialManager = useSerialManager();
-  const globalMessages = useGlobalMessages();
+  const statusMessages = useStatusMessages();
   const { settings } = useSettings();
-  
-  // 记住左侧页签状态
-  const [leftPanelTab, setLeftPanelTab] = useState(() => {
-    return localStorage.getItem('serial_left_tab') || 'connection';
-  });
-  
+  const [leftPanelTab, setLeftPanelTab] = useState("connection");
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [receivedData, setReceivedData] = useState<string[]>([]);
-
-  // 保存页签状态到 localStorage
-  useEffect(() => {
-    localStorage.setItem('serial_left_tab', leftPanelTab);
-  }, [leftPanelTab]);
 
   // Web Serial API availability check
   const isSerialSupported = 'serial' in navigator;
@@ -70,7 +59,7 @@ const Index = () => {
   }, [settings.defaultBaudRate, settings.defaultDataBits, settings.defaultParity, settings.defaultStopBits, serialManager.ports]);
 
   return (
-    <div className="h-[100svh] md:h-screen w-full overflow-hidden bg-background animate-fade-in flex flex-col">
+    <div className="min-h-screen bg-background animate-fade-in">
       {/* Enhanced Header */}
       <header className="h-14 app-header px-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -155,7 +144,7 @@ const Index = () => {
               <DialogHeader>
                 <DialogTitle>{t('settings.title')}</DialogTitle>
               </DialogHeader>
-              <SettingsPanel statusMessages={globalMessages} />
+              <SettingsPanel statusMessages={statusMessages} />
             </DialogContent>
           </Dialog>
 
@@ -168,12 +157,12 @@ const Index = () => {
       </header>
 
       {/* Enhanced Main Content - 2 Column Layout */}
-      <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+      <div className="flex flex-col md:flex-row h-[calc(100svh-3.5rem)]">
         {/* Enhanced Left Panel */}
-        <div className="w-full md:w-96 control-panel flex flex-col min-w-0 min-h-0">
-          <Tabs value={leftPanelTab} onValueChange={setLeftPanelTab} className="flex-1 flex flex-col min-h-0">
+        <div className="w-full md:w-96 control-panel flex flex-col min-w-0">
+          <Tabs value={leftPanelTab} onValueChange={setLeftPanelTab} className="flex-1 flex flex-col">
             <div className="border-b border-border/50 px-4 py-3">
-              <TabsList className="grid w-full grid-cols-3 h-10 bg-secondary/50 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-2 h-10 bg-secondary/50 p-1 rounded-lg">
                 <TabsTrigger 
                   value="connection" 
                   className="text-sm h-8 transition-smooth data-[state=active]:shadow-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -188,55 +177,42 @@ const Index = () => {
                   <TestTube2 className="w-4 h-4 mr-2" />
                   {t('tabs.testCase')}
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="ascii" 
-                  className="text-sm h-8 transition-smooth data-[state=active]:shadow-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <Terminal className="w-4 h-4 mr-2" />
-                  ASCII UI
-                </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="connection" className="flex-1 m-0 p-4 md:p-6 animate-slide-up overflow-visible">
+            <TabsContent value="connection" className="flex-1 m-0 p-6 animate-slide-up">
               <SerialConnection
                 serialManager={serialManager}
                 isSupported={isSerialSupported}
               />
             </TabsContent>
 
-            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up flex flex-col min-h-0" forceMount>
-              <div className={leftPanelTab === 'testcase' ? 'flex flex-col min-h-0 h-full' : 'hidden'}>
-                <TestCaseManager 
-                  connectedPorts={serialManager.getConnectedPorts()}
-                  receivedData={receivedData}
-                  statusMessages={globalMessages}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="ascii" className="flex-1 m-0 animate-slide-up flex flex-col min-h-0" forceMount>
-              <div className={leftPanelTab === 'ascii' ? 'flex flex-col min-h-0 h-full' : 'hidden'}>
-                <AsciiUI />
-              </div>
+            <TabsContent value="testcase" className="flex-1 m-0 animate-slide-up">
+              <TestCaseManager 
+                connectedPorts={serialManager.getConnectedPorts()}
+                receivedData={receivedData}
+                statusMessages={statusMessages}
+              />
             </TabsContent>
           </Tabs>
         </div>
 
         {/* Enhanced Right Panel - Data Terminal */}
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30 min-w-0 min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-background to-secondary/30 min-w-0">
           <DataTerminal 
             serialManager={serialManager}
-            statusMessages={globalMessages}
+            statusMessages={statusMessages}
           />
         </div>
       </div>
 
       {/* Enhanced Status Bar */}
       <StatusFooter 
+        currentMessage={statusMessages.currentMessage}
+        onClearMessage={statusMessages.clearMessage}
         isSerialSupported={isSerialSupported}
-        messages={globalMessages.messages}
-        onClearAllMessages={globalMessages.clearAllMessages}
+        messages={statusMessages.messages}
+        onClearAllMessages={statusMessages.clearAllMessages}
       />
     </div>
   );

@@ -1,13 +1,16 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
-import { SerialManager } from '@/lib/serial/serialManager';
-import { SerialPortInfo as TransportPortInfo, SerialConfig } from '@/lib/serial/transport';
 
 export interface SerialPortInfo {
   id: string;
   port: any;
-  params: SerialConfig;
+  params: {
+    baudRate: number;
+    dataBits: number;
+    parity: 'none' | 'even' | 'odd' | 'mark' | 'space';
+    stopBits: number;
+  };
   label: 'P1' | 'P2';
   connected: boolean;
 }
@@ -16,15 +19,14 @@ export interface ConnectionStrategy {
   mode: 'P1_ONLY' | 'P1_P2';
   communicationMode: 'COMPARE' | 'MERGED_TXRX';
   txPort: 'ALL' | 'P1' | 'P2';
-  p1Config: SerialConfig;
-  p2Config: SerialConfig;
+  p1Config: SerialPortInfo['params'];
+  p2Config: SerialPortInfo['params'];
   p2Enabled: boolean;
 }
 
 export const useSerialManager = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [serialManager] = useState(() => new SerialManager());
   const [ports, setPorts] = useState<SerialPortInfo[]>([]);
   const [strategy, setStrategy] = useState<ConnectionStrategy>({
     mode: 'P1_ONLY',
@@ -64,10 +66,10 @@ export const useSerialManager = () => {
     };
   }, [ports]);
 
-  const connectPort = useCallback(async (selectedPort: TransportPortInfo, params: SerialConfig, label: 'P1' | 'P2') => {
+  const connectPort = useCallback(async (selectedPort: any, params: SerialPortInfo['params'], label: 'P1' | 'P2') => {
     try {
       // Check if port is already connected
-      if (ports.some(p => p.label === label)) {
+      if (ports.some(p => p.port === selectedPort)) {
         toast({
           title: t("connection.deviceAlreadyConnected"),
           description: t("connection.deviceAlreadyConnectedDesc", { port: label }),
@@ -76,36 +78,33 @@ export const useSerialManager = () => {
         return false;
       }
 
-      const success = await serialManager.connect(selectedPort, params, label);
-      
-      if (success) {
-        const newPortInfo: SerialPortInfo = {
-          id: selectedPort.id,
-          port: selectedPort,
-          params,
-          label,
-          connected: true
-        };
+      await selectedPort.open({
+        baudRate: params.baudRate,
+        dataBits: params.dataBits,
+        parity: params.parity,
+        stopBits: params.stopBits
+      });
 
-        setPorts(prev => {
-          // Remove any existing port with the same label
-          const filtered = prev.filter(p => p.label !== label);
-          return [...filtered, newPortInfo];
-        });
+      const newPortInfo: SerialPortInfo = {
+        id: Date.now().toString(),
+        port: selectedPort,
+        params,
+        label,
+        connected: true
+      };
 
-        toast({
-          title: t("connection.connectSuccess"),
-          description: t("connection.connectSuccessDesc", { port: label, baudRate: params.baudRate }),
-        });
-      } else {
-        toast({
-          title: t("connection.connectFailed"),
-          description: t("connection.connectFailedDesc", { port: label }),
-          variant: "destructive"
-        });
-      }
+      setPorts(prev => {
+        // Remove any existing port with the same label
+        const filtered = prev.filter(p => p.label !== label);
+        return [...filtered, newPortInfo];
+      });
 
-      return success;
+      toast({
+        title: t("connection.connectSuccess"),
+        description: t("connection.connectSuccessDesc", { port: label, baudRate: params.baudRate }),
+      });
+
+      return true;
     } catch (error) {
       console.error(`Connect ${label} failed:`, error);
       toast({
@@ -115,11 +114,26 @@ export const useSerialManager = () => {
       });
       return false;
     }
-  }, [ports, toast, serialManager]);
+  }, [ports, toast]);
 
   const disconnectPort = useCallback(async (label: 'P1' | 'P2') => {
+    const portInfo = ports.find(p => p.label === label);
+    if (!portInfo) return;
+
     try {
-      await serialManager.disconnect(label);
+      // Close the port
+      if (portInfo.port.readable && portInfo.port.readable.locked) {
+        try {
+          const reader = portInfo.port.readable.getReader();
+          await reader.cancel();
+          reader.releaseLock();
+        } catch (readerError) {
+          console.log('Reader cleanup error (expected):', readerError);
+        }
+      }
+      
+      await portInfo.port.close();
+
       setPorts(prev => prev.filter(p => p.label !== label));
 
       toast({
@@ -129,7 +143,7 @@ export const useSerialManager = () => {
     } catch (error) {
       console.error(`Disconnect ${label} failed:`, error);
       
-      // Remove from state even if disconnect failed
+      // Remove from state even if close failed
       setPorts(prev => prev.filter(p => p.label !== label));
       
       toast({
@@ -138,18 +152,15 @@ export const useSerialManager = () => {
         variant: "destructive"
       });
     }
-  }, [serialManager, toast]);
+  }, [ports, toast]);
 
   const disconnectAll = useCallback(async () => {
-    try {
-      await serialManager.disconnectAll();
-      setPorts([]);
-    } catch (error) {
-      console.error('Disconnect all failed:', error);
-      // Clear state anyway
-      setPorts([]);
-    }
-  }, [serialManager]);
+    const disconnectPromises = ports
+      .filter(p => p.connected)
+      .map(p => disconnectPort(p.label));
+    
+    await Promise.all(disconnectPromises);
+  }, [ports, disconnectPort]);
 
   const quickConnect = useCallback(async () => {
     if (isConnected()) {
@@ -159,15 +170,17 @@ export const useSerialManager = () => {
 
     // Try to auto-connect to recently used ports if available
     try {
-      const availablePorts = await serialManager.listPorts();
-      if (availablePorts.length >= 1) {
-        // Auto-connect to first available port as P1
-        const success = await connectPort(availablePorts[0], strategy.p1Config, 'P1');
-        if (success && availablePorts.length >= 2 && strategy.mode === 'P1_P2') {
-          // Auto-connect second port as P2 if strategy supports it
-          await connectPort(availablePorts[1], strategy.p2Config, 'P2');
+      if ('serial' in navigator) {
+        const availablePorts = await (navigator as any).serial.getPorts();
+        if (availablePorts.length >= 1) {
+          // Auto-connect to first available port as P1
+          const success = await connectPort(availablePorts[0], strategy.p1Config, 'P1');
+          if (success && availablePorts.length >= 2 && strategy.mode === 'P1_P2') {
+            // Auto-connect second port as P2 if strategy supports it
+            await connectPort(availablePorts[1], strategy.p2Config, 'P2');
+          }
+          return;
         }
-        return;
       }
     } catch (error) {
       console.log('Auto-connect failed, showing panel');
@@ -175,7 +188,7 @@ export const useSerialManager = () => {
 
     // Show connection panel if auto-connect fails
     return { showPanel: true };
-  }, [isConnected, disconnectAll, connectPort, strategy, serialManager]);
+  }, [isConnected, disconnectAll, connectPort, strategy]);
 
   const updateStrategy = useCallback((newStrategy: Partial<ConnectionStrategy>) => {
     setStrategy(prev => ({ ...prev, ...newStrategy }));
@@ -194,7 +207,6 @@ export const useSerialManager = () => {
   return {
     ports,
     strategy,
-    serialManager, // Expose serialManager for direct access
     isConnected,
     getConnectionStatus,
     connectPort,

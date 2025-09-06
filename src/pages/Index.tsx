@@ -8,6 +8,7 @@ import { DataTerminal } from "@/components/serial/DataTerminal";
 import { TestCaseManager } from "@/components/serial/TestCaseManager";
 import { SettingsPanel } from "@/components/serial/SettingsPanel";
 import { StatusFooter } from "@/components/StatusFooter";
+import { AsciiUI } from "@/components/AsciiUI";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSerialManager } from "@/hooks/useSerialManager";
@@ -172,7 +173,7 @@ const Index = () => {
         <div className="w-full md:w-96 control-panel flex flex-col min-w-0 min-h-0">
           <Tabs value={leftPanelTab} onValueChange={setLeftPanelTab} className="flex-1 flex flex-col min-h-0">
             <div className="border-b border-border/50 px-4 py-3">
-              <TabsList className="grid w-full grid-cols-2 h-10 bg-secondary/50 p-1 rounded-lg">
+              <TabsList className="grid w-full grid-cols-3 h-10 bg-secondary/50 p-1 rounded-lg">
                 <TabsTrigger 
                   value="connection" 
                   className="text-sm h-8 transition-smooth data-[state=active]:shadow-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -186,6 +187,13 @@ const Index = () => {
                 >
                   <TestTube2 className="w-4 h-4 mr-2" />
                   {t('tabs.testCase')}
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ascii" 
+                  className="text-sm h-8 transition-smooth data-[state=active]:shadow-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <Terminal className="w-4 h-4 mr-2" />
+                  ASCII UI
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -204,6 +212,12 @@ const Index = () => {
                   receivedData={receivedData}
                   statusMessages={globalMessages}
                 />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="ascii" className="flex-1 m-0 animate-slide-up flex flex-col min-h-0" forceMount>
+              <div className={leftPanelTab === 'ascii' ? 'flex flex-col min-h-0 h-full' : 'hidden'}>
+                <AsciiUI />
               </div>
             </TabsContent>
           </Tabs>

@@ -33,7 +33,9 @@ import {
   Square,
   PlayCircle,
   RotateCcw,
-  Hash
+  Hash,
+  Save,
+  FileCode
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -2220,32 +2222,102 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/30 max-w-full overflow-hidden">
       {/* ========== 模块化测试页面布局 - 2024年版本 ========== */}
       
-      {/* 1. 当前测试用例信息显示 */}
+      {/* 1. 当前信息显示 */}
       <div className="flex-shrink-0 p-4 border-b border-border/50 bg-card/80 backdrop-blur-sm">
         {/* 🎯 新模块化布局已激活 - 2024版本 */}
-        <div className="flex items-center justify-between mb-4">
-          <TestCaseHeader 
-            currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id, testCases) || currentTestCase) : currentTestCase} 
-            onUpdateCase={applyUpdateAndAutoSave}
-          />
-        </div>
+        {currentScript ? (
+          // Script header
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <FileCode className="w-6 h-6 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  {currentScript.name}
+                  <Badge variant="outline" className="text-xs">
+                    {currentScript.language.toUpperCase()}
+                  </Badge>
+                  <Badge 
+                    variant={
+                      currentScript.status === 'success' ? 'default' : 
+                      currentScript.status === 'error' ? 'destructive' : 
+                      currentScript.status === 'running' ? 'secondary' : 
+                      'outline'
+                    }
+                    className="flex items-center gap-1 text-xs"
+                  >
+                    {currentScript.status === 'success' && <CheckCircle className="w-3 h-3" />}
+                    {currentScript.status === 'error' && <XCircle className="w-3 h-3" />}
+                    {currentScript.status === 'running' && <AlertCircle className="w-3 h-3 animate-pulse" />}
+                    {currentScript.status}
+                  </Badge>
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {currentScript.description || '无描述'}
+                </p>
+              </div>
+            </div>
+            
+            {/* Script actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSaveScript(currentScript)}
+                className="flex items-center gap-1"
+              >
+                <Save className="w-4 h-4" />
+                保存
+              </Button>
+              
+              <Button
+                onClick={() => currentScript.isRunning ? handleStopScript(currentScript.id) : handleRunScript(currentScript.id)}
+                disabled={currentScript.status === 'running'}
+                variant={currentScript.isRunning ? "destructive" : "default"}
+                size="sm"
+                className="flex items-center gap-1"
+              >
+                {currentScript.isRunning ? (
+                  <>
+                    <Square className="w-4 h-4" />
+                    停止
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    运行
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          // Test case header
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <TestCaseHeader 
+                currentTestCase={currentTestCase ? (getTopLevelParent(currentTestCase.id, testCases) || currentTestCase) : currentTestCase} 
+                onUpdateCase={applyUpdateAndAutoSave}
+              />
+            </div>
 
-        {/* 2. 操作栏 */}
-        <TestCaseActions 
-          currentTestCase={getTargetCaseForActions(currentTestCase)}
-          testCases={testCases}
-          setTestCases={setTestCases}
-          connectedPorts={connectedPorts}
-          onEditCase={handleEditCase}
-          onRunTestCase={runTestCase}
-          onSync={handleSync}
-          onDeleteTestCase={deleteTestCase}
-          onDeleteSelectedCommands={deleteSelectedCommands}
-          onDeletePresetCases={deletePresetCases}
-          onSelectTestCase={handleSelectTestCase}
-          onUpdateCase={applyUpdateAndAutoSave}
-          hasSelectedItems={hasSelectedItems}
-        />
+            {/* 2. 操作栏 */}
+            <TestCaseActions 
+              currentTestCase={getTargetCaseForActions(currentTestCase)}
+              testCases={testCases}
+              setTestCases={setTestCases}
+              connectedPorts={connectedPorts}
+              onEditCase={handleEditCase}
+              onRunTestCase={runTestCase}
+              onSync={handleSync}
+              onDeleteTestCase={deleteTestCase}
+              onDeleteSelectedCommands={deleteSelectedCommands}
+              onDeletePresetCases={deletePresetCases}
+              onSelectTestCase={handleSelectTestCase}
+              onUpdateCase={applyUpdateAndAutoSave}
+              hasSelectedItems={hasSelectedItems}
+            />
+          </>
+        )}
       </div>
 
       {/* 3. 中间内容展示区 - 脚本编辑器或测试用例 */}

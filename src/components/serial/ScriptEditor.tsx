@@ -92,7 +92,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     <div className="flex flex-col h-full">
       {/* 紧凑的标签栏 */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-        <TabsList className="grid w-full grid-cols-4 h-9">
+        <TabsList className="grid w-full grid-cols-4 h-9 flex-shrink-0">
           <TabsTrigger value="editor" className="flex items-center gap-1.5 text-xs">
             <Code className="w-3.5 h-3.5" />
             编辑器
@@ -111,20 +111,20 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="editor" className="flex-1 mt-2 h-full min-h-0">
-          <div className="h-full flex flex-col">
+        <TabsContent value="editor" className="flex-1 mt-1 h-0 overflow-hidden">
+          <div className="h-full flex flex-col p-1">
             <Textarea
               ref={textareaRef}
               value={script.content}
               onChange={(e) => handleContentChange(e.target.value)}
               placeholder={`-- ${script.language} 脚本内容\n-- 在这里编写您的${script.language}代码`}
-              className="flex-1 resize-none font-mono text-sm border-border bg-card/50"
+              className="flex-1 resize-none font-mono text-sm border-border bg-card/50 h-full"
             />
           </div>
         </TabsContent>
 
-        <TabsContent value="settings" className="flex-1 mt-2 overflow-y-auto">
-          <div className="space-y-3 pr-2">
+        <TabsContent value="settings" className="flex-1 mt-1 overflow-y-auto h-full">
+          <div className="space-y-3 pr-2 p-1">
             <div className="space-y-1.5">
               <Label htmlFor="scriptName" className="text-sm font-medium">脚本名称</Label>
               <Input
@@ -187,12 +187,12 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           </div>
         </TabsContent>
 
-        <TabsContent value="output" className="flex-1 mt-2 flex flex-col min-h-0">
+        <TabsContent value="output" className="flex-1 mt-1 flex flex-col min-h-0 h-full">
           <div className="flex items-center gap-2 mb-2 px-1">
             <Terminal className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium">输出控制台</span>
           </div>
-          <div className="flex-1 bg-black text-green-400 font-mono text-xs p-3 rounded border overflow-y-auto">
+          <div className="flex-1 bg-black text-green-400 font-mono text-xs p-3 rounded border overflow-y-auto" style={{ minHeight: 'calc(100vh - 250px)' }}>
             {script.isRunning ? (
               <div className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 animate-pulse" />
@@ -206,8 +206,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
           </div>
         </TabsContent>
 
-        <TabsContent value="result" className="flex-1 mt-2 overflow-y-auto">
-          <div className="space-y-3">
+        <TabsContent value="result" className="flex-1 mt-1 overflow-y-auto h-full">
+          <div className="space-y-3 p-1">
             <div className="flex items-center gap-2 px-1">
               <Zap className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium">执行结果</span>

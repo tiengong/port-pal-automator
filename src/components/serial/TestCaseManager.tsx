@@ -2266,7 +2266,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       {/* 3. 中间内容展示区 - 脚本编辑器或测试用例 */}
       {currentScript ? (
-        <div className="flex-1 min-h-0 overflow-hidden p-2">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <ScriptEditor
             script={currentScript}
             onScriptUpdate={handleScriptUpdate}

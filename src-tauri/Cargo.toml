@@ -1,0 +1,33 @@
+[package]
+name = "serial-pilot"
+version = "0.1.0"
+description = "Serial Pilot - Professional serial communication debugging tool"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api"] }
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2" 
+tauri-plugin-shell = "2"
+tauri-plugin-window-state = "2"
+tauri-plugin-log = "2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+tauri-plugin-serialplugin = "2.17.1"
+
+[features]
+# This feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
+# Optional console feature for release builds debugging
+console = []

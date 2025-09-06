@@ -14,7 +14,8 @@ const App = () => (
   <SettingsProvider>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
+        {/* Toaster disabled to prevent red box notifications */}
+        {/* <Toaster /> */}
         <Sonner />
         <BrowserRouter>
           <Routes>

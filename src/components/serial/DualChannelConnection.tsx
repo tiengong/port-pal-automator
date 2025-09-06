@@ -12,6 +12,7 @@ import { RefreshCw, Plug, PlugZap, AlertTriangle, Settings2, Plus, ChevronDown, 
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { useSerialManager, type SerialPortInfo } from "@/hooks/useSerialManager";
+import { SerialPortInfo as TransportPortInfo } from '@/lib/serial/transport';
 
 interface DualChannelConnectionProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -24,10 +25,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 }) => {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [availablePorts, setAvailablePorts] = useState<any[]>([]);
+  const [availablePorts, setAvailablePorts] = useState<TransportPortInfo[]>([]);
   const [selectedPorts, setSelectedPorts] = useState<{
-    P1: any | null;
-    P2: any | null;
+    P1: TransportPortInfo | null;
+    P2: TransportPortInfo | null;
   }>({ P1: null, P2: null });
   const [selectedIndex, setSelectedIndex] = useState<{
     P1: string;
@@ -38,11 +39,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     P2: boolean;
   }>({ P1: false, P2: false });
 
-  const { strategy, updateStrategy, ports } = serialManager;
+  const { strategy, updateStrategy, ports, serialManager: manager } = serialManager;
 
   // 获取可用串口
   const refreshPorts = async () => {
-    if (!isSupported) {
+    if (!manager.isSupported()) {
       toast({
         title: t("connection.webSerialNotSupported"),
         description: t("connection.webSerialNotSupportedDesc"),
@@ -52,7 +53,7 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     }
 
     try {
-      const ports = await (navigator as any).serial.getPorts();
+      const ports = await manager.listPorts();
       setAvailablePorts(ports);
       
       if (ports.length === 0) {
@@ -73,29 +74,24 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
   // 请求新串口访问并刷新
   const requestPortAndRefresh = async () => {
-    if (!isSupported) return;
+    if (!manager.isSupported()) return;
 
     try {
-      await refreshPorts();
-      const ports = await (navigator as any).serial.getPorts();
-      
-      // 自动请求新设备访问权限
-      const port = await (navigator as any).serial.requestPort();
-      await refreshPorts();
-      
-      toast({
-        title: t("connection.deviceAdded"),
-        description: t("connection.deviceAddedDesc"),
-      });
-    } catch (error) {
-      if ((error as any).name !== 'NotFoundError') {
-        console.error('请求串口访问失败:', error);
+      const port = await manager.requestPort();
+      if (port) {
+        await refreshPorts();
         toast({
-          title: t("connection.requestFailed"),
-          description: t("connection.requestFailedDesc"),
-          variant: "destructive"
+          title: t("connection.deviceAdded"),
+          description: t("connection.deviceAddedDesc"),
         });
       }
+    } catch (error) {
+      console.error('请求串口访问失败:', error);
+      toast({
+        title: t("connection.requestFailed"),
+        description: t("connection.requestFailedDesc"),
+        variant: "destructive"
+      });
     }
   };
 
@@ -127,12 +123,12 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
   // 组件挂载时刷新端口列表
   useEffect(() => {
-    if (isSupported) {
+    if (manager.isSupported()) {
       refreshPorts();
     }
-  }, [isSupported]);
+  }, [manager]);
 
-  if (!isSupported) {
+  if (!manager.isSupported()) {
     return (
       <Card>
         <CardHeader>
@@ -143,13 +139,18 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {t("connection.currentBrowserNotSupported")}
+            {window.__TAURI__ 
+              ? t("connection.tauriSerialNotSupported")
+              : t("connection.currentBrowserNotSupported")
+            }
           </p>
-          <div className="space-y-2">
-            <Badge variant="outline">Chrome 89+</Badge>
-            <Badge variant="outline">Edge 89+</Badge>
-            <Badge variant="outline">Opera 76+</Badge>
-          </div>
+          {!window.__TAURI__ && (
+            <div className="space-y-2">
+              <Badge variant="outline">Chrome 89+</Badge>
+              <Badge variant="outline">Edge 89+</Badge>
+              <Badge variant="outline">Opera 76+</Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -188,7 +189,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 <Label>{t("connection.selectPort")}</Label>
                 <Select
                   value={selectedIndex.P1}
-                  onValueChange={(value) => {
+                  onValueChange={async (value) => {
+                    if (value === "add-port") {
+                      await requestPortAndRefresh();
+                      return;
+                    }
                     const port = availablePorts[parseInt(value)];
                     setSelectedPorts(prev => ({ ...prev, P1: port }));
                     setSelectedIndex(prev => ({ ...prev, P1: value }));
@@ -197,20 +202,6 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     if (isOpen) {
                       // 每次打开时都刷新串口列表
                       await refreshPorts();
-                      
-                      // 如果没有可用端口，提示并尝试请求新设备
-                      if (availablePorts.length === 0) {
-                        toast({
-                          title: t("connection.scanningPorts"),
-                          description: t("connection.autoRequestDesc"),
-                        });
-                        await requestPortAndRefresh();
-                      } else {
-                        toast({
-                          title: t("connection.portsUpdated"),
-                          description: t("connection.portsFoundDesc", { count: availablePorts.length }),
-                        });
-                      }
                     }
                   }}
                 >
@@ -219,23 +210,22 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     {availablePorts.length === 0 ? (
-                      <SelectItem value="no-ports" disabled>
-                        {t("connection.requestingAccess")}
-                      </SelectItem>
+                      <>
+                        <SelectItem value="no-ports" disabled>
+                          {t("connection.noPortsAvailable")}
+                        </SelectItem>
+                        <SelectItem value="add-port">
+                          <div className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            {t("connection.addNewDevice")}
+                          </div>
+                        </SelectItem>
+                      </>
                     ) : (
                       availablePorts.map((port, index) => {
-                        // Try to get port info from the port object
-                        const getPortInfo = () => {
-                          const info = (port as any).getInfo?.() || {};
-                          if (info.usbVendorId && info.usbProductId) {
-                            return `${t("connection.usbDevice")} (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
-                          }
-                          return `COM${index + 1}`;
-                        };
-                        
                         return (
                           <SelectItem key={index} value={index.toString()}>
-                            {getPortInfo()}
+                            {port.name}
                           </SelectItem>
                         );
                       })
@@ -442,7 +432,11 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   <Label>{t("connection.selectPort")}</Label>
                   <Select
                     value={selectedIndex.P2}
-                    onValueChange={(value) => {
+                    onValueChange={async (value) => {
+                      if (value === "add-port") {
+                        await requestPortAndRefresh();
+                        return;
+                      }
                       const port = availablePorts[parseInt(value)];
                       setSelectedPorts(prev => ({ ...prev, P2: port }));
                       setSelectedIndex(prev => ({ ...prev, P2: value }));
@@ -451,20 +445,6 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                       if (isOpen) {
                         // 每次打开时都刷新串口列表
                         await refreshPorts();
-                        
-                        // 如果没有可用端口，提示并尝试请求新设备
-                        if (availablePorts.length === 0) {
-                          toast({
-                            title: t("connection.scanningPorts"),
-                            description: t("connection.autoRequestDesc"),
-                          });
-                          await requestPortAndRefresh();
-                        } else {
-                          toast({
-                            title: t("connection.portsUpdated"),
-                            description: t("connection.portsFoundDesc", { count: availablePorts.length }),
-                          });
-                        }
                       }
                     }}
                   >
@@ -473,25 +453,24 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       {availablePorts.length === 0 ? (
-                        <SelectItem value="no-ports" disabled>
-                          {t("connection.requestingAccess")}
-                        </SelectItem>
+                        <>
+                          <SelectItem value="no-ports" disabled>
+                            {t("connection.noPortsAvailable")}
+                          </SelectItem>
+                          <SelectItem value="add-port">
+                            <div className="flex items-center gap-2">
+                              <Plus className="w-4 h-4" />
+                              {t("connection.addNewDevice")}
+                            </div>
+                          </SelectItem>
+                        </>
                       ) : (
                         availablePorts.map((port, index) => {
-                          // Try to get port info from the port object
-                          const getPortInfo = () => {
-                            const info = (port as any).getInfo?.() || {};
-                            if (info.usbVendorId && info.usbProductId) {
-                              return `${t("connection.usbDevice")} (${info.usbVendorId.toString(16).padStart(4, '0')}:${info.usbProductId.toString(16).padStart(4, '0')})`;
-                            }
-                            return `COM${index + 1}`;
-                          };
-                          
-                          return (
-                            <SelectItem key={index} value={index.toString()}>
-                              {getPortInfo()}
-                            </SelectItem>
-                          );
+                        return (
+                          <SelectItem key={index} value={index.toString()}>
+                            {port.name}
+                          </SelectItem>
+                        );
                         })
                       )}
                     </SelectContent>

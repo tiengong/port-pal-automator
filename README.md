@@ -71,3 +71,67 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Troubleshooting Windows Desktop App
+
+If the Serial Pilot desktop application fails to launch on Windows, follow these troubleshooting steps:
+
+### Quick Checks
+
+**1. Check WebView2 Runtime (Required)**
+```powershell
+# Check if WebView2 is installed
+winget list --id Microsoft.EdgeWebView2Runtime -e
+```
+
+If not installed:
+```powershell
+# Install WebView2 Runtime
+winget install Microsoft.EdgeWebView2Runtime
+```
+
+**2. Check Visual C++ Redistributable (Required)**
+```powershell
+# Check installed VC++ versions
+Get-WmiObject -Class Win32_Product | Where-Object { $_.Name -like "*Visual C++*" } | Select-Object Name, Version
+```
+
+If missing, install from: https://aka.ms/vs/17/release/vc_redist.x64.exe
+
+**3. Unblock Downloaded Executable**
+```powershell
+# Navigate to where you extracted the app
+cd "path\to\Serial Pilot"
+
+# Unblock the executable
+Unblock-File .\serial-pilot.exe
+
+# Check if resources folder exists (required)
+Test-Path .\resources
+```
+
+**4. Check Application Exit Code**
+```powershell
+# Run app and check exit code
+.\serial-pilot.exe
+echo "Exit code: $LASTEXITCODE"
+```
+
+### Debug Builds
+
+For detailed error information, download the **Console Debug Build** from GitHub Actions artifacts. This version shows detailed error messages in a console window and writes startup errors to `startup-error.txt` in the same directory as the executable.
+
+### Installation Recommendations
+
+- **Preferred**: Use the official installer (.msi or .exe) rather than extracting files manually
+- **Manual extraction**: Ensure you extract the entire contents, including the `resources` folder
+- **Portable use**: Copy the entire application directory, not just the .exe file
+
+### Common Issues
+
+- **Missing resources folder**: App won't start without the bundled resources
+- **WebView2 missing**: Most common cause of silent startup failures  
+- **VC++ Redistributable missing**: May cause DLL loading errors
+- **Windows Defender/Antivirus**: May block unsigned executables
+
+If none of these steps resolve the issue, please share the contents of `startup-error.txt` (if generated) or the console output from the debug build.

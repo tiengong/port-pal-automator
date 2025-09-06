@@ -1,0 +1,209 @@
+name: Tauri Build for Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      # 步骤1：拉取代码（包含完整历史，确保依赖解析正确）
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 步骤2：验证核心文件存在性（提前排查路径问题）
+      - name: Verify critical files/directories
+        run: |
+          echo "=== Root directory files ==="
+          dir
+          echo "=== Check src-tauri (Tauri core) ==="
+          if (Test-Path src-tauri) { echo "✅ src-tauri exists" } else { echo "❌ src-tauri missing"; exit 1; }
+          echo "=== Check package-lock.json (npm deps) ==="
+          if (Test-Path package-lock.json) { echo "✅ package-lock.json exists" } else { echo "❌ package-lock.json missing"; exit 1; }
+          echo "=== Check src-tauri/Cargo.toml (Rust deps) ==="
+          if (Test-Path src-tauri/Cargo.toml) { echo "✅ Cargo.toml exists" } else { echo "❌ Cargo.toml missing"; exit 1; }
+        shell: pwsh
+
+      # 步骤3：安装Node.js（匹配项目依赖，缓存npm依赖）
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"  # 兼容@tauri-apps/cli@2.8.4（需Node>=10）
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json  # 根目录锁文件路径正确
+
+      # 步骤4：设置Rust工具链（Tauri构建必需）
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      # 步骤4.5：安装Windows构建依赖（NSIS、WiX、ImageMagick）
+      - name: Install Windows build dependencies
+        run: |
+          choco install nsis -y
+          choco install wixtoolset -y
+          choco install imagemagick -y
+        shell: pwsh
+
+      # 步骤4.6：生成所需图标文件
+      - name: Generate icon files
+        run: |
+          echo "=== Generating icon files ==="
+          
+          # Create a simple app icon using ImageMagick (geometric design)
+          echo "🎨 Creating base icon design..."
+          magick -size 128x128 canvas:transparent `
+            -fill "#3B82F6" -draw "roundrectangle 16,16 112,112 16,16" `
+            -fill "#FFFFFF" -pointsize 48 -gravity center `
+            -annotate +0+0 "SW" "src-tauri/icons/base-icon.png"
+          
+          if ($LASTEXITCODE -ne 0) {
+            echo "❌ Failed to create base icon"; exit 1
+          }
+          
+          # Generate all required sizes
+          echo "📐 Generating icon sizes..."
+          magick "src-tauri/icons/base-icon.png" -resize 32x32 "src-tauri/icons/32x32.png"
+          magick "src-tauri/icons/base-icon.png" -resize 128x128 "src-tauri/icons/128x128.png"
+          magick "src-tauri/icons/base-icon.png" -resize 256x256 "src-tauri/icons/128x128@2x.png"
+          
+          # Generate ICO file with multiple sizes
+          echo "🔧 Creating Windows ICO file..."
+          magick "src-tauri/icons/32x32.png" "src-tauri/icons/128x128.png" "src-tauri/icons/icon.ico"
+          
+          # Generate ICNS for macOS (if needed)
+          echo "🍎 Creating macOS ICNS file..."
+          magick "src-tauri/icons/128x128.png" "src-tauri/icons/icon.icns"
+          
+          if ($LASTEXITCODE -eq 0) {
+            echo "✅ Successfully generated all icon files"
+            echo "📋 Generated files:"
+            ls src-tauri/icons/ | ForEach-Object { echo "  - $_" }
+          } else {
+            echo "❌ Failed to generate icon files"; exit 1
+          }
+        shell: pwsh
+
+      # 步骤5：安装前端依赖（ci模式更严格，确保依赖一致性）
+      - name: Install frontend dependencies
+        run: npm ci --no-cache
+        env:
+          npm_config_registry: https://registry.npmjs.org
+
+      # 步骤6：验证Tauri CLI安装和配置
+      - name: Verify Tauri CLI installation and config
+        run: |
+          echo "=== Tauri CLI Version ==="
+          npx --yes @tauri-apps/cli@latest --version
+          
+          echo "=== Tauri Environment Info ==="
+          npx --yes @tauri-apps/cli@latest info
+          
+          echo "=== NPM Tauri Package Versions ==="
+          npm ls @tauri-apps/api @tauri-apps/plugin-fs @tauri-apps/plugin-dialog
+          
+          echo "=== Rust Tauri Crate Versions ==="
+          Push-Location src-tauri
+          cargo tree | grep -E "tauri|tauri-plugin" | head -10
+          Pop-Location
+          
+          echo "=== Verify Config File ==="
+          if (Test-Path "src-tauri/tauri.conf.json") {
+            echo "✅ Config file exists"
+            echo "📋 Config content preview:"
+            Get-Content "src-tauri/tauri.conf.json" | Select-Object -First 10
+          } else { 
+            echo "❌ Config file missing"; exit 1 
+          }
+          
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+        shell: pwsh
+
+      # 步骤7：构建Tauri应用 Release版本
+      - name: Build Tauri app (Release)
+        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json
+        env:
+          TAURI_BUILD_MODE: release
+          TAURI_APP_NAME: "Serial Pilot"
+          TAURI_APP_VERSION: "0.1.0"
+          TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
+        working-directory: ./
+
+      # 步骤8：重命名Release构建产物以区分版本
+      - name: Rename Release build artifacts
+        run: |
+          echo "=== Renaming Release artifacts ==="
+          if (Test-Path "src-tauri/target/release/bundle/msi") {
+            Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object {
+              $newName = $_.Name -replace "\.msi$", "-Release.msi"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed to: $newName"
+            }
+          }
+          if (Test-Path "src-tauri/target/release/bundle/app") {
+            Get-ChildItem "src-tauri/target/release/bundle/app" -Directory | ForEach-Object {
+              $newName = $_.Name + "-Release"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed app folder to: $newName"
+            }
+          }
+        shell: pwsh
+
+      # 步骤9：构建Tauri应用 Debug版本（带控制台）
+      - name: Build Tauri app (Debug with console)
+        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --features console
+        env:
+          TAURI_BUILD_MODE: release
+          TAURI_APP_NAME: "Serial Pilot Debug"
+          TAURI_APP_VERSION: "0.1.0"
+          TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
+        working-directory: ./
+
+      # 步骤10：重命名Debug构建产物以区分版本
+      - name: Rename Debug build artifacts
+        run: |
+          echo "=== Renaming Debug artifacts ==="
+          if (Test-Path "src-tauri/target/release/bundle/msi") {
+            Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | Where-Object { $_.Name -notlike "*Release*" } | ForEach-Object {
+              $newName = $_.Name -replace "\.msi$", "-Debug.msi"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed to: $newName"
+            }
+          }
+          if (Test-Path "src-tauri/target/release/bundle/app") {
+            Get-ChildItem "src-tauri/target/release/bundle/app" -Directory | Where-Object { $_.Name -notlike "*Release*" } | ForEach-Object {
+              $newName = $_.Name + "-Debug"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed app folder to: $newName"
+            }
+          }
+        shell: pwsh
+
+      # 步骤11：上传Release版本构建产物（无压缩）
+      - name: Upload Release build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-pilot-windows-release
+          path: |
+            ./src-tauri/target/release/bundle/**/*Release*
+            !./src-tauri/target/release/bundle/**/temp/
+          retention-days: 30
+          compression-level: 0
+
+      # 步骤12：上传Debug版本构建产物（无压缩）
+      - name: Upload Debug build artifacts  
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-pilot-windows-debug
+          path: |
+            ./src-tauri/target/release/bundle/**/*Debug*
+            !./src-tauri/target/release/bundle/**/temp/
+          retention-days: 30
+          compression-level: 0

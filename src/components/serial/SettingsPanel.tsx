@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
 import { open } from '@tauri-apps/plugin-dialog';
-import { exists, mkdir } from '@tauri-apps/plugin-fs';
+import { exists, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
 
 interface SettingsPanelProps {
   className?: string;
@@ -149,6 +149,88 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
     }
   };
 
+  // 选择工作区目录
+  const handleSelectWorkspaceDirectory = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: '选择工作区目录'
+      });
+
+      if (selected) {
+        updateSetting('workspacePath', selected as string);
+        statusMessages?.addMessage('工作区路径已更新', 'success');
+      }
+    } catch (error) {
+      console.error('选择目录失败:', error);
+      statusMessages?.addMessage('选择目录失败', 'error');
+    }
+  };
+
+  // 创建工作区目录和示例测试用例
+  const handleCreateWorkspaceDirectory = async () => {
+    try {
+      const path = settings.workspacePath;
+      
+      if (!path) {
+        statusMessages?.addMessage('请先设置工作区路径', 'warning');
+        return;
+      }
+
+      const pathExists = await exists(path);
+      
+      if (!pathExists) {
+        await mkdir(path, { recursive: true });
+      }
+
+      // 创建最小的测试用例文件
+      const minimalTestCase = {
+        id: "demo_001",
+        uniqueId: "1001",
+        name: "示例测试用例",
+        description: "这是一个基础的测试用例示例",
+        commands: [
+          {
+            id: "cmd_001",
+            type: "execution",
+            command: "AT",
+            validationMethod: "contains",
+            expectedValue: "OK",
+            waitTime: 1000,
+            stopOnFailure: false,
+            failureHandling: "stop",
+            lineEnding: "crlf",
+            selected: false,
+            status: "pending"
+          }
+        ],
+        subCases: [],
+        isExpanded: true,
+        isRunning: false,
+        currentCommand: -1,
+        selected: false,
+        status: "pending",
+        failureStrategy: "stop",
+        onWarningFailure: "continue",
+        onErrorFailure: "stop"
+      };
+
+      const testCaseFilePath = `${path}/sample_test_case.json`;
+      const testCaseFileExists = await exists(testCaseFilePath);
+      
+      if (!testCaseFileExists) {
+        await writeTextFile(testCaseFilePath, JSON.stringify([minimalTestCase], null, 2));
+        statusMessages?.addMessage('工作区目录和示例测试用例文件创建成功', 'success');
+      } else {
+        statusMessages?.addMessage('工作区目录创建成功，示例文件已存在', 'info');
+      }
+    } catch (error) {
+      console.error('创建工作区失败:', error);
+      statusMessages?.addMessage('创建工作区失败: ' + (error as Error).message, 'error');
+    }
+  };
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -264,6 +346,37 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               </div>
               <div className="text-xs text-muted-foreground">
                 设置日志文件的存储目录，如果目录不存在将自动创建
+              </div>
+            </div>
+
+            {/* 工作区路径 */}
+            <div className="space-y-2">
+              <Label>默认工作区路径</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={settings.workspacePath}
+                  onChange={(e) => updateSetting('workspacePath', e.target.value)}
+                  placeholder="./test"
+                  className="flex-1"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSelectWorkspaceDirectory}
+                >
+                  <FolderOpen className="w-4 h-4 mr-1" />
+                  浏览
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCreateWorkspaceDirectory}
+                >
+                  创建
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                设置测试用例文件的默认工作目录，如果目录不存在将自动创建并生成示例文件
               </div>
             </div>
 

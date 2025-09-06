@@ -11,6 +11,9 @@ export interface AppSettings {
   // 日志存储设置
   logStoragePath: string;
   
+  // 工作区设置
+  workspacePath: string;
+  
   // 默认串口参数
   defaultBaudRate: number;
   defaultDataBits: number;
@@ -51,6 +54,7 @@ export const defaultSettings: AppSettings = {
   autoSave: true,
   
   logStoragePath: './logs',
+  workspacePath: './test',
   
   defaultBaudRate: 115200,
   defaultDataBits: 8,

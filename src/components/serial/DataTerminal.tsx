@@ -59,7 +59,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
   const [logs, setLogs] = useState<{ [portIndex: number]: LogEntry[] }>({});
   const [mergedLogs, setMergedLogs] = useState<MergedLogEntry[]>([]);
   const [sendData, setSendData] = useState("");
@@ -589,6 +589,30 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               >
                 <Clock className="w-4 h-4" />
               </Button>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                     <Button 
+                       variant={settings.autoScroll ? "default" : "outline"}
+                       size="sm" 
+                       onClick={() => {
+                         updateSetting('autoScroll', !settings.autoScroll);
+                         statusMessages?.addMessage(
+                           !settings.autoScroll ? t('terminal.messages.autoScrollEnabled') : t('terminal.messages.autoScrollDisabled'), 
+                           'info'
+                         );
+                       }}
+                       className="w-8 h-8 p-0"
+                     >
+                      <ArrowDown className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{settings.autoScroll ? t('terminal.ui.disableAutoScroll') : t('terminal.ui.enableAutoScroll')}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
               {/* Display Mode Toggle - Only when P2 is connected */}
               {connectedPorts.length > 1 && (

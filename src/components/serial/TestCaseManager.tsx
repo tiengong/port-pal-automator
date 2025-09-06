@@ -168,22 +168,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     index: number;
   } | null>(null);
   
-  // 新增脚本对话框状态
-  const [showNewScriptDialog, setShowNewScriptDialog] = useState(false);
-  const [newScriptName, setNewScriptName] = useState('');
-  const [newScriptDescription, setNewScriptDescription] = useState('');
-  const [newScriptLanguage, setNewScriptLanguage] = useState<'lua' | 'javascript' | 'python'>('lua');
-  
   // 参数存储系统 - 用于URC解析的参数（端口内作用域）
   const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
   
   // 跟踪已触发的永久URC ID，防止重复触发
   const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
-  
-  // 脚本管理状态
-  const [scripts, setScripts] = useState<Script[]>([]);
-  const [currentScript, setCurrentScript] = useState<Script | null>(null);
-  const [editingMode, setEditingMode] = useState<'testcase' | 'script'>('testcase');
   
   // Initialize workspace and load test cases
   useEffect(() => {
@@ -1222,136 +1211,6 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setSelectedTestCaseId(caseId);
   };
 
-  // 脚本管理函数
-  const handleSelectScript = (scriptId: string) => {
-    const script = scripts.find(s => s.id === scriptId);
-    if (script) {
-      setCurrentScript(script);
-      setEditingMode('script');
-    }
-  };
-
-  const handleCreateScript = (script: Script) => {
-    setScripts(prev => [...prev, script]);
-    setCurrentScript(script);
-    setEditingMode('script');
-  };
-
-  const handleDeleteScript = (scriptId: string) => {
-    setScripts(prev => prev.filter(s => s.id !== scriptId));
-    if (currentScript?.id === scriptId) {
-      setCurrentScript(null);
-      setEditingMode('testcase');
-    }
-  };
-
-  const handleScriptUpdate = (updatedScript: Script) => {
-    setScripts(prev => prev.map(s => s.id === updatedScript.id ? updatedScript : s));
-    setCurrentScript(updatedScript);
-  };
-
-  const handleRunScript = (scriptId: string) => {
-    const script = scripts.find(s => s.id === scriptId);
-    if (!script) return;
-    
-    // TODO: 实现脚本运行逻辑
-    console.log('Running script:', script.name);
-    toast({
-      title: "脚本运行",
-      description: `开始运行脚本: ${script.name}`,
-    });
-  };
-
-  const handleStopScript = (scriptId: string) => {
-    const script = scripts.find(s => s.id === scriptId);
-    if (!script) return;
-    
-    // TODO: 实现脚本停止逻辑
-    console.log('Stopping script:', script.name);
-    toast({
-      title: "脚本停止",
-      description: `已停止脚本: ${script.name}`,
-    });
-  };
-
-  const handleSaveScript = (script: Script) => {
-    // TODO: 实现脚本保存逻辑
-    console.log('Saving script:', script.name);
-    toast({
-      title: "脚本保存",
-      description: `已保存脚本: ${script.name}`,
-    });
-  };
-
-  // 创建新脚本的默认内容
-  const getDefaultScriptContent = (language: 'lua' | 'javascript' | 'python') => {
-    switch (language) {
-      case 'lua':
-        return `-- 新建Lua脚本
--- 在此处编写您的Lua代码
-
-print("Hello from Lua script!")
-
--- 示例：发送AT命令并等待响应
--- send_command("AT")
--- response = wait_response(1000)
--- print("Response:", response)`;
-      case 'javascript':
-        return `// 新建JavaScript脚本
-// 在此处编写您的JavaScript代码
-
-console.log("Hello from JavaScript script!");
-
-// 示例：发送AT命令并等待响应
-// sendCommand("AT");
-// const response = await waitResponse(1000);
-// console.log("Response:", response);`;
-      case 'python':
-        return `# 新建Python脚本
-# 在此处编写您的Python代码
-
-print("Hello from Python script!")
-
-# 示例：发送AT命令并等待响应
-# send_command("AT")
-# response = wait_response(1000)
-# print("Response:", response)`;
-      default:
-        return '';
-    }
-  };
-
-  // 处理新增脚本
-  const handleCreateNewScript = async () => {
-    if (!newScriptName.trim()) return;
-    
-    const newScript: Script = {
-      id: `script_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: newScriptName.trim(),
-      description: newScriptDescription.trim(),
-      filePath: `./scripts/${newScriptName.trim()}.${newScriptLanguage}`,
-      content: getDefaultScriptContent(newScriptLanguage),
-      language: newScriptLanguage,
-      createdAt: new Date(),
-      modifiedAt: new Date(),
-      isRunning: false,
-      status: 'pending'
-    };
-
-    handleCreateScript(newScript);
-
-    // Reset form
-    setNewScriptName('');
-    setNewScriptDescription('');
-    setNewScriptLanguage('lua');
-    setShowNewScriptDialog(false);
-
-    toast({
-      title: "脚本已创建",
-      description: `已创建脚本: ${newScript.name}`
-    });
-  };
-
   // 右击菜单功能
   const addCommandViaContextMenu = () => {
     if (!currentTestCase) return;
@@ -1970,28 +1829,26 @@ print("Hello from Python script!")
     elements.push(
       <div key={testCase.id} className="p-3 hover:bg-muted/50 transition-colors">
         <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
-          {/* 展开/折叠按钮 - 仅对根用例显示 */}
-          {level === 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 flex-shrink-0"
-              onClick={() => {
-                const updatedTestCases = toggleExpandById(testCases, testCase.id);
-                setTestCases(updatedTestCases);
-              }}
-            >
-              {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
-                testCase.isExpanded ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronRight className="w-4 h-4" />
-                )
+          {/* 展开/折叠按钮 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 flex-shrink-0"
+            onClick={() => {
+              const updatedTestCases = toggleExpandById(testCases, testCase.id);
+              setTestCases(updatedTestCases);
+            }}
+          >
+            {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
+              testCase.isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
               ) : (
-                <div className="w-4 h-4" />
-              )}
-            </Button>
-          )}
+                <ChevronRight className="w-4 h-4" />
+              )
+            ) : (
+              <div className="w-4 h-4" />
+            )}
+          </Button>
 
           {/* 复选框 */}
           <Checkbox
@@ -2048,56 +1905,23 @@ print("Hello from Python script!")
               </Tooltip>
             </TooltipProvider>
             
-            {/* 对于子用例（level > 0），显示折叠展开按钮替代设置按钮 */}
-            {level > 0 ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => {
-                        const updatedTestCases = toggleExpandById(testCases, testCase.id);
-                        setTestCases(updatedTestCases);
-                      }}
-                    >
-                      {testCase.subCases.length > 0 || testCase.commands.length > 0 ? (
-                        testCase.isExpanded ? (
-                          <ChevronDown className="w-4 h-4" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4" />
-                        )
-                      ) : (
-                        <ChevronRight className="w-4 h-4 opacity-50" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{testCase.isExpanded ? '折叠' : '展开'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              /* 对于根用例（level === 0），显示设置按钮 */
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleEditCase(testCase)}
-                    >
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>设置</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleEditCase(testCase)}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>设置</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </div>
@@ -2331,88 +2155,72 @@ print("Hello from Python script!")
       </div>
 
       {/* 3. 中间测试用例展示区 */}
-      {editingMode === 'script' && currentScript ? (
-        <div className="flex-1 min-h-0 bg-muted/20 border-l overflow-hidden">
-          <ScriptEditor
-            script={currentScript}
-            onScriptUpdate={handleScriptUpdate}
-            onRunScript={handleRunScript}
-            onStopScript={handleStopScript}
-            onSaveScript={handleSaveScript}
-            statusMessages={statusMessages}
-          />
-        </div>
-      ) : (
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 max-h-[calc(100vh-320px)]">
-              {testCases.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
-                  <p className="text-sm">暂无测试用例，点击新建用例开始</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* 参数显示面板 */}
-                  {Object.keys(storedParameters).length > 0 && (
-                    <VariableDisplay
-                      storedParameters={storedParameters}
-                      onClearParameter={(key) => {
-                        setStoredParameters(prev => {
-                          const newParams = { ...prev };
-                          delete newParams[key];
-                          return newParams;
-                        });
-                        toast({
-                          title: "参数已清除",
-                          description: `已清除参数: ${key}`,
-                        });
-                      }}
-                      onClearAll={() => {
-                        setStoredParameters({});
-                        toast({
-                          title: "全部参数已清除",
-                          description: "所有解析的参数已被清空",
-                        });
-                      }}
-                    />
-                  )}
-                  
-                  {/* 统一层级树 */}
-                  <div className="border border-border rounded-lg bg-card">
-                    <div className="divide-y divide-border">
-                      {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
-                    </div>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 max-h-[calc(100vh-320px)]">
+            {testCases.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <TestTube2 className="w-12 h-12 mb-4 opacity-30" />
+                <p className="text-sm">暂无测试用例，点击新建用例开始</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 参数显示面板 */}
+                {Object.keys(storedParameters).length > 0 && (
+                  <VariableDisplay
+                    storedParameters={storedParameters}
+                    onClearParameter={(key) => {
+                      setStoredParameters(prev => {
+                        const newParams = { ...prev };
+                        delete newParams[key];
+                        return newParams;
+                      });
+                      toast({
+                        title: "参数已清除",
+                        description: `已清除参数: ${key}`,
+                      });
+                    }}
+                    onClearAll={() => {
+                      setStoredParameters({});
+                      toast({
+                        title: "全部参数已清除",
+                        description: "所有解析的参数已被清空",
+                      });
+                    }}
+                  />
+                )}
+                
+                {/* 统一层级树 */}
+                <div className="border border-border rounded-lg bg-card">
+                  <div className="divide-y divide-border">
+                    {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
                   </div>
                 </div>
-              )}
-            </div>
-          </ContextMenuTrigger>
-          <ContextMenuContent className="w-64">
-            <ContextMenuSub>
-              <ContextMenuSubTrigger className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                新建
-              </ContextMenuSubTrigger>
-              <ContextMenuSubContent className="w-48 bg-popover z-50">
-                <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
-                  <Hash className="w-4 h-4" />
-                  新建命令
-                </ContextMenuItem>
-                <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
-                  <Search className="w-4 h-4" />
-                  新建URC
-                </ContextMenuItem>
-                <ContextMenuItem onClick={addSubCaseViaContextMenu} className="flex items-center gap-2">
-                  <TestTube2 className="w-4 h-4" />
-                  新建子用例
-                </ContextMenuItem>
-                <ContextMenuItem onClick={() => setShowNewScriptDialog(true)} className="flex items-center gap-2">
-                  <Edit className="w-4 h-4" />
-                  新建脚本
-                </ContextMenuItem>
-              </ContextMenuSubContent>
-            </ContextMenuSub>
+              </div>
+            )}
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-64">
+          <ContextMenuSub>
+            <ContextMenuSubTrigger className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              新建
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48 bg-popover z-50">
+              <ContextMenuItem onClick={addCommandViaContextMenu} className="flex items-center gap-2">
+                <Hash className="w-4 h-4" />
+                新建命令
+              </ContextMenuItem>
+              <ContextMenuItem onClick={addUrcViaContextMenu} className="flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                新建URC
+              </ContextMenuItem>
+              <ContextMenuItem onClick={addSubCaseViaContextMenu} className="flex items-center gap-2">
+                <TestTube2 className="w-4 h-4" />
+                新建子用例
+              </ContextMenuItem>
+            </ContextMenuSubContent>
+          </ContextMenuSub>
           
           <ContextMenuSeparator />
           
@@ -2515,7 +2323,6 @@ print("Hello from Python script!")
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
-      )}
 
       {/* 4. 测试用例切换区 */}
       <TestCaseSwitcher 
@@ -2526,11 +2333,6 @@ print("Hello from Python script!")
         onDeleteTestCase={deleteTestCase}
         onSync={handleSync}
         onWorkspaceChange={handleWorkspaceChange}
-        scripts={scripts}
-        currentScript={currentScript}
-        onSelectScript={handleSelectScript}
-        onCreateScript={handleCreateScript}
-        onDeleteScript={handleDeleteScript}
       />
 
       {/* 编辑测试用例对话框 */}
@@ -2684,59 +2486,6 @@ print("Hello from Python script!")
             </div>
           </AlertDialogContent>
         </AlertDialog>
-
-        {/* 新增脚本对话框 */}
-        <Dialog open={showNewScriptDialog} onOpenChange={setShowNewScriptDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>新增脚本</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="script-name">脚本名称</Label>
-                <Input
-                  id="script-name"
-                  placeholder="请输入脚本名称"
-                  value={newScriptName}
-                  onChange={(e) => setNewScriptName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="script-description">脚本描述</Label>
-                <Input
-                  id="script-description"
-                  placeholder="请输入脚本描述（可选）"
-                  value={newScriptDescription}
-                  onChange={(e) => setNewScriptDescription(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="script-language">脚本语言</Label>
-                <Select 
-                  value={newScriptLanguage} 
-                  onValueChange={(value: 'lua' | 'javascript' | 'python') => setNewScriptLanguage(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lua">Lua</SelectItem>
-                    <SelectItem value="javascript">JavaScript</SelectItem>
-                    <SelectItem value="python">Python</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setShowNewScriptDialog(false)}>
-                  取消
-                </Button>
-                <Button onClick={handleCreateNewScript} disabled={!newScriptName.trim()}>
-                  创建
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   };

@@ -34,25 +34,6 @@ import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from "@/lib/event
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
 
-// Import new utility modules
-import { 
-  LogEntry, 
-  MergedLogEntry,
-  createLogEntry,
-  createMergedLogEntry,
-  applyLogLimit,
-  getLogTextColor,
-  getLogBadgeContent,
-  updateLogStats,
-  exportLogsToText
-} from './utils/serialLogUtils';
-import { 
-  formatData, 
-  prepareDataForSending, 
-  isValidHexData, 
-  getLineHeight 
-} from './utils/serialDataUtils';
-
 interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
   statusMessages?: {
@@ -60,7 +41,17 @@ interface DataTerminalProps {
   };
 }
 
-// Remove duplicate interface since it's now imported
+interface MergedLogEntry extends LogEntry {
+  portLabel: string;
+}
+
+interface LogEntry {
+  id: string;
+  timestamp: Date;
+  type: 'sent' | 'received' | 'system' | 'error';
+  data: string;
+  format: 'utf8' | 'hex';
+}
 
 export const DataTerminal: React.FC<DataTerminalProps> = ({
   serialManager,
@@ -92,10 +83,38 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   // 统计信息
   const [stats, setStats] = useState<{ [portIndex: number]: { sentBytes: number; receivedBytes: number; totalLogs: number } }>({});
 
-  // Terminal styling utilities - use imported functions
-  const getLineHeightValue = () => getLineHeight(settings.terminalLineHeight);
-  const getTextColor = (logType: LogEntry['type']) => getLogTextColor(logType, settings.terminalColorMode);
-  const getBadgeContent = (logType: LogEntry['type']) => getLogBadgeContent(logType);
+  // Terminal styling utilities
+  const getLineHeight = () => {
+    switch (settings.terminalLineHeight) {
+      case 'compact': return '1.2';
+      case 'normal': return '1.5';
+      case 'loose': return '1.8';
+      default: return '1.2';
+    }
+  };
+
+  const getTextColor = (logType: LogEntry['type']) => {
+    if (settings.terminalColorMode === 'black') {
+      return 'text-foreground';
+    }
+    
+    // By type coloring
+    switch (logType) {
+      case 'sent': return 'text-blue-600 dark:text-blue-400';
+      case 'received': return 'text-green-600 dark:text-green-400';
+      case 'system': return 'text-yellow-600 dark:text-yellow-400';
+      default: return 'text-foreground';
+    }
+  };
+
+  const getBadgeContent = (logType: LogEntry['type']) => {
+    switch (logType) {
+      case 'sent': return '[TX]';
+      case 'received': return '[RX]'; 
+      case 'system': return '[SYS]';
+      default: return '[?]';
+    }
+  };
 
   // 同步设置到组件状态
   useEffect(() => {
@@ -109,14 +128,20 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     // 只记录发送和接收的数据，不记录系统消息
     if (type !== 'sent' && type !== 'received') return;
     
-    const entry = createLogEntry(type, data, format);
+    const entry: LogEntry = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      timestamp: new Date(),
+      type,
+      data,
+      format
+    };
     
     if (portIndex !== undefined) {
       // 更新分端口日志
       setLogs(prev => {
         const newPortLogs = [...(prev[portIndex] || []), entry];
         // 应用最大日志行数限制
-        const limitedLogs = applyLogLimit(newPortLogs, settings.maxLogLines);
+        const limitedLogs = newPortLogs.slice(-settings.maxLogLines);
         return {
           ...prev,
           [portIndex]: limitedLogs
@@ -125,16 +150,23 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       
       // 更新合并日志（用于 MERGED_TXRX 模式）
       const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
-      const mergedEntry = createMergedLogEntry(entry, portLabel);
+      const mergedEntry: MergedLogEntry = {
+        ...entry,
+        portLabel
+      };
       setMergedLogs(prev => {
         const newMergedLogs = [...prev, mergedEntry];
         // 应用最大日志行数限制
-        return applyLogLimit(newMergedLogs, settings.maxLogLines);
+        return newMergedLogs.slice(-settings.maxLogLines);
       });
       
       setStats(prev => ({
         ...prev,
-        [portIndex]: updateLogStats(prev[portIndex], type, data.length)
+        [portIndex]: {
+          totalLogs: (prev[portIndex]?.totalLogs || 0) + 1,
+          receivedBytes: type === 'received' ? (prev[portIndex]?.receivedBytes || 0) + data.length : (prev[portIndex]?.receivedBytes || 0),
+          sentBytes: type === 'sent' ? (prev[portIndex]?.sentBytes || 0) + data.length : (prev[portIndex]?.sentBytes || 0)
+        }
       }));
     }
 
@@ -238,7 +270,20 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         return;
       }
       
-      const { dataToSend } = prepareDataForSending(sendData, sendFormat, newlineMode);
+      let dataToSend = sendData;
+      
+      // 添加换行符
+      switch (newlineMode) {
+        case 'lf':
+          dataToSend += '\n';
+          break;
+        case 'cr':
+          dataToSend += '\r';
+          break;
+        case 'crlf':
+          dataToSend += '\r\n';
+          break;
+      }
       
       // 模拟发送到演示端口
       addLog('sent', dataToSend, sendFormat, 0);
@@ -258,16 +303,40 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       return;
     }
 
-    let uint8Array: Uint8Array;
-    let dataToSend: string;
+    let dataToSend = sendData;
     
-    try {
-      const preparedData = prepareDataForSending(sendData, sendFormat, newlineMode);
-      uint8Array = preparedData.uint8Array;
-      dataToSend = preparedData.dataToSend;
-    } catch (error) {
-      statusMessages?.addMessage(t('terminal.messages.invalidHexData', { hex: (error as Error).message }), 'error');
-      return;
+    // 添加换行符
+    switch (newlineMode) {
+      case 'lf':
+        dataToSend += '\n';
+        break;
+      case 'cr':
+        dataToSend += '\r';
+        break;
+      case 'crlf':
+        dataToSend += '\r\n';
+        break;
+    }
+
+    // 根据格式转换数据
+    let uint8Array: Uint8Array;
+    
+    if (sendFormat === 'hex') {
+      // 处理十六进制数据
+      const hexData = dataToSend.replace(/\s/g, ''); // 移除空格
+      const bytes = [];
+      for (let i = 0; i < hexData.length; i += 2) {
+        const hex = hexData.substr(i, 2);
+        if (!/^[0-9A-Fa-f]{2}$/.test(hex)) {
+          throw new Error(t('terminal.messages.invalidHexData', { hex }));
+        }
+        bytes.push(parseInt(hex, 16));
+      }
+      uint8Array = new Uint8Array(bytes);
+    } else {
+      // UTF-8 数据
+      const encoder = new TextEncoder();
+      uint8Array = encoder.encode(dataToSend);
     }
 
     // 根据通信模式和选择发送到指定端口
@@ -370,7 +439,16 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
   // 导出日志
   const exportLogs = () => {
-    const content = exportLogsToText(logs, showTimestamp, t);
+    let content = '';
+    Object.entries(logs).forEach(([portIndex, portLogs]) => {
+      content += `=== ${t('terminal.port')} ${parseInt(portIndex) + 1} ===\n`;
+      portLogs.forEach(log => {
+        const timestamp = showTimestamp ? `[${log.timestamp.toLocaleTimeString()}] ` : '';
+        const type = log.type === 'sent' ? t('terminal.sent') : log.type === 'received' ? t('terminal.received') : t('terminal.system');
+        content += `${timestamp}${type}: ${log.data}\n`;
+      });
+      content += '\n';
+    });
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -389,9 +467,36 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     });
   };
 
-  // 格式化显示数据 - use imported function
-  const formatDisplayData = (data: string, format: 'utf8' | 'hex', originalFormat: 'utf8' | 'hex') => {
-    return formatData(data, format, originalFormat);
+  // 格式化显示数据
+  const formatData = (data: string, format: 'utf8' | 'hex', originalFormat: 'utf8' | 'hex') => {
+    if (format === originalFormat) {
+      return data;
+    }
+
+    if (format === 'hex' && originalFormat === 'utf8') {
+      // UTF-8 转 HEX
+      return Array.from(data)
+        .map(char => char.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join(' ').toUpperCase();
+    } else if (format === 'utf8' && originalFormat === 'hex') {
+      // HEX 转 UTF-8 - 直接转换为UTF-8字符，不使用转义序列
+      try {
+        const hexData = data.replace(/\s/g, '');
+        const bytes = [];
+        for (let i = 0; i < hexData.length; i += 2) {
+          const hex = hexData.substr(i, 2);
+          bytes.push(parseInt(hex, 16));
+        }
+        // 直接使用TextDecoder转换，控制字符会显示为实际字符
+        const uint8Array = new Uint8Array(bytes);
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        return decoder.decode(uint8Array);
+      } catch {
+        return data; // 转换失败时返回原数据
+      }
+    }
+
+    return data;
   };
 
   // 监听发送命令事件 - 使用 useRef 确保稳定的订阅
@@ -649,7 +754,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                        className="flex-1 overflow-auto p-2 font-mono bg-background"
                        style={{ 
                          fontSize: `${settings.terminalFontSize}px`,
-                         lineHeight: getLineHeightValue(),
+                         lineHeight: getLineHeight(),
                          scrollBehavior: synchronizedScrolling ? 'smooth' : 'auto'
                        }}
                        onScroll={(e) => {
@@ -669,7 +774,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                            className="whitespace-pre-wrap break-all" 
                            style={{ 
                              marginBottom: `${settings.terminalRowGap}px`,
-                              lineHeight: getLineHeightValue()
+                             lineHeight: getLineHeight()
                            }}
                          >
                            {showTimestamp && (
@@ -680,9 +785,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                            <span className="text-xs text-muted-foreground mr-2 font-mono">
                              {getBadgeContent(log.type)}
                            </span>
-                            <span className={getTextColor(log.type)}>
-                              {formatDisplayData(log.data, displayFormat, log.format)}
-                            </span>
+                           <span className={getTextColor(log.type)}>
+                             {formatData(log.data, displayFormat, log.format)}
+                           </span>
                          </div>
                        ))}
                      </div>
@@ -747,7 +852,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               className="flex-1 overflow-auto p-2 font-mono bg-background"
               style={{ 
                 fontSize: `${settings.terminalFontSize}px`,
-                lineHeight: getLineHeightValue()
+                lineHeight: getLineHeight()
               }}
             >
               {connectedPorts.length > 1 ? (
@@ -758,7 +863,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     className="whitespace-pre-wrap break-all" 
                     style={{ 
                       marginBottom: `${settings.terminalRowGap}px`,
-                      lineHeight: getLineHeightValue()
+                      lineHeight: getLineHeight()
                     }}
                   >
                     {showTimestamp && (
@@ -772,9 +877,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     <span className="text-xs text-muted-foreground mr-2 font-mono">
                       {getBadgeContent(log.type)}
                     </span>
-                     <span className={getTextColor(log.type)}>
-                       {formatDisplayData(log.data, displayFormat, log.format)}
-                     </span>
+                    <span className={getTextColor(log.type)}>
+                      {formatData(log.data, displayFormat, log.format)}
+                    </span>
                   </div>
                 ))
               ) : (
@@ -785,7 +890,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     className="whitespace-pre-wrap break-all" 
                     style={{ 
                       marginBottom: `${settings.terminalRowGap}px`,
-                      lineHeight: getLineHeightValue()
+                      lineHeight: getLineHeight()
                     }}
                   >
                     {showTimestamp && (
@@ -796,9 +901,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                     <span className="text-xs text-muted-foreground mr-2 font-mono">
                       {getBadgeContent(log.type)}
                     </span>
-                     <span className={getTextColor(log.type)}>
-                       {formatDisplayData(log.data, displayFormat, log.format)}
-                     </span>
+                    <span className={getTextColor(log.type)}>
+                      {formatData(log.data, displayFormat, log.format)}
+                    </span>
                   </div>
                 ))
               )}

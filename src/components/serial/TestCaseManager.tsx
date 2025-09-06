@@ -59,12 +59,6 @@ import { CommandRow } from './CommandRow';
 import { sampleTestCases } from './sampleCases';
 import { CaseEditDialogInline } from './components/CaseEditDialogInline';
 
-// Import new modular components and hooks - temporarily disabled for stability
-// import { useTestCaseState } from './hooks/useTestCaseState';
-// import { useTestCaseActions } from './hooks/useTestCaseActions';
-// import { useTestCaseExecution } from './hooks/useTestCaseExecution';
-// import { TestCaseDialogs } from './components/TestCaseDialogs';
-
 interface TestCaseManagerProps {
   connectedPorts: Array<{
     port: any;
@@ -83,14 +77,25 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 }) => {
   const { toast } = useToast();
   const { t } = useTranslation();
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   
-  // Original working state management
+  // Track running test cases to prevent race conditions
+  const runningCasesRef = useRef<Set<string>>(new Set());
+  
+  // AT命令库
+  const atCommands = [
+    'AT', 'AT+CGMR', 'AT+CGMI', 'AT+CGSN', 'AT+CSQ', 'AT+CREG', 'AT+COPS',
+    'AT+CGATT', 'AT+CGACT', 'AT+CGDCONT', 'AT+CPINR', 'AT+CPIN', 'AT+CCID'
+  ];
+  
+  // 状态管理
   const [testCases, setTestCases] = useState<TestCase[]>([]);
-  const [selectedTestCaseId, setSelectedTestCaseId] = useState<string | null>(null);
+  const [selectedCase, setSelectedCase] = useState<TestCase | null>(null);
+  const [selectedTestCaseId, setSelectedTestCaseId] = useState<string>('');
   const [editingCase, setEditingCase] = useState<TestCase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
-  const [executionResults, setExecutionResults] = useState<any[]>([]);
+  const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
   const [waitingForUser, setWaitingForUser] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -100,146 +105,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     targetId: '',
     targetType: 'case'
   });
-  const [nextUniqueId, setNextUniqueId] = useState(1);
-  const [currentWorkspace, setCurrentWorkspace] = useState<string>('');
-  const [dragInfo, setDragInfo] = useState<any>({ draggedItem: null, dropTarget: null });
-  const [inlineEdit, setInlineEdit] = useState<{ commandId: string | null; value: string }>({
-    commandId: null,
-    value: ''
-  });
-  const [executingCommand, setExecutingCommand] = useState<string | null>(null);
-  const [lastFocusedChild, setLastFocusedChild] = useState<any>(null);
-  const [storedParameters, setStoredParameters] = useState<Record<string, { value: string; timestamp: number }>>({});
-  const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
+  const [nextUniqueId, setNextUniqueId] = useState(1001);
+  const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
   
-  const runningCasesRef = useRef<Set<string>>(new Set());
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-  
-  // Generate unique ID function
-  const generateUniqueId = () => {
-    const id = `tc_${nextUniqueId}`;
-    setNextUniqueId(prev => prev + 1);
-    return id;
-  };
-  
-  // Initialize workspace and load test cases  
-  useEffect(() => {
-    const initWorkspace = async () => {
-      try {
-        await initializeDefaultWorkspace();
-        const testCasesData = await loadCases();
-        setCurrentWorkspace('Default');
-        setTestCases(Array.isArray(testCasesData) ? testCasesData : []);
-        
-        // Select last opened test case
-        const lastOpened = await getLastOpenedTestCase();
-        const cases = Array.isArray(testCasesData) ? testCasesData : [];
-        if (lastOpened && cases.some(c => c.id === lastOpened)) {
-          setSelectedTestCaseId(lastOpened);
-        } else if (cases.length > 0) {
-          setSelectedTestCaseId(cases[0].id);
-        }
-      } catch (error) {
-        console.error('Failed to initialize workspace:', error);
-      }
-    };
-    
-    initWorkspace();
-  }, []);
+  // Drag and drop state for unified children (commands and subcases)
+  const [dragInfo, setDragInfo] = useState<{
+    draggedItem: { caseId: string; type: 'command' | 'subcase'; itemId: string; index: number } | null;
+    dropTarget: { caseId: string; index: number; position: 'above' | 'below' } | null;
+  }>({ draggedItem: null, dropTarget: null });
 
-  // Handle workspace changes
-  const handleWorkspaceChange = async () => {
-    try {
-      const testCasesData = await loadCases();
-      setCurrentWorkspace('Default');
-      setTestCases(Array.isArray(testCasesData) ? testCasesData : []);
-      
-      // Select last opened test case or first available
-      const lastOpened = await getLastOpenedTestCase();
-      const cases = Array.isArray(testCasesData) ? testCasesData : [];
-      if (lastOpened && cases.some(c => c.id === lastOpened)) {
-        setSelectedTestCaseId(lastOpened);
-      } else if (cases.length > 0) {
-        setSelectedTestCaseId(cases[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load workspace:', error);
-    }
-  };
+  // Inline editing state
+  const [inlineEdit, setInlineEdit] = useState<{
+    commandId: string | null;
+    value: string;
+  }>({ commandId: null, value: '' });
 
-  // Track selected test case changes
-  useEffect(() => {
-    if (selectedTestCaseId) {
-      setLastOpenedTestCase(selectedTestCaseId);
-    }
-  }, [selectedTestCaseId]);
-
-  // Helper functions for missing actions
-  const handleUnifiedReorder = (testCase: TestCase, fromIndex: number, toIndex: number, position: 'above' | 'below') => {
-    // Simplified reorder logic
-    console.log('Reorder not implemented yet');
-  };
-
-  const updateCommandSelection = (caseId: string, commandId: string, selected: boolean) => {
-    const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
-      ...testCase,
-      commands: testCase.commands.map(cmd =>
-        cmd.id === commandId ? { ...cmd, selected } : cmd
-      )
-    }));
-    setTestCases(updatedTestCases);
-  };
-
-  const saveInlineEdit = (caseId: string, commandId: string) => {
-    if (inlineEdit.commandId === commandId && inlineEdit.value.trim()) {
-      const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
-        ...testCase,
-        commands: testCase.commands.map(cmd =>
-          cmd.id === commandId 
-            ? { ...cmd, [cmd.type === 'urc' ? 'urcPattern' : 'command']: inlineEdit.value.trim() }
-            : cmd
-        )
-      }));
-      setTestCases(updatedTestCases);
-      
-      toast({
-        title: t("testCase.modifySuccess"),
-        description: t("testCase.modifySuccessDesc")
-      });
-    }
-    setInlineEdit({ commandId: null, value: '' });
-  };
-
-  const getTargetCaseForActions = (selectedCase: TestCase | null): TestCase | null => {
-    if (!selectedCase) return null;
-    
-    if (isStatsCase(selectedCase)) {
-      const parent = findParentCase(selectedCase.id, testCases);
-      return parent || selectedCase;
-    }
-    
-    return selectedCase;
-  };
-  const getCurrentTestCase = (selectedId?: string) => {
-    const id = selectedId || selectedTestCaseId;
-    if (!Array.isArray(testCases) || !id) {
-      return testCases[0] || null;
-    }
-    return findTestCaseById(id, testCases);
-  };
-
-  const getVisibleRootCase = (selectedId?: string) => {
-    const id = selectedId || selectedTestCaseId;
-    if (!Array.isArray(testCases) || !id) {
-      return testCases[0] || null;
-    }
-    
-    const casePath = findCasePath(id, testCases);
-    if (casePath && casePath.length > 0) {
-      return casePath[0]; // Return root ancestor
-    }
-    return testCases[0] || null;
-  };
+  // 当前执行命令状态
+  const [executingCommand, setExecutingCommand] = useState<{
+    caseId: string | null;
+    commandIndex: number | null;
+  }>({ caseId: null, commandIndex: null });
   
   // 运行结果状态
   const [runResult, setRunResult] = useState<TestRunResult | null>(null);
@@ -273,15 +158,208 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     onStop: () => {}
   });
   
-  // Initialize workspace and load test cases - use handler from hook
+  // 跟踪最后焦点的子项（用于精确插入子用例位置）
+  const [lastFocusedChild, setLastFocusedChild] = useState<{
+    caseId: string;
+    type: 'command' | 'subcase';
+    itemId: string;
+    index: number;
+  } | null>(null);
+  
+  // 参数存储系统 - 用于URC解析的参数（端口内作用域）
+  const [storedParameters, setStoredParameters] = useState<{ [key: string]: { value: string; timestamp: number } }>({});
+  
+  // 跟踪已触发的永久URC ID，防止重复触发
+  const [triggeredUrcIds, setTriggeredUrcIds] = useState<Set<string>>(new Set());
+  
+  // Initialize workspace and load test cases
   useEffect(() => {
-    // The useTestCaseState hook already handles initialization
+    const initWorkspace = async () => {
+      try {
+        const workspace = await initializeDefaultWorkspace();
+        setCurrentWorkspace(workspace);
+        const cases = await loadCases();
+        // Ensure cases is always an array
+        setTestCases(Array.isArray(cases) ? cases : []);
+        
+        // Load last opened test case
+        const lastTestCaseId = getLastOpenedTestCase();
+        if (lastTestCaseId && cases.find(c => c.uniqueId === lastTestCaseId)) {
+          const lastCase = cases.find(c => c.uniqueId === lastTestCaseId);
+          if (lastCase) {
+            setSelectedTestCaseId(lastCase.id);
+          }
+        } else if (cases.length > 0 && !selectedTestCaseId) {
+          setSelectedTestCaseId(cases[0].id);
+          setLastOpenedTestCase(cases[0].uniqueId);
+        }
+      } catch (error) {
+        console.error('Failed to initialize workspace:', error);
+        globalToast({
+          title: t("testCase.initFailed"),
+          description: t("testCase.initFailedDesc"),
+          variant: "destructive"
+        });
+      }
+    };
+    
+    initWorkspace();
   }, []);
   
-  // Handle workspace changes - use handler from hook
-  const handleWorkspaceChangeLocal = handleWorkspaceChange;
+  // Handle workspace changes
+  const handleWorkspaceChange = async () => {
+    try {
+      const workspace = getCurrentWorkspace();
+      setCurrentWorkspace(workspace);
+      const cases = await loadCases();
+      // Ensure cases is always an array
+      setTestCases(Array.isArray(cases) ? cases : []);
+      
+      // Load last opened test case for new workspace
+      const lastTestCaseId = getLastOpenedTestCase();
+      if (lastTestCaseId && cases.find(c => c.uniqueId === lastTestCaseId)) {
+        const lastCase = cases.find(c => c.uniqueId === lastTestCaseId);
+        if (lastCase) {
+          setSelectedTestCaseId(lastCase.id);
+        }
+      } else {
+        setSelectedTestCaseId(cases.length > 0 ? cases[0].id : '');
+      }
+    } catch (error) {
+      console.error('Failed to reload workspace:', error);
+    }
+  };
   
-  // Track selected test case changes and save last opened - use existing hook logic
+  // Track selected test case changes and save last opened
+  useEffect(() => {
+    if (selectedTestCaseId && testCases.length > 0) {
+      const selectedCase = testCases.find(c => c.id === selectedTestCaseId);
+      if (selectedCase) {
+        setLastOpenedTestCase(selectedCase.uniqueId);
+      }
+    }
+  }, [selectedTestCaseId, testCases]);
+  
+  // 统一重排序处理（命令和子用例）
+  const handleUnifiedReorder = (testCase: TestCase, fromIndex: number, toIndex: number, position: 'above' | 'below') => {
+    const sortedChildren = getSortedChildren(testCase);
+    let targetIndex = toIndex;
+    
+    if (position === 'below') {
+      targetIndex += 1;
+    }
+    
+    // 如果拖拽的索引在目标索引之前，需要调整目标索引
+    if (fromIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+    
+    // 重新排列子项顺序
+    const reorderedChildren = moveItem(sortedChildren, fromIndex, targetIndex);
+    const newOrder = reorderedChildren.map((child, index) => ({
+      type: child.type,
+      id: child.type === 'command' ? (child.item as TestCommand).id : (child.item as TestCase).id,
+      index
+    }));
+    
+    const updatedTestCase = updateChildrenOrder(testCase, newOrder);
+    const updatedTestCases = updateCaseById(testCases, testCase.id, () => updatedTestCase);
+    setTestCases(updatedTestCases);
+    
+    // 自动保存更新后的用例
+    scheduleAutoSave(updatedTestCase);
+    
+    toast({
+      title: "重新排序成功",
+      description: "子项顺序已更新"
+    });
+  };
+  
+  // 更新命令选中状态（支持嵌套）
+  const updateCommandSelection = (caseId: string, commandId: string, selected: boolean) => {
+    const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+      ...testCase,
+      commands: testCase.commands.map(cmd =>
+        cmd.id === commandId ? { ...cmd, selected } : cmd
+      )
+    }));
+    setTestCases(updatedTestCases);
+  };
+
+  // 生成唯一编号
+  const generateUniqueId = () => {
+    const id = nextUniqueId.toString();
+    setNextUniqueId(prev => prev + 1);
+    return id;
+  };
+
+  // 保存内联编辑
+  const saveInlineEdit = (caseId: string, commandId: string) => {
+    if (inlineEdit.commandId === commandId && inlineEdit.value.trim()) {
+      const updatedTestCases = updateCaseById(testCases, caseId, (testCase) => ({
+        ...testCase,
+        commands: testCase.commands.map(cmd =>
+          cmd.id === commandId 
+            ? { ...cmd, [cmd.type === 'urc' ? 'urcPattern' : 'command']: inlineEdit.value.trim() }
+            : cmd
+        )
+      }));
+      setTestCases(updatedTestCases);
+      
+      // 自动保存更新后的用例
+      const updatedCase = findTestCaseById(caseId, testCases);
+      if (updatedCase) {
+        scheduleAutoSave(updatedCase);
+      }
+      
+      toast({
+        title: t("testCase.modifySuccess"),
+        description: t("testCase.modifySuccessDesc")
+      });
+    }
+    setInlineEdit({ commandId: null, value: '' });
+  };
+
+  // 获取用于操作的目标用例（统计用例使用其父用例）
+  const getTargetCaseForActions = (selectedCase: TestCase | null): TestCase | null => {
+    if (!selectedCase) return null;
+    
+    if (isStatsCase(selectedCase)) {
+      const parent = findParentCase(selectedCase.id, testCases);
+      return parent || selectedCase;
+    }
+    
+    return selectedCase;
+  };
+
+  // 获取当前选中的测试用例（支持嵌套查找）
+  const getCurrentTestCase = () => {
+    // Ensure testCases is always an array
+    if (!Array.isArray(testCases)) {
+      return null;
+    }
+    
+    if (selectedTestCaseId) {
+      return findTestCaseById(selectedTestCaseId, testCases);
+    }
+    return testCases[0] || null;
+  };
+  
+  // 获取可见的根用例（当前选中用例的顶层祖先）
+  const getVisibleRootCase = (): TestCase | null => {
+    // Ensure testCases is always an array
+    if (!Array.isArray(testCases)) {
+      return null;
+    }
+    
+    if (selectedTestCaseId) {
+      const casePath = findCasePath(selectedTestCaseId, testCases);
+      if (casePath && casePath.length > 0) {
+        return casePath[0]; // 返回路径的第一个元素（顶层祖先）
+      }
+    }
+    return testCases[0] || null;
+  };
   
   const currentTestCase = getCurrentTestCase();
   const visibleRootCase = getVisibleRootCase();
@@ -300,17 +378,13 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 const extractedParams = parseUrcData(event.data, command);
                 if (Object.keys(extractedParams).length > 0) {
                   // 更新存储的参数，同名变量使用最新值
-                  setStoredParameters(prev => ({
-                    ...prev,
-                    ...extractedParams
-                  }));
+                  setStoredParameters(prev => {
+                    return { ...prev, ...extractedParams };
+                  });
                   
                   eventBus.emit(EVENTS.PARAMETER_EXTRACTED, { 
                     commandId: command.id, 
-                    parameters: Object.keys(extractedParams).reduce((acc, key) => {
-                      acc[key] = extractedParams[key].value;
-                      return acc;
-                    }, {} as Record<string, string>)
+                    parameters: extractedParams 
                   });
                   
                   toast({
@@ -551,7 +625,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         // 检查是否被暂停
         if (!runningCasesRef.current.has(caseId)) {
           console.log('Test case execution stopped (paused)');
-          setExecutingCommand(null);
+          setExecutingCommand({ caseId: null, commandIndex: null });
           return;
         }
 
@@ -569,7 +643,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           // 检查是否被暂停
           if (!runningCasesRef.current.has(caseId)) {
             console.log('Test case execution stopped (paused during command loop)');
-          setExecutingCommand(null);
+            setExecutingCommand({ caseId: null, commandIndex: null });
             return;
           }
 
@@ -595,7 +669,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     setUserActionDialog(prev => ({ ...prev, isOpen: false }));
                     statusMessages?.addMessage(`单步模式：用户取消执行`, 'warning');
                     runningCasesRef.current.delete(caseId);
-                    setExecutingCommand(null);
+                    setExecutingCommand({ caseId: null, commandIndex: null });
                     reject(new Error('用户取消单步执行'));
                   }
                 });
@@ -673,7 +747,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             if (caseAction === 'stop') {
               statusMessages?.addMessage(`命令失败（${severity}级），停止执行测试用例`, 'error');
               runningCasesRef.current.delete(caseId);
-              setExecutingCommand(null);
+              setExecutingCommand({ caseId: null, commandIndex: null });
               
               // 停止执行时也要显示测试结果
               const endTime = new Date();
@@ -722,7 +796,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       setFailurePromptDialog(prev => ({ ...prev, isOpen: false }));
                       statusMessages?.addMessage(`用户选择停止执行`, 'warning');
                       runningCasesRef.current.delete(caseId);
-                      setExecutingCommand(null);
+                      setExecutingCommand({ caseId: null, commandIndex: null });
                       
                       // 用户选择停止时也要显示测试结果
                       const endTime = new Date();
@@ -776,7 +850,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
       // 执行完成，清除运行状态
       runningCasesRef.current.delete(caseId);
-      setExecutingCommand(null);
+      setExecutingCommand({ caseId: null, commandIndex: null });
       
       // 确定最终状态 - 根据检测等级决定失败条件
       const level = testCase.validationLevel || 'error';
@@ -822,7 +896,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     } catch (error) {
       // 执行出错，清除运行状态并显示结果
       runningCasesRef.current.delete(caseId);
-      setExecutingCommand(null);
+      setExecutingCommand({ caseId: null, commandIndex: null });
       const errorTestCases = updateCaseById(testCases, caseId, (tc) => ({
         ...tc,
         isRunning: false,
@@ -895,9 +969,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     }
     
     // 设置当前执行的命令高亮
-    setExecutingCommand(`${caseId}-${commandIndex}`);
+    setExecutingCommand({ caseId, commandIndex });
     
     if (command.type === 'execution') {
+      // 执行命令前进行变量替换
       const substitutedCommand = substituteVariables(command.command, storedParameters);
       
       // 如果有验证方法且不是none，使用重试逻辑
@@ -1045,7 +1120,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     
     // 模拟执行时间后清除高亮
     setTimeout(() => {
-          setExecutingCommand(null);
+      setExecutingCommand({ caseId: null, commandIndex: null });
     }, command.waitTime || 1000);
     
     return { success: true };
@@ -1693,7 +1768,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               isDragging={dragInfo.draggedItem?.caseId === testCase.id && dragInfo.draggedItem?.itemId === command.id}
               isDropTarget={dragInfo.dropTarget?.caseId === testCase.id && dragInfo.dropTarget?.index === sortedIndex}
               dropPosition={dragInfo.dropTarget?.position || null}
-              isExecuting={executingCommand === `${testCase.id}-${originalIndex}`}
+              isExecuting={executingCommand.caseId === testCase.id && executingCommand.commandIndex === originalIndex}
               onDragStart={(e, caseId, type, itemId, index) => {
                 setDragInfo(prev => ({
                   ...prev,
@@ -1786,7 +1861,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 isDragging={dragInfo.draggedItem?.caseId === testCase.id && dragInfo.draggedItem?.itemId === command.id}
                 isDropTarget={dragInfo.dropTarget?.caseId === testCase.id && dragInfo.dropTarget?.index === child.index}
                 dropPosition={dragInfo.dropTarget?.position || null}
-                isExecuting={executingCommand === `${testCase.id}-${originalIndex}`}
+                isExecuting={executingCommand.caseId === testCase.id && executingCommand.commandIndex === originalIndex}
                 onDragStart={(e, caseId, type, itemId, index) => {
                   setDragInfo(prev => ({
                     ...prev,

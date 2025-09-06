@@ -16,11 +16,14 @@ import {
   Upload, 
   RotateCcw,
   Save,
-  Trash2
+  Trash2,
+  FolderOpen
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
+import { open } from '@tauri-apps/plugin-dialog';
+import { exists, mkdir } from '@tauri-apps/plugin-fs';
 
 interface SettingsPanelProps {
   className?: string;
@@ -99,6 +102,50 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
         description,
         variant: success ? "default" : "destructive"
       });
+    }
+  };
+
+  // 选择日志存储目录
+  const handleSelectLogDirectory = async () => {
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: '选择日志存储目录'
+      });
+
+      if (selected) {
+        updateSetting('logStoragePath', selected as string);
+        statusMessages?.addMessage('日志存储路径已更新', 'success');
+      }
+    } catch (error) {
+      console.error('选择目录失败:', error);
+      statusMessages?.addMessage('选择目录失败', 'error');
+    }
+  };
+
+  // 创建日志存储目录
+  const handleCreateLogDirectory = async () => {
+    try {
+      const path = settings.logStoragePath;
+      
+      if (!path) {
+        statusMessages?.addMessage('请先设置日志存储路径', 'warning');
+        return;
+      }
+
+      const pathExists = await exists(path);
+      
+      if (pathExists) {
+        statusMessages?.addMessage('目录已存在', 'info');
+        return;
+      }
+
+      await mkdir(path, { recursive: true });
+      statusMessages?.addMessage('日志存储目录创建成功', 'success');
+    } catch (error) {
+      console.error('创建目录失败:', error);
+      statusMessages?.addMessage('创建目录失败: ' + (error as Error).message, 'error');
     }
   };
 
@@ -187,6 +234,37 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
                 value={settings.maxLogLines}
                 onChange={(e) => updateSetting('maxLogLines', parseInt(e.target.value) || 1000)}
               />
+            </div>
+
+            {/* 日志存储路径 */}
+            <div className="space-y-2">
+              <Label>日志存储路径</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={settings.logStoragePath}
+                  onChange={(e) => updateSetting('logStoragePath', e.target.value)}
+                  placeholder="./logs"
+                  className="flex-1"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSelectLogDirectory}
+                >
+                  <FolderOpen className="w-4 h-4 mr-1" />
+                  浏览
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCreateLogDirectory}
+                >
+                  创建
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                设置日志文件的存储目录，如果目录不存在将自动创建
+              </div>
             </div>
 
             {/* 自动保存 */}

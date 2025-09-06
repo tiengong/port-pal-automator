@@ -8,6 +8,9 @@ export interface AppSettings {
   maxLogLines: number;
   autoSave: boolean;
   
+  // 日志存储设置
+  logStoragePath: string;
+  
   // 默认串口参数
   defaultBaudRate: number;
   defaultDataBits: number;
@@ -46,6 +49,8 @@ export const defaultSettings: AppSettings = {
   fontSize: 'medium',
   maxLogLines: 1000,
   autoSave: true,
+  
+  logStoragePath: './logs',
   
   defaultBaudRate: 115200,
   defaultDataBits: 8,

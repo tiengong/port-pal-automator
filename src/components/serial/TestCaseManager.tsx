@@ -98,6 +98,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingCommandIndex, setEditingCommandIndex] = useState<number | null>(null);
   const [executionResults, setExecutionResults] = useState<ExecutionResult[]>([]);
+  
+  // Script related state
+  const [scripts, setScripts] = useState<Script[]>([]);
+  const [currentScript, setCurrentScript] = useState<Script | null>(null);
   const [waitingForUser, setWaitingForUser] = useState(false);
   const [userPrompt, setUserPrompt] = useState('');
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -1186,6 +1190,33 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       title: "同步功能",
       description: "同步功能开发中...",
     });
+  };
+
+  // Script handlers
+  const handleCreateScript = (script: Script) => {
+    setScripts([...scripts, script]);
+    setCurrentScript(script);
+    toast({
+      title: "脚本已创建",
+      description: `已创建脚本: ${script.name}`
+    });
+  };
+
+  const handleDeleteScript = (scriptId: string) => {
+    const scriptToDelete = scripts.find(s => s.id === scriptId);
+    setScripts(scripts.filter(s => s.id !== scriptId));
+    if (currentScript?.id === scriptId) {
+      setCurrentScript(null);
+    }
+    toast({
+      title: "脚本已删除",
+      description: scriptToDelete ? `已删除脚本: ${scriptToDelete.name}` : "脚本已删除"
+    });
+  };
+
+  const handleSelectScript = (scriptId: string) => {
+    const script = scripts.find(s => s.id === scriptId);
+    setCurrentScript(script || null);
   };
 
   // 统一自动保存入口（核心）
@@ -2333,6 +2364,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         onDeleteTestCase={deleteTestCase}
         onSync={handleSync}
         onWorkspaceChange={handleWorkspaceChange}
+        scripts={scripts}
+        currentScript={currentScript}
+        onSelectScript={handleSelectScript}
+        onCreateScript={handleCreateScript}
+        onDeleteScript={handleDeleteScript}
       />
 
       {/* 编辑测试用例对话框 */}

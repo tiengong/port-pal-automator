@@ -629,6 +629,28 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
               
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      const terminalOutputs = document.querySelectorAll('.terminal-output');
+                      terminalOutputs.forEach(output => {
+                        output.scrollTop = output.scrollHeight;
+                      });
+                    }}
+                    className="hover:bg-accent"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                    <span className="sr-only">Scroll to Bottom</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Scroll to Bottom</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" onClick={exportLogs} className="hover:bg-accent">
                     <Download className="w-4 h-4" />
                     <span className="sr-only">Export Logs</span>

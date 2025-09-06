@@ -1311,6 +1311,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const addCommandViaContextMenu = () => {
     if (!currentTestCase) return;
     
+    // 检查是否选中了子用例
+    const targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
+    
     const newCommand: TestCommand = {
       id: `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'execution',
@@ -1323,21 +1326,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       status: 'pending'
     };
 
-    const updatedCommands = [...currentTestCase.commands, newCommand];
-    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
+    const updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => ({
       ...testCase,
-      commands: updatedCommands
+      commands: [...testCase.commands, newCommand]
     }));
     setTestCases(updatedTestCases);
 
+    const targetCase = findTestCaseById(targetCaseId, testCases);
+    const targetCaseName = targetCase ? targetCase.name : '未知用例';
+
     toast({
       title: "新增命令",
-      description: `已添加新命令: ${newCommand.command}`,
+      description: `已在 ${targetCaseName} 中添加新命令: ${newCommand.command}`,
     });
   };
 
   const addUrcViaContextMenu = () => {
     if (!currentTestCase) return;
+    
+    // 检查是否选中了子用例
+    const targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
     
     const newUrc: TestCommand = {
       id: `urc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1356,22 +1364,27 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       urcFailureHandling: 'stop'
     };
 
-    const updatedCommands = [...currentTestCase.commands, newUrc];
-    const updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => ({
+    const updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => ({
       ...testCase,
-      commands: updatedCommands
+      commands: [...testCase.commands, newUrc]
     }));
     setTestCases(updatedTestCases);
 
+    const targetCase = findTestCaseById(targetCaseId, testCases);
+    const targetCaseName = targetCase ? targetCase.name : '未知用例';
+
     toast({
       title: "新增URC",
-      description: `已添加URC监听: ${newUrc.urcPattern}`,
+      description: `已在 ${targetCaseName} 中添加URC监听: ${newUrc.urcPattern}`,
     });
   };
 
   // 新建子用例 - 通过右键菜单
   const addSubCaseViaContextMenu = () => {
     if (!currentTestCase) return;
+    
+    // 检查是否选中了子用例
+    const targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
     
     const newSubCase: TestCase = {
       id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1390,70 +1403,21 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       onErrorFailure: 'stop'
     };
 
-    let updatedTestCases: TestCase[];
-    let insertPosition = "末尾";
-
-    if (lastFocusedChild && lastFocusedChild.caseId === currentTestCase.id) {
-      // 根据最后焦点位置插入子用例
-      const parentCase = findTestCaseById(lastFocusedChild.caseId, testCases);
-      if (parentCase) {
-        const sortedChildren = getSortedChildren(parentCase);
-        const focusedChildIndex = sortedChildren.findIndex(child => 
-          child.type === lastFocusedChild.type && 
-          (child.type === 'command' ? (child.item as TestCommand).id : (child.item as TestCase).id) === lastFocusedChild.itemId
-        );
-        
-        if (focusedChildIndex >= 0) {
-          // 在焦点子项后插入
-          updatedTestCases = updateCaseById(testCases, currentTestCase.id, (testCase) => {
-            const newSubCases = [...testCase.subCases, newSubCase];
-            let newOrder = generateChildrenOrder(testCase);
-            
-            // 在指定位置插入子用例
-            const subcaseOrderItem = { type: 'subcase' as const, id: newSubCase.id, index: testCase.subCases.length };
-            newOrder.splice(focusedChildIndex + 1, 0, subcaseOrderItem);
-            
-            // 重新调整后续项的索引
-            newOrder = newOrder.map((item, idx) => ({
-              ...item,
-              index: idx
-            }));
-
-            return {
-              ...testCase,
-              subCases: newSubCases,
-              childrenOrder: newOrder
-            };
-          });
-          
-          if (lastFocusedChild.type === 'command') {
-            insertPosition = "选中命令后";
-          } else {
-            insertPosition = "选中子用例后";
-          }
-        } else {
-          // 默认添加到末尾
-          updatedTestCases = addSubCaseById(testCases, currentTestCase.id, newSubCase);
-        }
-      } else {
-        updatedTestCases = addSubCaseById(testCases, currentTestCase.id, newSubCase);
-      }
-    } else {
-      // 没有焦点子项，添加到末尾
-      updatedTestCases = addSubCaseById(testCases, currentTestCase.id, newSubCase);
-    }
-
+    const updatedTestCases = addSubCaseById(testCases, targetCaseId, newSubCase);
     setTestCases(updatedTestCases);
     
+    const targetCase = findTestCaseById(targetCaseId, testCases);
+    const targetCaseName = targetCase ? targetCase.name : '未知用例';
+    
     // 保存更新后的用例
-    const updatedCase = findTestCaseById(currentTestCase.id, updatedTestCases);
+    const updatedCase = findTestCaseById(targetCaseId, updatedTestCases);
     if (updatedCase) {
       scheduleAutoSave(updatedCase);
     }
 
     toast({
       title: "新建子用例",
-      description: `已在${insertPosition}添加子用例: ${newSubCase.name}`,
+      description: `已在 ${targetCaseName} 中添加子用例: ${newSubCase.name}`,
     });
   };
 

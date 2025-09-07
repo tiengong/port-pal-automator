@@ -102,4 +102,7 @@ export interface ContextMenuState {
   y: number;
   targetId: string;
   targetType: 'case' | 'command';
+  insertIndex?: number; // 插入位置索引（用于在指定位置后插入）
+  parentCaseId?: string; // 父用例ID（用于子用例内操作）
+  targetPath?: string[]; // 目标路径（用于层级计算）[caseId, subCaseId, ...]
 }

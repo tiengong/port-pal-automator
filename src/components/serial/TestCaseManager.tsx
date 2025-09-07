@@ -57,6 +57,7 @@ import { initializeDefaultWorkspace, loadCases, saveCase, getCurrentWorkspace, f
 // Import utility functions
 import { generateChildrenOrder, getSortedChildren, updateChildrenOrder, moveItem, formatCommandIndex, isStatsCase } from './testCaseUtils';
 import { findTestCaseById, getTopLevelParent, findParentCase, updateCaseById, addSubCaseById, toggleExpandById, findCasePath, deleteCaseById } from './testCaseRecursiveUtils';
+import { getCaseDepth, canAddSubCase, findCasePath as findCasePathUtil } from './utils/testCaseHelpers';
 import { findCommandLocation, getFirstExecutableInCase, getNextStepFrom, buildCommandOptionsFromCase } from './testCaseNavigationUtils';
 import { parseUrcData, substituteVariables, checkUrcMatch } from './testCaseUrcUtils';
 import { CommandRow } from './CommandRow';
@@ -111,7 +112,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     x: 0,
     y: 0,
     targetId: '',
-    targetType: 'case'
+    targetType: 'case',
+    insertIndex: undefined,
+    parentCaseId: undefined,
+    targetPath: undefined
   });
   const [nextUniqueId, setNextUniqueId] = useState(1001);
   const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
@@ -1307,12 +1311,87 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setCurrentScript(null);
   };
 
-  // 右击菜单功能
+  // 右键菜单处理 - 支持精确位置插入
+  const handleContextMenu = (e: React.MouseEvent, targetId: string, targetType: 'case' | 'command') => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // 获取目标路径和插入位置
+    const path = findCasePathUtil(targetId, testCases);
+    const targetPath = path ? path.map(tc => tc.id) : [];
+    
+    // 确定插入位置
+    let insertIndex: number | undefined;
+    let parentCaseId: string | undefined;
+    
+    if (targetType === 'command') {
+      // 对于命令，找到其在父用例中的索引
+      const findCommandParent = (cases: TestCase[]): TestCase | null => {
+        for (const testCase of cases) {
+          const commandIndex = testCase.commands.findIndex(cmd => cmd.id === targetId);
+          if (commandIndex !== -1) {
+            insertIndex = commandIndex;
+            parentCaseId = testCase.id;
+            return testCase;
+          }
+          const found = findCommandParent(testCase.subCases);
+          if (found) return found;
+        }
+        return null;
+      };
+      findCommandParent(testCases);
+    } else if (targetType === 'case') {
+      // 对于用例，找到其在父用例中的索引
+      const findCaseInParent = (cases: TestCase[], caseId: string): { parentId: string; index: number } | null => {
+        for (const testCase of cases) {
+          const subCaseIndex = testCase.subCases.findIndex(sub => sub.id === caseId);
+          if (subCaseIndex !== -1) {
+            return { parentId: testCase.id, index: subCaseIndex };
+          }
+          const found = findCaseInParent(testCase.subCases, caseId);
+          if (found) return found;
+        }
+        return null;
+      };
+      
+      const location = findCaseInParent(testCases, targetId);
+      if (location) {
+        insertIndex = location.index;
+        parentCaseId = location.parentId;
+      }
+    }
+    
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+      targetId,
+      targetType,
+      insertIndex,
+      parentCaseId,
+      targetPath
+    });
+  };
+
+  // 右击菜单功能 - 支持精确位置插入
   const addCommandViaContextMenu = () => {
     if (!currentTestCase) return;
     
-    // 检查是否选中了子用例
-    const targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
+    // 确定目标用例和插入位置
+    let targetCaseId: string;
+    let insertAtIndex: number | undefined;
+    
+    // 如果有上下文菜单状态，使用精确插入
+    if (contextMenu.visible && contextMenu.parentCaseId) {
+      targetCaseId = contextMenu.parentCaseId;
+      // 如果有插入索引，在当前项目后插入
+      if (contextMenu.insertIndex !== undefined) {
+        insertAtIndex = contextMenu.insertIndex + 1;
+      }
+    } else {
+      // 回退到原有逻辑：检查是否选中了子用例
+      targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
+    }
     
     const newCommand: TestCommand = {
       id: `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1326,10 +1405,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       status: 'pending'
     };
 
-    const updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => ({
-      ...testCase,
-      commands: [...testCase.commands, newCommand]
-    }));
+    let updatedTestCases: TestCase[];
+    
+    if (insertAtIndex !== undefined) {
+      // 在指定位置插入
+      updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => {
+        const newCommands = [...testCase.commands];
+        newCommands.splice(insertAtIndex, 0, newCommand);
+        return {
+          ...testCase,
+          commands: newCommands
+        };
+      });
+    } else {
+      // 添加到末尾
+      updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => ({
+        ...testCase,
+        commands: [...testCase.commands, newCommand]
+      }));
+    }
+    
     setTestCases(updatedTestCases);
 
     const targetCase = findTestCaseById(targetCaseId, testCases);
@@ -1339,13 +1434,29 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       title: "新增命令",
       description: `已在 ${targetCaseName} 中添加新命令: ${newCommand.command}`,
     });
+    
+    // 清除上下文菜单状态
+    setContextMenu(prev => ({ ...prev, visible: false }));
   };
 
   const addUrcViaContextMenu = () => {
     if (!currentTestCase) return;
     
-    // 检查是否选中了子用例
-    const targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
+    // 确定目标用例和插入位置
+    let targetCaseId: string;
+    let insertAtIndex: number | undefined;
+    
+    // 如果有上下文菜单状态，使用精确插入
+    if (contextMenu.visible && contextMenu.parentCaseId) {
+      targetCaseId = contextMenu.parentCaseId;
+      // 如果有插入索引，在当前项目后插入
+      if (contextMenu.insertIndex !== undefined) {
+        insertAtIndex = contextMenu.insertIndex + 1;
+      }
+    } else {
+      // 回退到原有逻辑：检查是否选中了子用例
+      targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
+    }
     
     const newUrc: TestCommand = {
       id: `urc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1364,10 +1475,26 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       urcFailureHandling: 'stop'
     };
 
-    const updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => ({
-      ...testCase,
-      commands: [...testCase.commands, newUrc]
-    }));
+    let updatedTestCases: TestCase[];
+    
+    if (insertAtIndex !== undefined) {
+      // 在指定位置插入
+      updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => {
+        const newCommands = [...testCase.commands];
+        newCommands.splice(insertAtIndex, 0, newUrc);
+        return {
+          ...testCase,
+          commands: newCommands
+        };
+      });
+    } else {
+      // 添加到末尾
+      updatedTestCases = updateCaseById(testCases, targetCaseId, (testCase) => ({
+        ...testCase,
+        commands: [...testCase.commands, newUrc]
+      }));
+    }
+    
     setTestCases(updatedTestCases);
 
     const targetCase = findTestCaseById(targetCaseId, testCases);
@@ -1377,14 +1504,41 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       title: "新增URC",
       description: `已在 ${targetCaseName} 中添加URC监听: ${newUrc.urcPattern}`,
     });
+    
+    // 清除上下文菜单状态
+    setContextMenu(prev => ({ ...prev, visible: false }));
   };
 
-  // 新建子用例 - 通过右键菜单
+  // 新建子用例 - 通过右键菜单，支持层级检查
   const addSubCaseViaContextMenu = () => {
     if (!currentTestCase) return;
     
-    // 检查是否选中了子用例
-    const targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
+    // 确定目标用例和插入位置
+    let targetCaseId: string;
+    let insertAtIndex: number | undefined;
+    
+    // 如果有上下文菜单状态，使用精确插入
+    if (contextMenu.visible && contextMenu.parentCaseId) {
+      targetCaseId = contextMenu.parentCaseId;
+      // 如果有插入索引，在当前项目后插入
+      if (contextMenu.insertIndex !== undefined) {
+        insertAtIndex = contextMenu.insertIndex + 1;
+      }
+    } else {
+      // 回退到原有逻辑：检查是否选中了子用例
+      targetCaseId = selectedTestCaseId && selectedTestCaseId !== currentTestCase.id ? selectedTestCaseId : currentTestCase.id;
+    }
+    
+    // 检查嵌套层级限制
+    if (!canAddSubCase(targetCaseId, testCases)) {
+      toast({
+        title: "无法添加子用例",
+        description: "已达到最大嵌套层级（3层）限制",
+        variant: "destructive"
+      });
+      setContextMenu(prev => ({ ...prev, visible: false }));
+      return;
+    }
     
     const newSubCase: TestCase = {
       id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -1419,6 +1573,9 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       title: "新建子用例",
       description: `已在 ${targetCaseName} 中添加子用例: ${newSubCase.name}`,
     });
+    
+    // 清除上下文菜单状态
+    setContextMenu(prev => ({ ...prev, visible: false }));
   };
 
   // 全选/取消全选 - 通过右键菜单
@@ -2036,6 +2193,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
               onSetLastFocusedChild={(caseId, type, itemId, index) => 
                 setLastFocusedChild({ caseId, type, itemId, index })
               }
+              onContextMenu={handleContextMenu}
               inlineEdit={inlineEdit}
               setInlineEdit={setInlineEdit}
             />
@@ -2129,6 +2287,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 onSetLastFocusedChild={(caseId, type, itemId, index) => 
                   setLastFocusedChild({ caseId, type, itemId, index })
                 }
+                onContextMenu={handleContextMenu}
                 inlineEdit={inlineEdit}
                 setInlineEdit={setInlineEdit}
               />

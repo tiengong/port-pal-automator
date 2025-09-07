@@ -27,6 +27,7 @@ interface CommandRowProps {
   onEditCommand: (caseId: string, commandIndex: number) => void;
   onSaveInlineEdit: (caseId: string, commandId: string) => void;
   onSetLastFocusedChild: (caseId: string, type: 'command', itemId: string, index: number) => void;
+  onContextMenu: (e: React.MouseEvent, commandId: string, targetType: 'command') => void;
   inlineEdit: {
     commandId: string | null;
     value: string;
@@ -53,6 +54,7 @@ export const CommandRow: React.FC<CommandRowProps> = ({
   onEditCommand,
   onSaveInlineEdit,
   onSetLastFocusedChild,
+  onContextMenu,
   inlineEdit,
   setInlineEdit
 }) => {
@@ -108,6 +110,7 @@ export const CommandRow: React.FC<CommandRowProps> = ({
       }}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      onContextMenu={(e) => onContextMenu(e, command.id, 'command')}
     >
       <div 
         className="flex items-center gap-2 cursor-pointer" 

@@ -540,3 +540,38 @@ export const searchTestCases = (testCases: TestCase[], query: string): TestCase[
 
   return filterAndExpand(testCases);
 };
+
+/**
+ * 查找用例路径（从根到目标用例）
+ */
+export const findCasePath = (caseId: string, testCases: TestCase[]): TestCase[] | null => {
+  const findPath = (cases: TestCase[], targetId: string, path: TestCase[] = []): TestCase[] | null => {
+    for (const testCase of cases) {
+      const currentPath = [...path, testCase];
+      if (testCase.id === targetId) {
+        return currentPath;
+      }
+      const subPath = findPath(testCase.subCases, targetId, currentPath);
+      if (subPath) return subPath;
+    }
+    return null;
+  };
+
+  return findPath(testCases, caseId);
+};
+
+/**
+ * 获取用例嵌套深度
+ */
+export const getCaseDepth = (caseId: string, testCases: TestCase[]): number => {
+  const path = findCasePath(caseId, testCases);
+  return path ? path.length - 1 : 0;
+};
+
+/**
+ * 检查是否可以添加子用例（限制最大嵌套层级）
+ */
+export const canAddSubCase = (parentCaseId: string, testCases: TestCase[]): boolean => {
+  const currentDepth = getCaseDepth(parentCaseId, testCases);
+  return currentDepth < 3; // 限制最大深度为3（根→子→子）
+};

@@ -392,6 +392,60 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setTestCases(updatedCases);
   };
 
+  const handleRunCommand = async (caseId: string, commandIndex: number) => {
+    const testCase = findTestCaseById(caseId, state.testCases);
+    if (!testCase) return;
+    
+    const command = testCase.commands[commandIndex];
+    if (!command) return;
+
+    // 设置执行状态
+    setExecutingCommand({ caseId, commandIndex });
+    
+    try {
+      // 执行命令（简化的实现，实际应该调用完整的执行逻辑）
+      if (command.type === 'execution') {
+        // 发送命令事件
+        const sendEvent: SendCommandEvent = {
+          command: command.command,
+          format: command.dataFormat === 'hex' ? 'hex' : 'utf8',
+          lineEnding: command.lineEnding,
+          targetPort: 'ALL'
+        };
+        eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
+        statusMessages?.addMessage(`执行命令: ${command.command}`, 'info');
+      } else if (command.type === 'urc') {
+        // URC监听逻辑
+        statusMessages?.addMessage(`开始监听URC: ${command.urcPattern}`, 'info');
+      }
+      
+      // 模拟命令执行完成
+      setTimeout(() => {
+        const updatedCases = updateCaseById(state.testCases, caseId, (tc) => ({
+          ...tc,
+          commands: tc.commands.map((cmd, idx) => 
+            idx === commandIndex ? { ...cmd, status: 'success' as const } : cmd
+          )
+        }));
+        setTestCases(updatedCases);
+        setExecutingCommand({ caseId: '', commandIndex: -1 });
+        statusMessages?.addMessage(`命令执行完成: ${command.command}`, 'success');
+      }, 1000);
+      
+    } catch (error) {
+      console.error('执行命令失败:', error);
+      setExecutingCommand({ caseId: '', commandIndex: -1 });
+      statusMessages?.addMessage(`执行命令失败: ${command.command}`, 'error');
+    }
+  };
+
+  const handleEditCommand = (caseId: string, commandIndex: number) => {
+    // 使用现有的编辑机制，设置编辑命令索引并打开编辑对话框
+    setEditingCommandIndex(commandIndex);
+    setEditingCase(findTestCaseById(caseId, state.testCases));
+    setIsEditDialogOpen(true);
+  };
+
   const handleDeleteSubCase = (caseId: string, subCaseId: string) => {
     const updatedCases = updateCaseById(state.testCases, caseId, (tc) => ({
       ...tc,
@@ -549,32 +603,58 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             <div className="bg-muted/30 border-l-2 border-primary/30 ml-4">
               {/* 命令列表 - 使用现有组件保持UI一致 */}
               {testCase.commands.map((command, index) => (
-                <CommandRow
-                  key={command.id}
-                  command={command}
-                  commandIndex={index}
-                  caseId={testCase.id}
-                  isExecuting={state.executingCommand.caseId === testCase.id && state.executingCommand.commandIndex === index}
-                  isExpanded={isExpanded}
-                  dragInfo={state.dragInfo}
-                  inlineEdit={state.inlineEdit}
-                  storedParameters={state.storedParameters}
-                  onToggleSelection={(selected) => handleToggleSelection(testCase.id, 'command', command.id, selected)}
-                  onInlineEditStart={(value) => handleInlineEditStart(command.id, value)}
-                  onInlineEditSave={() => handleInlineEditSave(testCase.id, command.id)}
-                  onInlineEditChange={handleInlineEditChange}
-                  onRunCommand={() => {/* 运行单个命令逻辑 */}}
-                  onEditCommand={() => {/* 编辑命令逻辑 */}}
-                  onDeleteCommand={() => handleDeleteCommand(testCase.id, command.id)}
-                  onDragStart={(e) => {/* 拖拽开始逻辑 */}}
-                  onDragOver={(e, position) => {/* 拖拽悬停逻辑 */}}
-                  onDragLeave={(e) => {/* 拖拽离开逻辑 */}}
-                  onDrop={(e) => {/* 拖拽放置逻辑 */}}
-                  onContextMenu={(e) => handleContextMenu(e, command.id, 'command')}
-                  onMoveCommand={(fromIndex, toIndex) => {/* 移动命令逻辑 */}}
-                  formatCommandIndex={formatCommandIndex}
-                  t={t}
-                />
+                <ContextMenu key={command.id}>
+                  <ContextMenuTrigger asChild>
+                    <CommandRow
+                      command={command}
+                      commandIndex={index}
+                      caseId={testCase.id}
+                      isExecuting={state.executingCommand.caseId === testCase.id && state.executingCommand.commandIndex === index}
+                      isExpanded={isExpanded}
+                      dragInfo={state.dragInfo}
+                      inlineEdit={state.inlineEdit}
+                      storedParameters={state.storedParameters}
+                      onToggleSelection={(selected) => handleToggleSelection(testCase.id, 'command', command.id, selected)}
+                      onInlineEditStart={(value) => handleInlineEditStart(command.id, value)}
+                      onInlineEditSave={() => handleInlineEditSave(testCase.id, command.id)}
+                      onInlineEditChange={handleInlineEditChange}
+                      onRunCommand={() => {/* 运行单个命令逻辑 */}}
+                      onEditCommand={() => {/* 编辑命令逻辑 */}}
+                      onDeleteCommand={() => handleDeleteCommand(testCase.id, command.id)}
+                      onDragStart={(e) => {/* 拖拽开始逻辑 */}}
+                      onDragOver={(e, position) => {/* 拖拽悬停逻辑 */}}
+                      onDragLeave={(e) => {/* 拖拽离开逻辑 */}}
+                      onDrop={(e) => {/* 拖拽放置逻辑 */}}
+                      onContextMenu={(e) => handleContextMenu(e, command.id, 'command')}
+                      onMoveCommand={(fromIndex, toIndex) => {/* 移动命令逻辑 */}}
+                      formatCommandIndex={formatCommandIndex}
+                      t={t}
+                    />
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-64">
+                    <ContextMenuItem onClick={() => handleRunCommand(testCase.id, index)} className="flex items-center gap-2">
+                      <Play className="w-4 h-4" />
+                      运行命令
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleEditCommand(testCase.id, index)} className="flex items-center gap-2">
+                      <Edit className="w-4 h-4" />
+                      编辑命令
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleDeleteCommand(testCase.id, command.id)} className="flex items-center gap-2">
+                      <Trash2 className="w-4 h-4" />
+                      删除命令
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onClick={() => handleAddCommand(testCase.id)} className="flex items-center gap-2">
+                      <Hash className="w-4 h-4" />
+                      新建命令
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleAddUrc(testCase.id)} className="flex items-center gap-2">
+                      <Search className="w-4 h-4" />
+                      新建URC
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               ))}
               
               {/* 子用例列表 - 使用现有组件保持UI一致 */}

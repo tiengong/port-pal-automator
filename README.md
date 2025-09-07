@@ -135,3 +135,60 @@ For detailed error information, download the **Console Debug Build** from GitHub
 - **Windows Defender/Antivirus**: May block unsigned executables
 
 If none of these steps resolve the issue, please share the contents of `startup-error.txt` (if generated) or the console output from the debug build.
+
+## Code Architecture Updates
+
+### TestCaseManager Component Refactoring (2024-09-07)
+
+The `TestCaseManager.tsx` component has been modularized to improve maintainability and reduce code duplication while preserving the exact UI appearance and functionality.
+
+#### Changes Made:
+
+1. **State Management Extraction** (`src/components/serial/hooks/useTestCaseState.ts`)
+   - Centralized all React state management logic
+   - Extracted 24+ useState hooks into a single cohesive hook
+   - Added computed properties and utility functions
+
+2. **Execution Logic Extraction** (`src/components/serial/hooks/useTestCaseExecution.ts`)
+   - Separated test case execution logic from UI components
+   - Implemented retry mechanisms and failure handling
+   - Added execution status tracking and callbacks
+
+3. **Drag & Drop Logic Extraction** (`src/components/serial/hooks/useTestCaseDragDrop.ts`)
+   - Isolated drag and drop functionality
+   - Implemented unified reordering for commands and sub-cases
+   - Added drag state management
+
+4. **Utility Functions Extraction** (`src/components/serial/utils/testCaseHelpers.ts`)
+   - Consolidated repetitive utility functions
+   - Added helper functions for test case operations
+   - Implemented search, validation, and statistics functions
+
+5. **UI Component Modularization**
+   - Maintained 100% UI consistency with original design
+   - Preserved all CSS classes, animations, and responsive behavior
+   - Kept existing component structure (TestCaseHeader, TestCaseActions, etc.)
+
+#### Benefits:
+
+- **Reduced Code Duplication**: Eliminated repetitive state update patterns
+- **Improved Maintainability**: Each module has a single responsibility
+- **Better Testability**: Individual modules can be tested in isolation
+- **Enhanced Readability**: Main component is now more focused on UI logic
+- **Preserved Functionality**: All existing features work exactly as before
+
+#### Files Created:
+
+- `src/components/serial/hooks/useTestCaseState.ts` - State management hook
+- `src/components/serial/hooks/useTestCaseExecution.ts` - Execution logic hook  
+- `src/components/serial/hooks/useTestCaseDragDrop.ts` - Drag & drop hook
+- `src/components/serial/utils/testCaseHelpers.ts` - Utility functions
+- `src/components/serial/TestCaseManagerOptimized.tsx` - Refactored main component
+
+#### Verification:
+
+- ✅ UI layout and styling preserved 100%
+- ✅ All existing functionality maintained
+- ✅ Component behavior unchanged
+- ✅ Responsive design intact
+- ✅ TypeScript types compatible

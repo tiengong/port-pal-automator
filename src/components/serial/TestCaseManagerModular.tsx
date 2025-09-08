@@ -67,6 +67,7 @@ import {
   toggleCaseExpand,
   canAddSubCase
 } from './utils/testCaseHelpers';
+import { checkUrcMatch, parseUrcData, substituteVariables } from './testCaseUrcUtils';
 
 // Workspace
 import { 
@@ -182,6 +183,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 使用执行Hook
   const execution = useTestCaseExecution({
+    storedParameters: state.storedParameters,
     onStatusUpdate: (message, type) => statusMessages?.addMessage(message, type),
     onCommandUpdate: (caseId, commandIndex, updates) => {
       // 更新命令状态 - 使用工具函数
@@ -244,13 +246,14 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         // 处理URC监听
         currentTestCase.commands.forEach((cmd, index) => {
           if (cmd.type === 'urc' && cmd.urcPattern) {
-            const matchResult = checkUrcMatch(event.data, cmd.urcPattern);
-            if (matchResult.matched) {
-              // 存储参数
-              if (matchResult.parameters) {
+            const matched = checkUrcMatch(event.data, cmd);
+            if (matched) {
+              // 提取并存储参数
+              const extractedParams = parseUrcData(event.data, cmd);
+              if (Object.keys(extractedParams).length > 0) {
                 setStoredParameters(prev => ({
                   ...prev,
-                  ...matchResult.parameters
+                  ...extractedParams
                 }));
               }
               
@@ -416,15 +419,18 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     try {
       // 执行命令（简化的实现，实际应该调用完整的执行逻辑）
       if (command.type === 'execution') {
+        // 变量替换
+        const substitutedCommand = substituteVariables(command.command, state.storedParameters);
+        
         // 发送命令事件
         const sendEvent: SendCommandEvent = {
-          command: command.command,
+          command: substitutedCommand,
           format: command.dataFormat === 'hex' ? 'hex' : 'utf8',
           lineEnding: command.lineEnding,
           targetPort: 'ALL'
         };
         eventBus.emit(EVENTS.SEND_COMMAND, sendEvent);
-        statusMessages?.addMessage(`执行命令: ${command.command}`, 'info');
+        statusMessages?.addMessage(`执行命令: ${substitutedCommand}`, 'info');
       } else if (command.type === 'urc') {
         // URC监听逻辑
         statusMessages?.addMessage(`开始监听URC: ${command.urcPattern}`, 'info');
@@ -440,7 +446,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         }));
         setTestCases(updatedCases);
         setExecutingCommand({ caseId: '', commandIndex: -1 });
-        statusMessages?.addMessage(`命令执行完成: ${command.command}`, 'success');
+        statusMessages?.addMessage(`命令执行完成: ${substitutedCommand || command.command}`, 'success');
       }, 1000);
       
     } catch (error) {
@@ -686,6 +692,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                   onDragLeave={(e) => {/* 拖拽离开逻辑 */}}
                   onDrop={(e) => {/* 拖拽放置逻辑 */}}
                   onContextMenu={(e) => handleContextMenu(e, subCase.id, 'case')}
+                  onSelectCase={handleSelectCase}
+                  onUpdateCaseSelection={handleToggleSelection}
+                  onRunCommand={handleRunCommand}
+                  onEditCommand={handleEditCommand}
+                  onDeleteCommand={handleDeleteCommand}
+                  onToggleCommandSelection={handleToggleSelection}
+                  onInlineEditStart={handleInlineEditStart}
+                  onInlineEditSave={handleInlineEditSave}
+                  onInlineEditChange={handleInlineEditChange}
+                  onMoveCommand={(fromIndex, toIndex) => {/* 移动命令逻辑 */}}
+                  onContextMenuCommand={handleContextMenu}
+                  onAddSubCase={handleAddSubCase}
+                  onAddCommand={handleAddCommand}
+                  onAddUrc={handleAddUrc}
+                  storedParameters={state.storedParameters}
+                  executingCommand={state.executingCommand}
+                  inlineEdit={state.inlineEdit}
+                  formatCommandIndex={formatCommandIndex}
                   t={t}
                 />
               ))}
@@ -825,66 +849,44 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
           />
         </div>
       ) : (
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <div className="flex-1 min-h-0 overflow-y-auto p-2">
-              {state.testCases.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <TestTube2 className="w-10 h-10 mb-3 opacity-30" />
-                  <p className="text-sm">暂无测试用例，点击新建用例开始</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* 参数显示面板 - 保持原有结构 */}
-                  {Object.keys(state.storedParameters).length > 0 && (
-                    <VariableDisplay
-                      storedParameters={state.storedParameters}
-                      onClearParameter={(key) => {
-                        setStoredParameters(prev => {
-                          const newParams = { ...prev };
-                          delete newParams[key];
-                          return newParams;
-                        });
-                        toast({
-                          title: "参数已清除",
-                          description: `已清除参数: ${key}`,
-                        });
-                      }}
-                      onClearAll={() => {
-                        setStoredParameters({});
-                        toast({
-                          title: "全部参数已清除",
-                          description: "所有解析的参数已被清空",
-                        });
-                      }}
-                    />
-                  )}
-                   
-                  {/* 统一层级树 - 保持原有结构 */}
-                  <div className="border border-border rounded-lg bg-card">
-                    <div className="divide-y divide-border">                      {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
-                    </div>
-                  </div>
-                </div>
+        <div className="flex-1 min-h-0 overflow-y-auto p-2">
+          {state.testCases.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">              <TestTube2 className="w-10 h-10 mb-3 opacity-30" />              <p className="text-sm">暂无测试用例，点击新建用例开始</p>            </div>
+          ) : (
+            <div className="space-y-2">              {/* 参数显示面板 - 保持原有结构 */}
+              {Object.keys(state.storedParameters).length > 0 && (
+                <VariableDisplay
+                  storedParameters={state.storedParameters}
+                  onClearParameter={(key) => {
+                    setStoredParameters(prev => {
+                      const newParams = { ...prev };
+                      delete newParams[key];
+                      return newParams;
+                    });
+                    toast({
+                      title: "参数已清除",
+                      description: `已清除参数: ${key}`,
+                    });
+                  }}
+                  onClearAll={() => {
+                    setStoredParameters({});
+                    toast({
+                      title: "全部参数已清除",
+                      description: "所有解析的参数已被清空",
+                    });
+                  }}
+                />
               )}
+               
+              {/* 统一层级树 - 保持原有结构 */}
+              <div className="border border-border rounded-lg bg-card">
+                <div className="divide-y divide-border">                  {visibleRootCase ? renderUnifiedTree([visibleRootCase], 0) : []}
+                </div>
+              </div>
             </div>
-        </ContextMenuTrigger>
-        <ContextMenuContent className="w-64">
-          <ContextMenuItem onClick={() => {/* 新建命令逻辑 */}} className="flex items-center gap-2">
-            <Hash className="w-4 h-4" />
-            新建命令
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => {/* 新建URC逻辑 */}} className="flex items-center gap-2">
-            <Search className="w-4 h-4" />
-            新建URC
-          </ContextMenuItem>
-          <ContextMenuItem onClick={() => {/* 新建子用例逻辑 */}} className="flex items-center gap-2">
-            <TestTube2 className="w-4 h-4" />
-            新建子用例
-          </ContextMenuItem>
-        </ContextMenuContent>
-      </ContextMenu>
-      )}
+          )}
+        </div>
+      )
 
       {/* 运行结果对话框 - 保持原有结构 */}
       {state.showRunResult && state.runResult && (

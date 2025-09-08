@@ -2,11 +2,13 @@
 import { useState, useCallback } from 'react';
 import { TestCase, TestCommand, ExecutionResult } from '../types';
 import { eventBus, EVENTS, SendCommandEvent } from '@/lib/eventBus';
+import { substituteVariables } from '../testCaseUrcUtils';
 
 interface ExecutionOptions {
   onStatusUpdate?: (message: string, type: 'info' | 'warning' | 'error') => void;
   onCommandUpdate?: (caseId: string, commandIndex: number, updates: Partial<TestCommand>) => void;
   onCaseUpdate?: (caseId: string, updates: Partial<TestCase>) => void;
+  storedParameters?: { [key: string]: { value: string; timestamp: number } };
 }
 
 export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
@@ -56,9 +58,21 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
       );
 
       try {
+        // 变量替换
+        const substitutedCommand = options.storedParameters 
+          ? substituteVariables(command.command, options.storedParameters)
+          : command.command;
+        
+        options.onStatusUpdate?.(
+          maxAttempts > 1 
+            ? `执行命令 (尝试 ${attempt}/${maxAttempts}): ${substitutedCommand}`
+            : `执行命令: ${substitutedCommand}`,
+          'info'
+        );
+        
         // Send command via event bus
         const sendEvent: SendCommandEvent = {
-          command: command.command,
+          command: substitutedCommand,
           lineEnding: command.lineEnding || 'crlf',
           format: command.dataFormat === 'hex' ? 'hex' : 'utf8'
         };
@@ -82,8 +96,8 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
         if (success) {
           options.onStatusUpdate?.(
             maxAttempts > 1 && attempt > 1
-              ? `命令重试成功 (第${attempt}次尝试): ${command.command}`
-              : `命令执行成功: ${command.command}`,
+              ? `命令重试成功 (第${attempt}次尝试): ${substitutedCommand}`
+              : `命令执行成功: ${substitutedCommand}`,
             'info'
           );
           options.onCommandUpdate?.(testCase.id,
@@ -95,8 +109,8 @@ export const useTestCaseExecution = (options: ExecutionOptions = {}) => {
           const isLastAttempt = attempt === maxAttempts;
           options.onStatusUpdate?.(
             isLastAttempt
-              ? `命令执行失败 (已尝试 ${maxAttempts} 次): ${command.command}`
-              : `命令执行失败 (尝试 ${attempt}/${maxAttempts}): ${command.command}`,
+              ? `命令执行失败 (已尝试 ${maxAttempts} 次): ${substitutedCommand}`
+              : `命令执行失败 (尝试 ${attempt}/${maxAttempts}): ${substitutedCommand}`,
             command.failureSeverity === 'warning' ? 'warning' : 'error'
           );
           

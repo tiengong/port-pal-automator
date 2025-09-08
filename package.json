@@ -7,8 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:release": "vite build --mode production",
+    "build:optimized": "NODE_ENV=production vite build --mode production",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:release": "tauri build --config src-tauri/tauri.conf.json",
+    "tauri:build:optimized": "cargo build --release --manifest-path src-tauri/Cargo.toml && tauri build --config src-tauri/tauri.conf.json",
+    "release": "npm run build:optimized && npm run tauri:build:optimized"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

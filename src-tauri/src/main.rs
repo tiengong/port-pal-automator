@@ -27,7 +27,18 @@ fn main() {
         log::error!("PANIC: {}{}", message, location);
     }));
 
-    log::info!("Starting Serial Pilot application...");
+    // 根据构建模式设置日志级别和输出
+    let is_debug = cfg!(debug_assertions);
+    let log_level = if is_debug {
+        log::LevelFilter::Debug
+    } else {
+        // Release模式只显示重要日志
+        log::LevelFilter::Warn
+    };
+
+    if is_debug {
+        log::info!("Starting Serial Pilot application (Debug Mode)...");
+    }
     
     // Read environment variables for plugin control
     let enable_window_state = env::var("SP_ENABLE_WINDOW_STATE")
@@ -35,15 +46,21 @@ fn main() {
     let enable_serial = env::var("SP_ENABLE_SERIAL")
         .unwrap_or_else(|_| "1".to_string()) == "1";
     
-    log::info!("Window state plugin: {}", if enable_window_state { "enabled" } else { "disabled" });
-    log::info!("Serial plugin: {}", if enable_serial { "enabled" } else { "disabled" });
+    if is_debug {
+        log::info!("Window state plugin: {}", if enable_window_state { "enabled" } else { "disabled" });
+        log::info!("Serial plugin: {}", if enable_serial { "enabled" } else { "disabled" });
+    }
 
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Trace)
+            .level(log_level)
             .targets([
-                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
-                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+                // Debug模式输出到控制台和文件，Release模式只输出到文件
+                if is_debug {
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout)
+                } else {
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: Some("app.log".to_string()) })
+                },
                 tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: None }),
             ])
             .build())
@@ -51,37 +68,55 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            log::info!("Setting up main window...");
+            if is_debug {
+                log::info!("Setting up main window...");
+            }
             
             // Get the main window and ensure it's visible
             if let Some(window) = app.get_webview_window("main") {
-                log::info!("Main window found, configuring...");
+                if is_debug {
+                    log::info!("Main window found, configuring...");
+                }
                 
                 // Force window to be visible and focused
                 if let Err(e) = window.show() {
-                    log::warn!("Failed to show window: {}", e);
+                    if is_debug {
+                        log::warn!("Failed to show window: {}", e);
+                    }
                 }
                 
                 if let Err(e) = window.set_focus() {
-                    log::warn!("Failed to focus window: {}", e);
+                    if is_debug {
+                        log::warn!("Failed to focus window: {}", e);
+                    }
                 }
                 
                 if let Err(e) = window.center() {
-                    log::warn!("Failed to center window: {}", e);
+                    if is_debug {
+                        log::warn!("Failed to center window: {}", e);
+                    }
                 }
                 
                 // Set a safe default size
                 if let Err(e) = window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width: 1200, height: 800 })) {
-                    log::warn!("Failed to set window size: {}", e);
+                    if is_debug {
+                        log::warn!("Failed to set window size: {}", e);
+                    }
                 }
                 
-                log::info!("Main window setup completed");
+                if is_debug {
+                    log::info!("Main window setup completed");
+                }
             } else {
-                log::error!("Main window not found! Attempting to create fallback window...");
+                if is_debug {
+                    log::error!("Main window not found! Attempting to create fallback window...");
+                }
                 
                 // Fallback: create main window if not found
                 match app.handle().get_webview_window("main").or_else(|| {
-                    log::info!("Creating fallback main window...");
+                    if is_debug {
+                        log::info!("Creating fallback main window...");
+                    }
                     tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
                         .title("Serial Pilot")
                         .inner_size(1200.0, 800.0)
@@ -113,22 +148,16 @@ fn main() {
         log::info!("Window state plugin added");
     }
 
-    // Conditionally add serial plugin (only on supported platforms)
+    // Conditionally add serial plugin (支持所有平台)
     if enable_serial {
-        #[cfg(not(target_os = "linux"))]
-        {
-            log::info!("Adding serial plugin...");
-            match tauri_plugin_serialplugin::init() {
-                plugin => {
-                    log::info!("Serial plugin initialized successfully");
-                    builder = builder.plugin(plugin);
-                }
+        log::info!("Adding serial plugin...");
+        
+        // 使用新的tauri-plugin-serial，支持所有平台
+        match tauri_plugin_serial::init() {
+            plugin => {
+                log::info!("Serial plugin initialized successfully");
+                builder = builder.plugin(plugin);
             }
-        }
-
-        #[cfg(target_os = "linux")]
-        {
-            log::warn!("Serial plugin not available on Linux");
         }
     }
 

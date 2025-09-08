@@ -126,9 +126,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: pwsh
 
-      # 步骤7：构建Tauri应用 Release版本
-      - name: Build Tauri app (Release)
-        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json
+      # 步骤7：构建Tauri应用 Release版本（MSI安装包）
+      - name: Build Tauri app (Release MSI)
+        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --bundles msi
         env:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot"
@@ -136,20 +136,38 @@ jobs:
           TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
         working-directory: ./
 
-      # 步骤8：重命名Release构建产物以区分版本
+      # 步骤8：构建Tauri应用 Release版本（绿色便携版）
+      - name: Build Tauri app (Release Portable)
+        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --bundles nsis
+        env:
+          TAURI_BUILD_MODE: release
+          TAURI_APP_NAME: "Serial Pilot Portable"
+          TAURI_APP_VERSION: "0.1.0"
+          TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
+          TAURI_BUNDLER: nsis-portable
+        working-directory: ./
+
+      # 步骤9：重命名Release构建产物以区分版本
       - name: Rename Release build artifacts
         run: |
           echo "=== Renaming Release artifacts ==="
           if (Test-Path "src-tauri/target/release/bundle/msi") {
             Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object {
-              $newName = $_.Name -replace "\.msi$", "-Release.msi"
+              $newName = $_.Name -replace "\.msi$", "-Setup.msi"
               Rename-Item $_.FullName $newName
-              echo "✅ Renamed to: $newName"
+              echo "✅ Renamed MSI to: $newName"
+            }
+          }
+          if (Test-Path "src-tauri/target/release/bundle/nsis") {
+            Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | ForEach-Object {
+              $newName = $_.Name -replace "\.exe$", "-Portable.exe"
+              Rename-Item $_.FullName $newName
+              echo "✅ Renamed Portable to: $newName"
             }
           }
           if (Test-Path "src-tauri/target/release/bundle/app") {
             Get-ChildItem "src-tauri/target/release/bundle/app" -Directory | ForEach-Object {
-              $newName = $_.Name + "-Release"
+              $newName = $_.Name + "-Portable"
               Rename-Item $_.FullName $newName
               echo "✅ Renamed app folder to: $newName"
             }
@@ -186,18 +204,30 @@ jobs:
           }
         shell: pwsh
 
-      # 步骤11：上传Release版本构建产物（无压缩）
-      - name: Upload Release build artifacts
+      # 步骤11：上传MSI安装包构建产物（无压缩）
+      - name: Upload MSI Setup artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: serial-pilot-windows-release
+          name: serial-pilot-windows-msi-setup
           path: |
-            ./src-tauri/target/release/bundle/**/*Release*
+            ./src-tauri/target/release/bundle/msi/*Setup.msi
             !./src-tauri/target/release/bundle/**/temp/
           retention-days: 30
           compression-level: 0
 
-      # 步骤12：上传Debug版本构建产物（无压缩）
+      # 步骤12：上传绿色便携版构建产物（无压缩）
+      - name: Upload Portable artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: serial-pilot-windows-portable
+          path: |
+            ./src-tauri/target/release/bundle/nsis/*Portable.exe
+            ./src-tauri/target/release/bundle/app/*Portable*/
+            !./src-tauri/target/release/bundle/**/temp/
+          retention-days: 30
+          compression-level: 0
+
+      # 步骤13：上传Debug版本构建产物（无压缩）
       - name: Upload Debug build artifacts  
         uses: actions/upload-artifact@v4
         with:

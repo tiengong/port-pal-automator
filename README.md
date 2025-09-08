@@ -1,12 +1,84 @@
-# Welcome to your Lovable project
+# Serial Pilot - 串口终端与测试工具
 
-## Project info
+Serial Pilot 是一款基于 Tauri + React 的现代化串口终端应用程序，提供双通道串口通信、数据终端功能以及完整的测试用例管理系统。
 
-**URL**: https://lovable.dev/projects/3615223c-acb9-4705-959c-b1ca4d3b38ba
+## 项目特性
 
-## How can I edit this code?
+### 🚀 核心功能
+- **双通道串口通信** - 支持 P1 和 P2 两个串口同时通信
+- **实时数据终端** - 实时数据显示与交互终端
+- **测试用例管理** - 完整的测试用例创建、执行和管理系统
+- **多层级结构** - 支持三级测试用例结构（根用例→子用例→孙用例）
+- **AT命令自动补全** - 智能AT命令提示和自动补全功能
 
-There are several ways of editing your application.
+### 📊 测试用例系统
+- **层级化测试结构** - 支持用例→子用例→命令的三层结构
+- **脚本编辑器** - 带语法高亮的复杂测试场景编辑器
+- **拖拽功能** - 测试用例组织的拖拽操作
+- **执行引擎** - 带实时反馈的测试执行引擎
+- **结果记录** - 测试结果记录和导出功能
+
+### 🎯 技术架构
+- **前端**: React 18 + TypeScript + Vite
+- **桌面框架**: Tauri (Rust-based)
+- **UI组件**: shadcn/ui + Tailwind CSS
+- **状态管理**: React Context + TanStack Query
+- **构建工具**: Vite (支持热模块替换)
+
+## 安装与使用
+
+### Windows 用户
+
+#### 选项1：MSI安装包（推荐）
+1. 从 [Releases](https://github.com/your-repo/releases) 下载 `Serial-Pilot-Setup.msi`
+2. 双击安装，按向导完成安装
+3. 在开始菜单或桌面找到 Serial Pilot 启动
+
+#### 选项2：绿色便携版
+1. 从 [Releases](https://github.com/your-repo/releases) 下载 `Serial-Pilot-Portable.exe`
+2. 无需安装，直接运行即可使用
+3. 适合U盘携带或临时使用
+
+### 开发环境搭建
+
+**前置要求**:
+- Node.js 20+ 和 npm
+- Rust 稳定版工具链
+- Windows 10/11（桌面版）
+
+**安装步骤**:
+```sh
+# 1. 克隆仓库
+git clone <YOUR_GIT_URL>
+cd <YOUR_PROJECT_NAME>
+
+# 2. 安装依赖
+npm install
+
+# 3. 启动开发服务器
+npm run dev
+
+# 4. 构建生产版本
+npm run build
+
+# 5. 构建桌面应用
+npm run tauri build
+```
+
+## 最近更新
+
+### 🆕 新增功能 (2025-01-07)
+- **多层级子用例优化**: 修复了三级子用例显示重复的问题，现在支持最大3级层级结构
+- **AT命令自动补全**: 新增智能AT命令补全功能，包含常用AT指令库
+- **默认测试用例**: 新增默认测试用例模板，包含基础连接测试和网络注册测试
+- **构建优化**: 支持同时生成MSI安装包和绿色便携版，提供两种安装方式
+
+### 🛠️ 技术改进
+- **性能优化**: AT命令自动补全使用Trie树结构，提供毫秒级响应
+- **构建配置**: 优化Tauri构建流程，支持Windows 64位MSI和NSIS打包
+- **错误处理**: 增强三级子用例添加时的错误提示和层级限制
+
+## 如何使用Lovable编辑代码
 
 **Use Lovable**
 

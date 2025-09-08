@@ -1,0 +1,300 @@
+{
+  "version": "1.0",
+  "description": "AT指令库 - 包含常用AT命令、说明、返回值格式和URC超时时间配置",
+  "commands": [
+    {
+      "command": "AT",
+      "description": "测试连接",
+      "expectedResponse": "OK",
+      "urcTimeout": 2000,
+      "category": "基础"
+    },
+    {
+      "command": "ATI",
+      "description": "显示模块信息",
+      "expectedResponse": "OK",
+      "urcTimeout": 3000,
+      "category": "基础"
+    },
+    {
+      "command": "AT+CREG?",
+      "description": "查询网络注册状态",
+      "expectedResponse": "+CREG: 0,1|+CREG: 0,5",
+      "urcTimeout": 5000,
+      "category": "网络"
+    },
+    {
+      "command": "AT+CGREG?",
+      "description": "查询GPRS网络注册状态",
+      "expectedResponse": "+CGREG: 0,1|+CGREG: 0,5",
+      "urcTimeout": 5000,
+      "category": "网络"
+    },
+    {
+      "command": "AT+CEREG?",
+      "description": "查询EPS网络注册状态",
+      "expectedResponse": "+CEREG: 0,1|+CEREG: 0,5",
+      "urcTimeout": 5000,
+      "category": "网络"
+    },
+    {
+      "command": "AT+CSQ",
+      "description": "查询信号质量",
+      "expectedResponse": "+CSQ: ",
+      "urcTimeout": 3000,
+      "category": "网络"
+    },
+    {
+      "command": "AT+CPIN?",
+      "description": "查询SIM卡状态",
+      "expectedResponse": "+CPIN: READY",
+      "urcTimeout": 3000,
+      "category": "SIM卡"
+    },
+    {
+      "command": "AT+CMGF=1",
+      "description": "设置短信模式为文本",
+      "expectedResponse": "OK",
+      "urcTimeout": 2000,
+      "category": "短信"
+    },
+    {
+      "command": "AT+CMGS=",
+      "description": "发送短信",
+      "expectedResponse": "\u003e ",
+      "urcTimeout": 10000,
+      "category": "短信"
+    },
+    {
+      "command": "AT+CMGR=",
+      "description": "读取短信",
+      "expectedResponse": "+CMGR:",
+      "urcTimeout": 3000,
+      "category": "短信"
+    },
+    {
+      "command": "AT+CMGL=",
+      "description": "列出短信",
+      "expectedResponse": "+CMGL:",
+      "urcTimeout": 5000,
+      "category": "短信"
+    },
+    {
+      "command": "AT+CMGD=",
+      "description": "删除短信",
+      "expectedResponse": "OK",
+      "urcTimeout": 3000,
+      "category": "短信"
+    },
+    {
+      "command": "AT+CGATT=1",
+      "description": "附着GPRS服务",
+      "expectedResponse": "OK",
+      "urcTimeout": 10000,
+      "category": "数据"
+    },
+    {
+      "command": "AT+CGATT?",
+      "description": "查询GPRS附着状态",
+      "expectedResponse": "+CGATT: 1",
+      "urcTimeout": 3000,
+      "category": "数据"
+    },
+    {
+      "command": "AT+CGDCONT=1",
+      "description": "定义PDP上下文",
+      "expectedResponse": "OK",
+      "urcTimeout": 3000,
+      "category": "数据"
+    },
+    {
+      "command": "AT+CGACT=1,1",
+      "description": "激活PDP上下文",
+      "expectedResponse": "OK",
+      "urcTimeout": 15000,
+      "category": "数据"
+    },
+    {
+      "command": "AT+CGACT?",
+      "description": "查询PDP上下文状态",
+      "expectedResponse": "+CGACT: 1,1",
+      "urcTimeout": 3000,
+      "category": "数据"
+    },
+    {
+      "command": "AT+IPR?",
+      "description": "查询波特率",
+      "expectedResponse": "+IPR:",
+      "urcTimeout": 2000,
+      "category": "串口"
+    },
+    {
+      "command": "AT+IPR=115200",
+      "description": "设置波特率",
+      "expectedResponse": "OK",
+      "urcTimeout": 2000,
+      "category": "串口"
+    },
+    {
+      "command": "AT+CFUN?",
+      "description": "查询功能级别",
+      "expectedResponse": "+CFUN: 1",
+      "urcTimeout": 3000,
+      "category": "功能"
+    },
+    {
+      "command": "AT+CFUN=1",
+      "description": "设置全功能模式",
+      "expectedResponse": "OK",
+      "urcTimeout": 5000,
+      "category": "功能"
+    },
+    {
+      "command": "AT+CFUN=0",
+      "description": "设置最小功能模式",
+      "expectedResponse": "OK",
+      "urcTimeout": 5000,
+      "category": "功能"
+    },
+    {
+      "command": "AT+COPS?",
+      "description": "查询运营商选择",
+      "expectedResponse": "+COPS:",
+      "urcTimeout": 5000,
+      "category": "网络"
+    },
+    {
+      "command": "AT+COPS=0",
+      "description": "自动选择运营商",
+      "expectedResponse": "OK",
+      "urcTimeout": 30000,
+      "category": "网络"
+    },
+    {
+      "command": "AT+CNUM",
+      "description": "查询本机号码",
+      "expectedResponse": "+CNUM:",
+      "urcTimeout": 3000,
+      "category": "SIM卡"
+    },
+    {
+      "command": "AT+CIMI",
+      "description": "查询IMSI",
+      "expectedResponse": "",
+      "urcTimeout": 3000,
+      "category": "SIM卡"
+    },
+    {
+      "command": "AT+CCID",
+      "description": "查询ICCID",
+      "expectedResponse": "+CCID:",
+      "urcTimeout": 3000,
+      "category": "SIM卡"
+    },
+    {
+      "command": "AT+CGSN",
+      "description": "查询IMEI",
+      "expectedResponse": "",
+      "urcTimeout": 3000,
+      "category": "模块"
+    },
+    {
+      "command": "AT+GMI",
+      "description": "查询制造商",
+      "expectedResponse": "",
+      "urcTimeout": 3000,
+      "category": "模块"
+    },
+    {
+      "command": "AT+GMM",
+      "description": "查询模型",
+      "expectedResponse": "",
+      "urcTimeout": 3000,
+      "category": "模块"
+    },
+    {
+      "command": "AT+GMR",
+      "description": "查询版本",
+      "expectedResponse": "",
+      "urcTimeout": 3000,
+      "category": "模块"
+    }
+  ],
+  "urcPatterns": [
+    {
+      "pattern": "+CREG:",
+      "description": "网络注册状态变化",
+      "category": "网络"
+    },
+    {
+      "pattern": "+CGREG:",
+      "description": "GPRS网络注册状态变化",
+      "category": "网络"
+    },
+    {
+      "pattern": "+CEREG:",
+      "description": "EPS网络注册状态变化",
+      "category": "网络"
+    },
+    {
+      "pattern": "+CMTI:",
+      "description": "新短信到达指示",
+      "category": "短信"
+    },
+    {
+      "pattern": "+CMT:",
+      "description": "新短信直接显示",
+      "category": "短信"
+    },
+    {
+      "pattern": "+CDSI:",
+      "description": "新状态报告到达",
+      "category": "短信"
+    },
+    {
+      "pattern": "+CDS:",
+      "description": "状态报告直接显示",
+      "category": "短信"
+    },
+    {
+      "pattern": "+CGEV:",
+      "description": "PDP上下文事件",
+      "category": "数据"
+    },
+    {
+      "pattern": "RING",
+      "description": "来电指示",
+      "category": "通话"
+    },
+    {
+      "pattern": "+CRING",
+      "description": "来电指示（扩展）",
+      "category": "通话"
+    },
+    {
+      "pattern": "+CLIP:",
+      "description": "来电显示",
+      "category": "通话"
+    },
+    {
+      "pattern": "NO CARRIER",
+      "description": "无载波/连接断开",
+      "category": "连接"
+    },
+    {
+      "pattern": "BUSY",
+      "description": "忙音",
+      "category": "通话"
+    },
+    {
+      "pattern": "NO ANSWER",
+      "description": "无应答",
+      "category": "通话"
+    },
+    {
+      "pattern": "CONNECT",
+      "description": "连接建立",
+      "category": "连接"
+    }
+  ]
+}

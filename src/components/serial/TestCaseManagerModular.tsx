@@ -64,7 +64,8 @@ import {
   getCurrentTestCase,
   getTopLevelParent,
   updateCommandSelection,
-  toggleCaseExpand
+  toggleCaseExpand,
+  canAddSubCase
 } from './utils/testCaseHelpers';
 
 // Workspace
@@ -374,6 +375,16 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   };
 
   const handleAddSubCase = (caseId: string) => {
+    // 检查是否可以添加子用例（限制最大层级深度）
+    if (!canAddSubCase(caseId, state.testCases)) {
+      globalToast({
+        title: '无法添加子用例',
+        description: '已达到最大层级深度限制（3级）',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     const newSubCase = createNewTestCase({
       name: '新建子用例'
     });

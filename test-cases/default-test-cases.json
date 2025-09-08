@@ -1,0 +1,188 @@
+{
+  "version": "1.0",
+  "createdAt": "2025-01-07T10:00:00.000Z",
+  "testCases": [
+    {
+      "id": "case_1001",
+      "uniqueId": "1001",
+      "name": "基础连接测试",
+      "description": "测试模块的基本连接和响应功能",
+      "isExpanded": true,
+      "isRunning": false,
+      "currentCommand": -1,
+      "selected": false,
+      "status": "pending",
+      "failureStrategy": "stop",
+      "onWarningFailure": "continue",
+      "onErrorFailure": "stop",
+      "runCount": 1,
+      "runMode": "continuous",
+      "commands": [
+        {
+          "id": "cmd_1001",
+          "type": "execution",
+          "command": "AT",
+          "expectedResponse": "OK",
+          "validationMethod": "contains",
+          "validationPattern": "OK",
+          "waitTime": 2000,
+          "stopOnFailure": true,
+          "lineEnding": "crlf",
+          "dataFormat": "utf8",
+          "failureSeverity": "error",
+          "maxAttempts": 1,
+          "retryDelay": 1000,
+          "selected": false,
+          "status": "pending"
+        },
+        {
+          "id": "cmd_1002",
+          "type": "execution",
+          "command": "ATI",
+          "expectedResponse": "OK",
+          "validationMethod": "contains",
+          "validationPattern": "OK",
+          "waitTime": 3000,
+          "stopOnFailure": true,
+          "lineEnding": "crlf",
+          "dataFormat": "utf8",
+          "failureSeverity": "error",
+          "maxAttempts": 1,
+          "retryDelay": 1000,
+          "selected": false,
+          "status": "pending"
+        }
+      ],
+      "subCases": [
+        {
+          "id": "case_1002",
+          "name": "网络注册测试",
+          "description": "测试模块的网络注册功能",
+          "isExpanded": false,
+          "isRunning": false,
+          "currentCommand": -1,
+          "selected": false,
+          "status": "pending",
+          "failureStrategy": "stop",
+          "onWarningFailure": "continue",
+          "onErrorFailure": "stop",
+          "runCount": 1,
+          "runMode": "continuous",
+          "commands": [
+            {
+              "id": "cmd_1003",
+              "type": "execution",
+              "command": "AT+CREG?",
+              "expectedResponse": "+CREG: 0,1",
+              "validationMethod": "contains",
+              "validationPattern": "+CREG: 0,1",
+              "waitTime": 5000,
+              "stopOnFailure": true,
+              "lineEnding": "crlf",
+              "dataFormat": "utf8",
+              "failureSeverity": "error",
+              "maxAttempts": 3,
+              "retryDelay": 2000,
+              "selected": false,
+              "status": "pending"
+            },
+            {
+              "id": "cmd_1004",
+              "type": "execution",
+              "command": "AT+CGREG?",
+              "expectedResponse": "+CGREG: 0,1",
+              "validationMethod": "contains",
+              "validationPattern": "+CGREG: 0,1",
+              "waitTime": 5000,
+              "stopOnFailure": true,
+              "lineEnding": "crlf",
+              "dataFormat": "utf8",
+              "failureSeverity": "error",
+              "maxAttempts": 3,
+              "retryDelay": 2000,
+              "selected": false,
+              "status": "pending"
+            }
+          ],
+          "subCases": [
+            {
+              "id": "case_1003",
+              "name": "信号质量测试",
+              "description": "测试网络信号质量",
+              "isExpanded": false,
+              "isRunning": false,
+              "currentCommand": -1,
+              "selected": false,
+              "status": "pending",
+              "failureStrategy": "stop",
+              "onWarningFailure": "continue",
+              "onErrorFailure": "stop",
+              "runCount": 1,
+              "runMode": "continuous",
+              "commands": [
+                {
+                  "id": "cmd_1005",
+                  "type": "execution",
+                  "command": "AT+CSQ",
+                  "expectedResponse": "+CSQ: ",
+                  "validationMethod": "contains",
+                  "validationPattern": "+CSQ:",
+                  "waitTime": 3000,
+                  "stopOnFailure": true,
+                  "lineEnding": "crlf",
+                  "dataFormat": "utf8",
+                  "failureSeverity": "error",
+                  "maxAttempts": 1,
+                  "retryDelay": 1000,
+                  "selected": false,
+                  "status": "pending"
+                }
+              ],
+              "subCases": [],
+              "childrenOrder": []
+            }
+          ],
+          "childrenOrder": []
+        }
+      ],
+      "childrenOrder": []
+    },
+    {
+      "id": "case_1004",
+      "uniqueId": "1002",
+      "name": "数据传输测试",
+      "description": "测试模块的数据传输功能",
+      "isExpanded": false,
+      "isRunning": false,
+      "currentCommand": -1,
+      "selected": false,
+      "status": "pending",
+      "failureStrategy": "stop",
+      "onWarningFailure": "continue",
+      "onErrorFailure": "stop",
+      "runCount": 1,
+      "runMode": "continuous",
+      "commands": [
+        {
+          "id": "cmd_1006",
+          "type": "execution",
+          "command": "AT+IPR?",
+          "expectedResponse": "OK",
+          "validationMethod": "contains",
+          "validationPattern": "OK",
+          "waitTime": 2000,
+          "stopOnFailure": true,
+          "lineEnding": "crlf",
+          "dataFormat": "utf8",
+          "failureSeverity": "error",
+          "maxAttempts": 1,
+          "retryDelay": 1000,
+          "selected": false,
+          "status": "pending"
+        }
+      ],
+      "subCases": [],
+      "childrenOrder": []
+    }
+  ]
+}

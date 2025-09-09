@@ -35,7 +35,7 @@ serialport = "4.6"
 bytes = "1"
 uuid = { version = "1", features = ["v4"] }
 # Tauri串口插件 - 关键依赖
-tauri-plugin-serial = "2"
+tauri-plugin-serialplugin = "2.0.1"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

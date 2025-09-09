@@ -152,8 +152,8 @@ fn main() {
     if enable_serial {
         log::info!("Adding serial plugin...");
         
-        // 使用新的tauri-plugin-serial，支持所有平台
-        match tauri_plugin_serial::init() {
+        // 使用tauri-plugin-serialplugin，支持所有平台
+        match tauri_plugin_serialplugin::init() {
             plugin => {
                 log::info!("Serial plugin initialized successfully");
                 builder = builder.plugin(plugin);

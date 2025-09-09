@@ -1,6 +1,7 @@
 import { SerialTransport, SerialPortInfo, SerialConfig, SerialConnection } from './transport';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { SerialPort } from 'tauri-plugin-serialplugin';
 
 interface TauriPortInfo {
   port_name: string;
@@ -10,7 +11,7 @@ interface TauriPortInfo {
 }
 
 export class TauriSerialTransport extends SerialTransport {
-  private connections = new Map<string, string>(); // connection id -> port name
+  private connections = new Map<string, SerialPort>(); // connection id -> SerialPort instance
   private listeners = new Map<string, () => void>(); // connection id -> unlisten function
 
   isSupported(): boolean {
@@ -28,19 +29,20 @@ export class TauriSerialTransport extends SerialTransport {
     }
 
     try {
-      const ports: TauriPortInfo[] = await invoke('plugin:serialplugin|available_ports');
+      const ports = await SerialPort.available_ports();
       
-      return ports.map((port, index) => {
+      return Object.entries(ports).map(([path, info], index) => {
         let deviceName = 'Serial Device';
         
-        if (port.usb_vid && port.usb_pid) {
-          deviceName = this.getDeviceName(port.usb_vid, port.usb_pid);
+        // 根据USB VID/PID确定设备名称
+        if (info.usb_vid && info.usb_pid) {
+          deviceName = this.getDeviceName(info.usb_vid, info.usb_pid);
         }
         
         return {
           id: `tauri-${index}`,
-          name: `${port.port_name} (${deviceName})`,
-          path: port.port_name
+          name: `${path} (${deviceName})`,
+          path: path
         };
       });
     } catch (error) {
@@ -55,7 +57,8 @@ export class TauriSerialTransport extends SerialTransport {
     }
 
     try {
-      await invoke('plugin:serialplugin|open', {
+      // 创建新的串口实例
+      const serialPort = new SerialPort({
         path: port.path,
         baudRate: config.baudRate,
         dataBits: config.dataBits,
@@ -65,8 +68,11 @@ export class TauriSerialTransport extends SerialTransport {
         timeout: 1000
       });
 
+      // 打开串口
+      await serialPort.open();
+
       const connectionId = `${port.id}-${Date.now()}`;
-      this.connections.set(connectionId, port.path!);
+      this.connections.set(connectionId, serialPort);
 
       const connection: SerialConnection = {
         id: connectionId,
@@ -83,15 +89,15 @@ export class TauriSerialTransport extends SerialTransport {
   }
 
   async disconnect(connection: SerialConnection): Promise<void> {
-    const portPath = this.connections.get(connection.id);
-    if (!portPath) return;
+    const serialPort = this.connections.get(connection.id);
+    if (!serialPort) return;
 
     try {
       // Stop reading first
       await this.stopReading(connection);
       
       // Close the port
-      await invoke('plugin:serialplugin|close', { path: portPath });
+      await serialPort.close();
       
       this.connections.delete(connection.id);
     } catch (error) {
@@ -102,24 +108,21 @@ export class TauriSerialTransport extends SerialTransport {
   }
 
   async write(connection: SerialConnection, data: Uint8Array): Promise<void> {
-    const portPath = this.connections.get(connection.id);
-    if (!portPath) {
+    const serialPort = this.connections.get(connection.id);
+    if (!serialPort) {
       throw new Error('Port not connected');
     }
 
     try {
-      await invoke('plugin:serialplugin|write', {
-        path: portPath,
-        data: Array.from(data)
-      });
+      await serialPort.write(data);
     } catch (error) {
       throw new Error(`Failed to write to port: ${error}`);
     }
   }
 
   async startReading(connection: SerialConnection, onData: (data: Uint8Array) => void): Promise<void> {
-    const portPath = this.connections.get(connection.id);
-    if (!portPath) {
+    const serialPort = this.connections.get(connection.id);
+    if (!serialPort) {
       throw new Error('Port not connected');
     }
 
@@ -127,12 +130,8 @@ export class TauriSerialTransport extends SerialTransport {
     await this.stopReading(connection);
 
     try {
-      // Start reading from the port
-      await invoke('plugin:serialplugin|start_reading', { path: portPath });
-
-      // Listen for data events
-      const unlisten = await listen(`serial_data_${portPath.replace(/[^a-zA-Z0-9]/g, '_')}`, (event: any) => {
-        const data = new Uint8Array(event.payload);
+      // Listen for data events using the new API
+      const unlisten = await serialPort.listen((data) => {
         onData(data);
       });
 
@@ -143,20 +142,11 @@ export class TauriSerialTransport extends SerialTransport {
   }
 
   async stopReading(connection: SerialConnection): Promise<void> {
-    const portPath = this.connections.get(connection.id);
     const unlisten = this.listeners.get(connection.id);
 
     if (unlisten) {
       unlisten();
       this.listeners.delete(connection.id);
-    }
-
-    if (portPath) {
-      try {
-        await invoke('plugin:serialplugin|stop_reading', { path: portPath });
-      } catch (error) {
-        console.log('Stop reading error (expected):', error);
-      }
     }
   }
 

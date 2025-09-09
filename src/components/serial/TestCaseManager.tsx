@@ -41,6 +41,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { globalToast } from "@/hooks/useGlobalMessages";
 import { useTranslation } from "react-i18next";
+import { useSettings } from "@/contexts/SettingsContext";
 import { TestCaseHeader } from './TestCaseHeader';
 import { TestCaseActions } from './TestCaseActions';
 import { TestCaseSwitcher } from './TestCaseSwitcher';
@@ -82,6 +83,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 }) => {
   const { toast } = useToast();
   const { t } = useTranslation();
+  const { settings, updateSetting } = useSettings();
   const contextMenuRef = useRef<HTMLDivElement>(null);
   
   // Track running test cases to prevent race conditions
@@ -118,7 +120,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     targetPath: undefined
   });
   const [nextUniqueId, setNextUniqueId] = useState(1001);
-  const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
+  const [currentWorkspace, setCurrentWorkspace] = useState<string | null>(null);
   
   // Drag and drop state for unified children (commands and subcases)
   const [dragInfo, setDragInfo] = useState<{
@@ -189,7 +191,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     const initWorkspace = async () => {
       try {
         const workspace = await initializeDefaultWorkspace();
-        setCurrentWorkspace(workspace);
+        setCurrentWorkspace(workspace ?? null);
         const cases = await loadCases();
         // Ensure cases is always an array
         setTestCases(Array.isArray(cases) ? cases : []);
@@ -222,7 +224,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const handleWorkspaceChange = async () => {
     try {
       const workspace = getCurrentWorkspace();
-      setCurrentWorkspace(workspace);
+      setCurrentWorkspace(workspace ?? null);
       const cases = await loadCases();
       // Ensure cases is always an array
       setTestCases(Array.isArray(cases) ? cases : []);
@@ -411,7 +413,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 // 更新URC状态
                 const updatedCommands = currentTestCase.commands.map((cmd, idx) => {
                   if (idx === commandIndex) {
-                    let newCmd = { ...cmd, status: 'success' as const };
+                    const newCmd = { ...cmd, status: 'success' as const };
                     
                     // 处理once模式：匹配后失活
                     if (cmd.urcListenMode === 'once') {
@@ -2446,8 +2448,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {/* 参数显示面板 */}
-                  {Object.keys(storedParameters).length > 0 && (
+                  {/* 参数显示面板 - 根据设置显示 */}
+                  {settings.testCaseSettings.showVariablePanel && Object.keys(storedParameters).length > 0 && (
                     <VariableDisplay
                       storedParameters={storedParameters}
                       onClearParameter={(key) => {

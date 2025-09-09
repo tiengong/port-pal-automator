@@ -45,6 +45,13 @@ export interface AppSettings {
   
   // 语言设置
   language: 'zh-CN' | 'en-US';
+  
+  // 测试用例显示设置
+  testCaseSettings: {
+    showVariablePanel: boolean;
+    autoExpandResults: boolean;
+    showCommandDetails: boolean;
+  };
 }
 
 export const defaultSettings: AppSettings = {
@@ -80,7 +87,14 @@ export const defaultSettings: AppSettings = {
     sendData: 'Enter'
   },
   
-  language: 'zh-CN'
+  language: 'zh-CN',
+  
+  // 测试用例显示设置
+  testCaseSettings: {
+    showVariablePanel: true,
+    autoExpandResults: false,
+    showCommandDetails: true
+  }
 };
 
 interface SettingsContextType {

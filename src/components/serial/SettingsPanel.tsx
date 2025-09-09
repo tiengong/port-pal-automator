@@ -17,7 +17,10 @@ import {
   RotateCcw,
   Save,
   Trash2,
-  FolderOpen
+  FolderOpen,
+  Hash,
+  ChevronDown,
+  FileCode
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -242,11 +245,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
       
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">{t('settings.tabs.general')}</TabsTrigger>
             <TabsTrigger value="serial">{t('settings.tabs.serial')}</TabsTrigger>
             <TabsTrigger value="display">{t('settings.tabs.display')}</TabsTrigger>
             <TabsTrigger value="terminal">{t('settings.tabs.terminal')}</TabsTrigger>
+            <TabsTrigger value="testcase">测试用例</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-4 mt-4">
@@ -258,7 +262,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               </Label>
               <Select 
                 value={settings.theme} 
-                onValueChange={(value: any) => updateSetting('theme', value)}
+                onValueChange={(value) => updateSetting('theme', value as 'dark' | 'light' | 'auto')}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -276,7 +280,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               <Label>字体大小</Label>
               <Select 
                 value={settings.fontSize} 
-                onValueChange={(value: any) => updateSetting('fontSize', value)}
+                onValueChange={(value) => updateSetting('fontSize', value as 'small' | 'medium' | 'large')}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -294,7 +298,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               <Label>语言</Label>
               <Select 
                 value={settings.language} 
-                onValueChange={(value: any) => updateSetting('language', value)}
+                onValueChange={(value) => updateSetting('language', value as 'zh-CN' | 'en-US')}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -583,7 +587,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               <Label>{t('settings.terminal.lineHeight')}</Label>
               <Select 
                 value={settings.terminalLineHeight} 
-                onValueChange={(value: any) => updateSetting('terminalLineHeight', value)}
+                onValueChange={(value) => updateSetting('terminalLineHeight', value as 'compact' | 'normal' | 'loose')}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -616,7 +620,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               <Label>{t('settings.terminal.colorMode')}</Label>
               <Select 
                 value={settings.terminalColorMode} 
-                onValueChange={(value: any) => updateSetting('terminalColorMode', value)}
+                onValueChange={(value) => updateSetting('terminalColorMode', value as 'black' | 'byType')}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -628,6 +632,72 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               </Select>
               <div className="text-xs text-muted-foreground">
                 {t('settings.terminal.colorModeDesc')}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* 测试用例设置 */}
+          <TabsContent value="testcase" className="space-y-4 mt-4">
+            {/* 变量面板显示 */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Hash className="w-4 h-4" />
+                变量提取面板
+              </Label>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">显示变量提取面板</span>
+                <Switch
+                  checked={settings.testCaseSettings.showVariablePanel}
+                  onCheckedChange={(checked) => updateSetting('testCaseSettings', {
+                    ...settings.testCaseSettings,
+                    showVariablePanel: checked
+                  })}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                控制测试用例管理器中变量提取结果的显示面板
+              </div>
+            </div>
+
+            {/* 自动展开结果 */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <ChevronDown className="w-4 h-4" />
+                执行结果展开
+              </Label>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">自动展开执行结果</span>
+                <Switch
+                  checked={settings.testCaseSettings.autoExpandResults}
+                  onCheckedChange={(checked) => updateSetting('testCaseSettings', {
+                    ...settings.testCaseSettings,
+                    autoExpandResults: checked
+                  })}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                测试用例执行完成后自动展开详细结果
+              </div>
+            </div>
+
+            {/* 显示命令详情 */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <FileCode className="w-4 h-4" />
+                命令详情显示
+              </Label>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">显示命令详细信息</span>
+                <Switch
+                  checked={settings.testCaseSettings.showCommandDetails}
+                  onCheckedChange={(checked) => updateSetting('testCaseSettings', {
+                    ...settings.testCaseSettings,
+                    showCommandDetails: checked
+                  })}
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                在命令列表中显示完整的命令详情
               </div>
             </div>
           </TabsContent>

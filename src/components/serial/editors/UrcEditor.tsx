@@ -31,6 +31,7 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
   const [parameterMapText, setParameterMapText] = useState('');
   const [parameterMapError, setParameterMapError] = useState<string | null>(null);
   const [showCommandOptions, setShowCommandOptions] = useState(false);
+  const [conversionMessage, setConversionMessage] = useState<string | null>(null);
   
   const updateCommand = (field: keyof TestCommand, value: any) => {
     onUpdate({ [field]: value });
@@ -71,6 +72,54 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
     } catch (err) {
       // Keep current text if parsing fails
     }
+  };
+
+  // 转换参数映射函数 - 在解析类型切换时智能转换参数映射
+  const convertParameterMap = (oldMap: any, oldType: string, newType: string): any => {
+    if (!oldMap || Object.keys(oldMap).length === 0) {
+      return {};
+    }
+
+    // 如果类型相同，保留原映射
+    if (oldType === newType) {
+      return oldMap;
+    }
+
+    // 从正则表达式切换到分割模式
+    if (oldType === 'regex' && newType === 'split') {
+      const newMap: any = {};
+      Object.entries(oldMap).forEach(([key, value]) => {
+        // 尝试将正则组的数字键转换为分割索引
+        const numKey = parseInt(key);
+        if (!isNaN(numKey)) {
+          // 正则组1对应分割索引0，组2对应索引1，以此类推
+          newMap[(numKey - 1).toString()] = value;
+        } else {
+          // 对于命名捕获组，保持键名但给出提示
+          newMap[key] = value;
+        }
+      });
+      return newMap;
+    }
+
+    // 从分割模式切换到正则表达式模式
+    if (oldType === 'split' && newType === 'regex') {
+      const newMap: any = {};
+      Object.entries(oldMap).forEach(([key, value]) => {
+        // 尝试将分割索引转换为正则组
+        const numKey = parseInt(key);
+        if (!isNaN(numKey)) {
+          // 分割索引0对应正则组1，索引1对应组2，以此类推
+          newMap[(numKey + 1).toString()] = value;
+        } else {
+          // 保持非数字键，可能是用户自定义的
+          newMap[key] = value;
+        }
+      });
+      return newMap;
+    }
+
+    return oldMap;
   };
 
   // URC监听示例
@@ -323,10 +372,16 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
                 const newConfig = { 
                   parseType: 'regex' as const,
                   parsePattern: '',
-                  parameterMap: {},
+                  parameterMap: {}, // 禁用状态时清空映射，启用时保留已有映射
                   ...command.dataParseConfig,
                   enabled: checked  // 确保 enabled 状态不被覆盖
                 };
+                
+                // 如果启用且已有参数映射，则保留原有映射
+                if (checked && command.dataParseConfig?.parameterMap) {
+                  newConfig.parameterMap = command.dataParseConfig.parameterMap;
+                }
+                
                 updateCommand('dataParseConfig', newConfig);
               }}
             />
@@ -335,18 +390,41 @@ export const UrcEditor: React.FC<UrcEditorProps> = ({
           
           {command.dataParseConfig?.enabled && (
             <>
+              {/* 转换消息提示 */}
+              {conversionMessage && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-2 mb-3">
+                  <p className="text-xs text-blue-800">{conversionMessage}</p>
+                </div>
+              )}
               <div>
                 <Label htmlFor="parseType">解析方式</Label>
                 <Select
                   value={command.dataParseConfig?.parseType || 'regex'}
                   onValueChange={(value) => {
+                    const oldType = command.dataParseConfig?.parseType || 'regex';
+                    const oldMap = command.dataParseConfig?.parameterMap || {};
+                    const convertedMap = convertParameterMap(oldMap, oldType, value);
+                    
+                    let message = null;
+                    if (oldType !== value && Object.keys(oldMap).length > 0) {
+                      const convertedKeys = Object.keys(convertedMap).length;
+                      const originalKeys = Object.keys(oldMap).length;
+                      message = `参数映射已转换: ${originalKeys}个变量已适配到${value}模式${convertedKeys !== originalKeys ? `(${convertedKeys}个生效)` : ''}`;
+                    }
+                    
                     const newConfig = { 
                       ...command.dataParseConfig, 
                       parseType: value as any,
                       parsePattern: '',
-                      parameterMap: {}
+                      parameterMap: convertedMap
                     };
                     updateCommand('dataParseConfig', newConfig);
+                    setConversionMessage(message);
+                    
+                    // 3秒后清除转换消息
+                    if (message) {
+                      setTimeout(() => setConversionMessage(null), 3000);
+                    }
                   }}
                 >
                   <SelectTrigger>

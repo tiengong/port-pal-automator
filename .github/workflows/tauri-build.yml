@@ -43,6 +43,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+          
+      # 步骤4.1：配置Rust缓存
+      - name: Configure Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
 
       # 步骤4.5：安装Windows构建依赖（NSIS、WiX、ImageMagick）
       - name: Install Windows build dependencies
@@ -107,7 +113,7 @@ jobs:
           npx --yes @tauri-apps/cli@latest info
           
           echo "=== NPM Tauri Package Versions ==="
-          npm ls @tauri-apps/api @tauri-apps/plugin-fs @tauri-apps/plugin-dialog
+          npm ls @tauri-apps/api @tauri-apps/plugin-fs @tauri-apps/plugin-dialog tauri-plugin-serialplugin
           
           echo "=== Rust Tauri Crate Versions ==="
           Push-Location src-tauri
@@ -123,12 +129,34 @@ jobs:
             echo "❌ Config file missing"; exit 1 
           }
           
+          echo "=== Verify Cargo.toml Dependencies ==="
+          Push-Location src-tauri
+          if (Test-Path "Cargo.toml") {
+            echo "✅ Cargo.toml exists"
+            echo "📋 Checking for tauri-plugin-serialplugin..."
+            if (Select-String -Path "Cargo.toml" -Pattern "tauri-plugin-serialplugin" -Quiet) {
+              echo "✅ tauri-plugin-serialplugin found in Cargo.toml"
+            } else {
+              echo "❌ tauri-plugin-serialplugin not found in Cargo.toml"; exit 1
+            }
+          } else {
+            echo "❌ Cargo.toml missing"; exit 1
+          }
+          Pop-Location
+          
           if ($LASTEXITCODE -ne 0) { exit 1 }
         shell: pwsh
 
       # 步骤7：构建Tauri应用 Release版本（MSI安装包）
       - name: Build Tauri app (Release MSI)
-        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --bundles msi
+        run: |
+          echo "=== Building Tauri app (Release MSI) ==="
+          npx --yes @tauri-apps/cli@latest build --bundles msi
+          if ($LASTEXITCODE -ne 0) {
+            echo "❌ MSI build failed with exit code $LASTEXITCODE"
+            echo "=== Build logs will be collected in artifacts ==="
+            exit 1
+          }
         env:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot"
@@ -138,7 +166,9 @@ jobs:
 
       # 步骤8：构建Tauri应用 Release版本（绿色便携版）
       - name: Build Tauri app (Release Portable)
-        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --bundles nsis
+        run: |
+          echo "=== Building Tauri app (Release Portable) ==="
+          npx --yes @tauri-apps/cli@latest build --bundles nsis
         env:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot Portable"
@@ -176,7 +206,9 @@ jobs:
 
       # 步骤9：构建Tauri应用 Debug版本（带控制台）
       - name: Build Tauri app (Debug with console)
-        run: npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --features console
+        run: |
+          echo "=== Building Tauri app (Debug with console) ==="
+          npx --yes @tauri-apps/cli@latest build --features console
         env:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot Debug"
@@ -236,4 +268,22 @@ jobs:
             ./src-tauri/target/release/bundle/**/*Debug*
             !./src-tauri/target/release/bundle/**/temp/
           retention-days: 30
+          compression-level: 0
+
+      # 步骤14：收集构建失败时的日志（如果构建失败）
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ./src-tauri/target/release/build/*/out
+            ./src-tauri/target/release/build/*/stderr
+            ./src-tauri/target/release/build/*/stdout
+            ./src-tauri/target/release/build/*/build_script_build-*.log
+            ./src-tauri/target/wix/*.log
+            ./src-tauri/target/nsis/*.log
+            ./npm-debug.log
+            ./src-tauri/Cargo.lock
+          retention-days: 7
           compression-level: 0

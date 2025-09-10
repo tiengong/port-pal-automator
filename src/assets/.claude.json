@@ -1,0 +1,547 @@
+{
+  "numStartups": 14,
+  "installMethod": "unknown",
+  "autoUpdates": true,
+  "tipsHistory": {
+    "ide-hotkey": 2,
+    "new-user-warmup": 7,
+    "terminal-setup": 2,
+    "memory-command": 7,
+    "theme-command": 7,
+    "status-line": 7,
+    "prompt-queue": 7,
+    "enter-to-steer-in-relatime": 7,
+    "todo-list": 7,
+    "# for memory": 7,
+    "install-github-app": 7,
+    "drag-and-drop-images": 7,
+    "double-esc": 7,
+    "continue": 7,
+    "shift-tab": 7,
+    "image-paste": 7,
+    "custom-agents": 7,
+    "permissions": 11,
+    "custom-commands": 11
+  },
+  "memoryUsageCount": 3,
+  "promptQueueUseCount": 5,
+  "showExpandedTodos": true,
+  "cachedStatsigGates": {
+    "tengu_disable_bypass_permissions_mode": false
+  },
+  "firstStartTime": "2025-09-05T19:11:15.335Z",
+  "userID": "bc5b5353937537838fd11baf356ac04a24da261e5dfacc186cd044bfac7b4439",
+  "projects": {
+    "C:\\Users\\YUAN": {
+      "allowedTools": [],
+      "history": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    },
+    "F:\\git\\port-pal-automator": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "TestCaseManager优化TestCaseManager文件，进行拆分，减少单文件代码行数。\n要求不得修改对ui有任何改动，布局不得改动。只能进行软件重复模块优化，功能模块拆分多文件等纯代码结构性优化。",
+          "pastedContents": {}
+        },
+        {
+          "display": "请查看当前的修改，编写合适的提交信息并提交代码。提交信息要遵循项目的提交规范。",
+          "pastedContents": {}
+        },
+        {
+          "display": "UI中关闭变量提取显示区栏。并优化变量提取逻辑，目前当连续设置两个urc提取变量，后面设置的无法进行参数提取",
+          "pastedContents": {}
+        },
+        {
+          "display": "请查看当前的修改，编写合适的提交信息并提交代码。提交信息要遵循项目的提交规范。",
+          "pastedContents": {}
+        },
+        {
+          "display": "继续未完成工作（tauri-build.yml构建不成功问题给i）",
+          "pastedContents": {}
+        },
+        {
+          "display": "/clear ",
+          "pastedContents": {}
+        },
+        {
+          "display": "clear",
+          "pastedContents": {}
+        },
+        {
+          "display": " 修复图标格式问题，完成完整构建",
+          "pastedContents": {}
+        },
+        {
+          "display": "clear",
+          "pastedContents": {}
+        },
+        {
+          "display": "继续",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +32 lines]，UI布局100%一致tauri-build.yml检查让他能完整运行",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "error[E0433]: failed to resolve: use of unresolved module or unlinked crate `tauri_plugin_window_state`\n   --> src\\main.rs:147:34\n    |\n147 |         builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());\n    |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `tauri_plugin_window_state`\n    |\nhelp: there is a crate or module with a similar name\n    |\n147 -         builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());\n147 +         builder = builder.plugin(tauri_plugin_single_instance::Builder::default().build());\n    |\nhelp: consider importing one of these structs\n    |\n5   + use std::thread::Builder;\n    |\n5   + use tauri::Builder;\n    |\n5   + use tauri::plugin::Builder;\n    |\n5   + use tauri_plugin_global_shortcut::Builder;\n    |\n      and 4 other candidates\nhelp: if you import `Builder`, refer to it directly\n    |\n147 -         builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());\n147 +         builder = builder.plugin(Builder::default().build());\n    |\n\nFor more information about this error, try `rustc --explain E0433`.\nerror: could not compile `serial-pilot` (bin \"serial-pilot\") due to 1 previous error\nfailed to build app: failed to build app\n       Error failed to build app: failed to build app\nError: Process completed with exit code 1."
+            }
+          }
+        },
+        {
+          "display": "[Pasted text #1 +40 lines]，UI布局100%一致",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "Run npx --yes @tauri-apps/cli@latest build --config src-tauri/tauri.conf.json --bundles msi\n        Info Looking up installed tauri packages to check mismatched versions...\n       Error Failed to parse version `2` for crate `tauri`\n       Error Failed to parse version `2` for crate `tauri-plugin-http`\n       Error Failed to parse version `2` for crate `tauri-plugin-single-instance`\n       Error Failed to parse version `2` for crate `tauri-plugin-fs`\n       Error Failed to parse version `2` for crate `tauri-plugin-process`\n       Error Failed to parse version `2` for crate `tauri-plugin-positioner`\n       Error Failed to parse version `2` for crate `tauri-plugin-notification`\n       Error Failed to parse version `2` for crate `tauri-plugin-global-shortcut`\n       Error Failed to parse version `2` for crate `tauri-plugin-log`\n       Error Failed to parse version `2` for crate `tauri-plugin-shell`\n       Error Failed to parse version `2` for crate `tauri-plugin-window-state`\n       Error Failed to parse version `2` for crate `tauri-plugin-os`\n       Error Failed to parse version `2` for crate `tauri-plugin-dialog`\n       Error Failed to parse version `2` for crate `tauri-plugin-websocket`\n     Running beforeBuildCommand `npm run build`\n\n> vite_react_shadcn_ts@0.0.0 build\n> vite build\n\nvite v5.4.19 building for production...\ntransforming...\n✓ 1796 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                         1.46 kB │ gzip:   0.69 kB\ndist/assets/index-CZbfU76d.css         69.57 kB │ gzip:  12.45 kB\ndist/assets/utils-Bj7X0qp-.js           1.12 kB │ gzip:   0.57 kB\ndist/assets/ui-vendor-B1hEB8vD.js      97.15 kB │ gzip:  32.49 kB\ndist/assets/react-vendor-MabzBwru.js  141.10 kB │ gzip:  45.35 kB\ndist/assets/index-CUWE7Wz5.js         454.12 kB │ gzip: 130.18 kB\n✓ built in 5.98s\nwarning: `panic` setting is ignored for `test` profile\n    Updating crates.io index\nerror: no matching package named `tauri-plugin-serial` found\nlocation searched: crates.io index\nrequired by package `serial-pilot v0.1.0 (D:\\a\\port-pal-automator\\port-pal-automator\\src-tauri)`\nfailed to build app: failed to build app\n       Error failed to build app: failed to build app\nError: Process completed with exit code 1."
+            }
+          }
+        },
+        {
+          "display": "\n1.增加relase版本，该版本关闭启动应用后的日志输出，优化启动速度，优化运行速度\n2.检查为什么应用打包后仍然使用的web serial api\n3.检查为什么urc解析成功，但命令第一次执行使用参数失败，第二次执行能成功获取餐宿，比如urc解析到参数temp == 1，at+test={temp}，第一次执行命令输出at+test={temp}第二次才输出at+test=1\n检查创建三级子用例，显示异常具体显示效果。\n添加前\nat\nurc\n子用例\n添加后\nat\nutc\n子用例（错误显示）\n子用例\n4.检查为什么右击at和urc无菜单",
+          "pastedContents": {}
+        },
+        {
+          "display": "请查看当前的修改，编写合适的提交信息并提交代码。提交信息要遵循项目的提交规范。",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +19 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "\n检查多层级子用例（<=3级）的显示与删除逻辑。例如：\n1. 已有三级用例在增加是否报错\n2. 三层级效果是否符合预期\n3. 新建每个层级是否能正常显示，比如不会重复显示，\n请分析代码工程，按照下述要求进行优化\n- 工程下新建一个文件夹，并在下面新建一个任意名称.json文件作为默认测试用例，打包后，这个文件将在默认工作区路径下，新建一个该文件，并且默认测试用例直接展示它，如果是web端类似实现。\n- 工程下新建一个任意名称.json文件作为AT列表库，打包后，将在程序安装路径下新建该文件，该文件作用是当用户新建命令、urc时，输入比如任意内容，会在该文件查找相似的命令，进行自动补全。\n-- 要求AT列表库文件，经量精简，包含最小配置（命令内容、命令说明、命令返回值、命令urc超时时间）。\n--要求新建命令、urc时输入内容，自动命令匹配算法效率最优、资源占用最优\n--要求当后续工程添加多个json文件，打包后也能同步在默认工作区路径下创建多个对应文件，默认打开时如果有多个用例，按照用例id排序，显示最新一个。\n-- 验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件100%一致”\n-- 所有更新及时同步到README.md\n请分析F:\\git\\port-pal-automator\\.github\\workflows\\tauri-build.yml，按照下述要求进行优化\n- 构建windows 64位打包软件，要求构建包含一个.msi安装文件，一个绿色解压后可执行运行的文件。\n- 验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件100%一致”\n- 所有更新及时同步到README.md\n\n以上所有修复，需要保证ui100%不要进行新增改动，除了显示异常的问题修复（比如新建第三级别子用例时，新建后出现两个子用例这种显示bug)\n请查看当前的修改，编写合适的提交信息并提交代码。提交信息要遵循项目的提交规范。"
+            }
+          }
+        },
+        {
+          "display": "clear",
+          "pastedContents": {}
+        },
+        {
+          "display": "执行策略",
+          "pastedContents": {}
+        },
+        {
+          "display": "\n从代码分析，urc功能是否符合常规交互逻辑与用例管理场景需求。暂时不要进行代码修改，具体如下：\n1. 场景 1：URC运行一次，指定数据内收到数据相应，判断失败成功进行对应操作\n2. 场景 2：URC设置运行多次，在执行命令A期间，URC校验成功，能否A命令执行完毕后，根据URC配置校验成功处理方式，进行转跳、转跳指定命令、运行命令A后的命令\n3. 场景 3：URC配置解析模式，能否正常解析数据成功，并且urc之后执行的命令能立马获取到该数据\n4. 场景 4：URC配置解析模式，解析数据失败，根据配置执行到之后命令，当命令需要使用解析数据时，且此时未设置解析失败的默认值，能否进入异常处理流程，而不是发送异常数据到串口。\n5. 场景 5：多个URC配置解析模式，解析数据后保存为同一个变量，该变量是否使用最后一次运行的URC。\n6. 场景 6：多个运行多次URC, 当收到数据时，解析是否阻塞最低，算法最优。",
+          "pastedContents": {}
+        },
+        {
+          "display": "请查看当前的修改，编写合适的提交信息并提交代码。提交信息要遵循项目的提交规范。",
+          "pastedContents": {}
+        },
+        {
+          "display": "执行",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +35 lines] 检查右键菜单在命令上无法显示的问题。分析代码找出原因",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools\nserialManager.ts:15 Initializing Web serial transport\nTestCaseManager.tsx:582 TestCaseManager rendered with modular layout Object\nTestCaseHeader.tsx:16 TestCaseHeader rendered Object\nTestCaseActions.tsx:60 TestCaseActions rendered Object\nTestCaseSwitcher.tsx:73 TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE Object\nserialManager.ts:15 Initializing Web serial transport\nreact-router-dom.js?v=2971f3b2:4393 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\nwarnOnce @ react-router-dom.js?v=2971f3b2:4393\nreact-router-dom.js?v=2971f3b2:4393 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.\nwarnOnce @ react-router-dom.js?v=2971f3b2:4393\nSettingsContext.tsx:167 Settings loaded and applied: Object\nTestCaseManager.tsx:582 TestCaseManager rendered with modular layout Object\nTestCaseHeader.tsx:16 TestCaseHeader rendered Object\nTestCaseActions.tsx:60 TestCaseActions rendered Object\nTestCaseSwitcher.tsx:73 TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE Object\nTestCaseManager.tsx:582 TestCaseManager rendered with modular layout {currentTestCase: {…}, testCases: Array(1)}\nTestCaseHeader.tsx:16 TestCaseHeader rendered {currentTestCase: {…}}\nTestCaseActions.tsx:60 TestCaseActions rendered {currentTestCase: {…}}\nTestCaseSwitcher.tsx:73 TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE {testCases: Array(1), currentTestCase: {…}, scripts: Array(0), currentScript: null}\nTestCaseManager.tsx:582 TestCaseManager rendered with modular layout {currentTestCase: {…}, testCases: Array(1)}\nTestCaseHeader.tsx:16 TestCaseHeader rendered {currentTestCase: {…}}\nTestCaseActions.tsx:60 TestCaseActions rendered {currentTestCase: {…}}\nTestCaseSwitcher.tsx:73 TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE {testCases: Array(1), currentTestCase: {…}, scripts: Array(0), currentScript: null}\nTestCaseManager.tsx:582 TestCaseManager rendered with modular layout {currentTestCase: {…}, testCases: Array(1)}\nTestCaseHeader.tsx:16 TestCaseHeader rendered {currentTestCase: {…}}\nTestCaseActions.tsx:60 TestCaseActions rendered {currentTestCase: {…}}\nTestCaseSwitcher.tsx:73 TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE {testCases: Array(1), currentTestCase: {…}, scripts: Array(0), currentScript: null}\nTestCaseManager.tsx:582 TestCaseManager rendered with modular layout {currentTestCase: {…}, testCases: Array(1)}\nTestCaseHeader.tsx:16 TestCaseHeader rendered {currentTestCase: {…}}\nTestCaseActions.tsx:60 TestCaseActions rendered {currentTestCase: {…}}\nTestCaseSwitcher.tsx:73 TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE {testCases: Array(1), currentTestCase: {…}, scripts: Array(0), currentScript: null}\nTestCaseManager.tsx:582 TestCaseManager rendered with modular layout {currentTestCase: {…}, testCases: Array(1)}\nTestCaseHeader.tsx:16 TestCaseHeader rendered {currentTestCase: {…}}\nTestCaseActions.tsx:60 TestCaseActions rendered {currentTestCase: {…}}\nTestCaseSwitcher.tsx:73 TestCaseSwitcher rendered - NEW MODULAR LAYOUT ACTIVE {testCases: Array(1), currentTestCase: {…}, scripts: Array(0), currentScript: null}"
+            }
+          }
+        },
+        {
+          "display": "请检查为什么选中空白区邮件有菜单显示，选中命令，右击无显示",
+          "pastedContents": {}
+        },
+        {
+          "display": "不小心清空了，请重新制作",
+          "pastedContents": {}
+        },
+        {
+          "display": "完善",
+          "pastedContents": {}
+        },
+        {
+          "display": "从代码分析，当前右击新建命令、urc、子用例等，功能是否符合常规交互逻辑与用例管理场景需求。暂时不要进行代码修改，具体如下：\n1. 场景 1：空白处右击→根用例末尾添加新步骤，新（命令 / URC / 子用例）是否在当前跟用例末尾插入\n2. 场景 2：任意步骤（命令 / URC / 子用例）上右击→当前步骤后插入新步骤，新（命令 / URC / 子用例）是否在当前（命令 / URC / 子用例）后插入\n3. 场景 3：子用例右击→子用例内添加步骤，且嵌套≤3 层（根→子→子），新（命令 / URC / 子用例）是否在子用例内插入\n4.场景 4:   在子用例的命令上右击-新建（命令 / URC / 子用例），新（命令 / URC / 子用例）是否插入在当前子用例的命令后",
+          "pastedContents": {}
+        },
+        {
+          "display": "继续",
+          "pastedContents": {}
+        },
+        {
+          "display": "\n刚才开发的下面这个功能，并没有达到预期效果，补充描述下述说的点击是指鼠标光标在相应步骤（命令、urc、子用例上）\n请分析测试展示区右击新建命令、urc、子用例等新建操作功能，按照下述要求进行优化\n- 没有点击（鼠标光标放置）任何步骤（命令、urc、子用例）情况下，新建操作将在根用例末尾添加\n-点击（鼠标光标放置）任何步骤（命令、urc、子用例）情况下，新建操作将在当前步骤（命令、urc、子用例）后插入相应步骤\n-点击（鼠标光标放置）子用例情况下，新建操作将在当前点击的子用例内添加相应步骤，最大运行用例嵌套三层（即跟用例->子用例->子用例）\n- 保持UI不变，功能不改变\n- UI 层约束：100%留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框\n  、弹窗、列表等）的样式\n- 验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件100%一致”\n- 所有更新及时同步到README.md",
+          "pastedContents": {}
+        },
+        {
+          "display": "YUAN@DESKTOP-KD8HK6U MINGW64 /f/git/port-pal-automator (main)\n$ git status\nOn branch main\nYour branch is ahead of 'origin/main' by 1 commit.\n  (use \"git push\" to publish your local commits)\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n        .claude/\n        src/components/serial/TestCaseManager.tsx.backup\n        src/components/serial/TestCaseManager.tsx.backup.original\n        src/components/serial/styles/\n这些文件未添加",
+          "pastedContents": {}
+        },
+        {
+          "display": "请查看当前的修改，编写合适的提交信息并提交代码。提交信息要遵循项目的提交规范。检查READM.md是否添加本次修改记录",
+          "pastedContents": {}
+        },
+        {
+          "display": "请拆解src\\components\\serial中的TestCaseManager.tsx文件 ，目标是：\n- 减少重复代码\n- 根据功能快拆分不同模块\n- 保持UI不变，功能不改变\n- UI 层约束：100%留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框\n  、弹窗、列表等）的样式\n- 验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件100%一致”\n- 所有更新及时同步到README.md\n",
+          "pastedContents": {}
+        },
+        {
+          "display": "/init ",
+          "pastedContents": {}
+        },
+        {
+          "display": "  [Pasted text #1 +56 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "Initializing Web serial transport\nchunk-R6S4VRB5.js?v=2971f3b2:16670 Uncaught TypeError: globalToast.subscribe is not a function\n    at TestCaseManager.tsx:176:37\n    at commitHookEffectListMount (chunk-R6S4VRB5.js?v=2971f3b2:16915:34)\n    at commitPassiveMountOnFiber (chunk-R6S4VRB5.js?v=2971f3b2:18156:19)\n    at commitPassiveMountEffects_complete (chunk-R6S4VRB5.js?v=2971f3b2:18129:17)\n    at commitPassiveMountEffects_begin (chunk-R6S4VRB5.js?v=2971f3b2:18119:15)\n    at commitPassiveMountEffects (chunk-R6S4VRB5.js?v=2971f3b2:18109:11)\n    at flushPassiveEffectsImpl (chunk-R6S4VRB5.js?v=2971f3b2:19490:11)\n    at flushPassiveEffects (chunk-R6S4VRB5.js?v=2971f3b2:19447:22)\n    at performSyncWorkOnRoot (chunk-R6S4VRB5.js?v=2971f3b2:18868:11)\n    at flushSyncCallbacks (chunk-R6S4VRB5.js?v=2971f3b2:9119:30)\nreact-router-dom.js?v=2971f3b2:4393 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.\nwarnOnce @ react-router-dom.js?v=2971f3b2:4393\nreact-router-dom.js?v=2971f3b2:4393 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.\nwarnOnce @ react-router-dom.js?v=2971f3b2:4393\nchunk-R6S4VRB5.js?v=2971f3b2:14032 The above error occurred in the <TestCaseManager> component:\n\n    at TestCaseManager (http://localhost:8083/src/components/serial/TestCaseManager.tsx:42:35)\n    at div\n    at div\n    at http://localhost:8083/node_modules/.vite/deps/chunk-SFJ3QBJK.js?v=2971f3b2:43:13\n    at Presence (http://localhost:8083/node_modules/.vite/deps/chunk-7WKBBYXU.js?v=2971f3b2:24:11)\n    at http://localhost:8083/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=2971f3b2:175:13\n    at _c4 (http://localhost:8083/src/components/ui/tabs.tsx:61:61)\n    at div\n    at http://localhost:8083/node_modules/.vite/deps/chunk-SFJ3QBJK.js?v=2971f3b2:43:13\n    at Provider (http://localhost:8083/node_modules/.vite/deps/chunk-RS7FYEF2.js?v=2971f3b2:48:15)\n    at http://localhost:8083/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=2971f3b2:52:7\n    at div\n    at div\n    at div\n    at Index (http://localhost:8083/src/pages/Index.tsx:40:19)\n    at RenderedRoute (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:4088:5)\n    at Routes (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:4558:5)\n    at Router (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:4501:15)\n    at BrowserRouter (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:5247:5)\n    at Provider (http://localhost:8083/node_modules/.vite/deps/chunk-RS7FYEF2.js?v=2971f3b2:48:15)\n    at TooltipProvider (http://localhost:8083/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=2971f3b2:62:5)\n    at QueryClientProvider (http://localhost:8083/node_modules/.vite/deps/@tanstack_react-query.js?v=2971f3b2:2934:3)\n    at SettingsProvider (http://localhost:8083/src/contexts/SettingsContext.tsx:54:36)\n    at App\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.\nlogCapturedError @ chunk-R6S4VRB5.js?v=2971f3b2:14032\nchunk-R6S4VRB5.js?v=2971f3b2:9129 Uncaught TypeError: globalToast.subscribe is not a function\n    at TestCaseManager.tsx:176:37\n    at commitHookEffectListMount (chunk-R6S4VRB5.js?v=2971f3b2:16915:34)\n    at commitPassiveMountOnFiber (chunk-R6S4VRB5.js?v=2971f3b2:18156:19)\n    at commitPassiveMountEffects_complete (chunk-R6S4VRB5.js?v=2971f3b2:18129:17)\n    at commitPassiveMountEffects_begin (chunk-R6S4VRB5.js?v=2971f3b2:18119:15)\n    at commitPassiveMountEffects (chunk-R6S4VRB5.js?v=2971f3b2:18109:11)\n    at flushPassiveEffectsImpl (chunk-R6S4VRB5.js?v=2971f3b2:19490:11)\n    at flushPassiveEffects (chunk-R6S4VRB5.js?v=2971f3b2:19447:22)\n    at performSyncWorkOnRoot (chunk-R6S4VRB5.js?v=2971f3b2:18868:11)\n    at flushSyncCallbacks (chunk-R6S4VRB5.js?v=2971f3b2:9119:30)"
+            }
+          }
+        },
+        {
+          "display": "[Pasted text #1 +66 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools\nserialManager.ts:15 Initializing Web serial transport\nTestCaseManager.tsx:468 Uncaught ReferenceError: setInlineEdit is not defined\n    at TestCaseManager (TestCaseManager.tsx:468:28)\n    at renderWithHooks (chunk-R6S4VRB5.js?v=2971f3b2:11548:26)\n    at mountIndeterminateComponent (chunk-R6S4VRB5.js?v=2971f3b2:14926:21)\n    at beginWork (chunk-R6S4VRB5.js?v=2971f3b2:15914:22)\n    at HTMLUnknownElement.callCallback2 (chunk-R6S4VRB5.js?v=2971f3b2:3674:22)\n    at Object.invokeGuardedCallbackDev (chunk-R6S4VRB5.js?v=2971f3b2:3699:24)\n    at invokeGuardedCallback (chunk-R6S4VRB5.js?v=2971f3b2:3733:39)\n    at beginWork$1 (chunk-R6S4VRB5.js?v=2971f3b2:19765:15)\n    at performUnitOfWork (chunk-R6S4VRB5.js?v=2971f3b2:19198:20)\n    at workLoopSync (chunk-R6S4VRB5.js?v=2971f3b2:19137:13)\n2serialManager.ts:15 Initializing Web serial transport\nTestCaseManager.tsx:468 Uncaught ReferenceError: setInlineEdit is not defined\n    at TestCaseManager (TestCaseManager.tsx:468:28)\n    at renderWithHooks (chunk-R6S4VRB5.js?v=2971f3b2:11548:26)\n    at mountIndeterminateComponent (chunk-R6S4VRB5.js?v=2971f3b2:14926:21)\n    at beginWork (chunk-R6S4VRB5.js?v=2971f3b2:15914:22)\n    at HTMLUnknownElement.callCallback2 (chunk-R6S4VRB5.js?v=2971f3b2:3674:22)\n    at Object.invokeGuardedCallbackDev (chunk-R6S4VRB5.js?v=2971f3b2:3699:24)\n    at invokeGuardedCallback (chunk-R6S4VRB5.js?v=2971f3b2:3733:39)\n    at beginWork$1 (chunk-R6S4VRB5.js?v=2971f3b2:19765:15)\n    at performUnitOfWork (chunk-R6S4VRB5.js?v=2971f3b2:19198:20)\n    at workLoopSync (chunk-R6S4VRB5.js?v=2971f3b2:19137:13)\nserialManager.ts:15 Initializing Web serial transport\nchunk-R6S4VRB5.js?v=2971f3b2:14032 The above error occurred in the <TestCaseManager> component:\n\n    at TestCaseManager (http://localhost:8083/src/components/serial/TestCaseManager.tsx:42:35)\n    at div\n    at div\n    at http://localhost:8083/node_modules/.vite/deps/chunk-SFJ3QBJK.js?v=2971f3b2:43:13\n    at Presence (http://localhost:8083/node_modules/.vite/deps/chunk-7WKBBYXU.js?v=2971f3b2:24:11)\n    at http://localhost:8083/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=2971f3b2:175:13\n    at _c4 (http://localhost:8083/src/components/ui/tabs.tsx:61:61)\n    at div\n    at http://localhost:8083/node_modules/.vite/deps/chunk-SFJ3QBJK.js?v=2971f3b2:43:13\n    at Provider (http://localhost:8083/node_modules/.vite/deps/chunk-RS7FYEF2.js?v=2971f3b2:48:15)\n    at http://localhost:8083/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=2971f3b2:52:7\n    at div\n    at div\n    at div\n    at Index (http://localhost:8083/src/pages/Index.tsx:40:19)\n    at RenderedRoute (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:4088:5)\n    at Routes (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:4558:5)\n    at Router (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:4501:15)\n    at BrowserRouter (http://localhost:8083/node_modules/.vite/deps/react-router-dom.js?v=2971f3b2:5247:5)\n    at Provider (http://localhost:8083/node_modules/.vite/deps/chunk-RS7FYEF2.js?v=2971f3b2:48:15)\n    at TooltipProvider (http://localhost:8083/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=2971f3b2:62:5)\n    at QueryClientProvider (http://localhost:8083/node_modules/.vite/deps/@tanstack_react-query.js?v=2971f3b2:2934:3)\n    at SettingsProvider (http://localhost:8083/src/contexts/SettingsContext.tsx:54:36)\n    at App\n\nConsider adding an error boundary to your tree to customize error handling behavior.\nVisit https://reactjs.org/link/error-boundaries to learn more about error boundaries.\nlogCapturedError @ chunk-R6S4VRB5.js?v=2971f3b2:14032\nchunk-R6S4VRB5.js?v=2971f3b2:19413 Uncaught ReferenceError: setInlineEdit is not defined\n    at TestCaseManager (TestCaseManager.tsx:468:28)\n    at renderWithHooks (chunk-R6S4VRB5.js?v=2971f3b2:11548:26)\n    at mountIndeterminateComponent (chunk-R6S4VRB5.js?v=2971f3b2:14926:21)\n    at beginWork (chunk-R6S4VRB5.js?v=2971f3b2:15914:22)\n    at beginWork$1 (chunk-R6S4VRB5.js?v=2971f3b2:19753:22)\n    at performUnitOfWork (chunk-R6S4VRB5.js?v=2971f3b2:19198:20)\n    at workLoopSync (chunk-R6S4VRB5.js?v=2971f3b2:19137:13)\n    at renderRootSync (chunk-R6S4VRB5.js?v=2971f3b2:19116:15)\n    at recoverFromConcurrentError (chunk-R6S4VRB5.js?v=2971f3b2:18736:28)\n    at performConcurrentWorkOnRoot (chunk-R6S4VRB5.js?v=2971f3b2:18684:30)"
+            }
+          }
+        },
+        {
+          "display": " 继续",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +21 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "请重构src\\components\\serial中的TestCaseManager.tsx文件 ，目标是：\n- 提高代码可读性\n- 减少重复代码\n- 遵循最佳实践\n- 保持功能不变\n请先分析现有代码，然后提供重构计划。\n编写代码的硬性指标，包括以下原则：\n（1）对于 Python、JavaScript、TypeScript 等动态语言，尽可能确保每个代码文件不要超过 200 行\n（2）对于 Java、Go、Rust 等静态语言，尽可能确保每个代码文件不要超过 250 行\n（3）每层文件夹中的文件，尽可能不超过 8 个。如有超过，需要规划为多层子文件夹\n除了硬性指标以外，还需要时刻关注优雅的架构设计，避免出现以下可能侵蚀我们代码质量的「坏味道」：\n（1）僵化 (Rigidity): 系统难以变更，任何微小的改动都会引发一连串的连锁修改。\n（2）冗余 (Redundancy): 同样的代码逻辑在多处重复出现，导致维护困难且容易产生不一致。\n（3）循环依赖 (Circular Dependency): 两个或多个模块互相纠缠，形成无法解耦的“死结”，导致难以测试与复用。\n（4）脆弱性 (Fragility): 对代码一处的修改，导致了系统中其他看似无关部分功能的意外损坏。\n（5）晦涩性 (Obscurity): 代码意图不明，结构混乱，导致阅读者难以理解其功能和设计。\n（6）数据泥团 (Data Clump): 多个数据项总是一起出现在不同方法的参数中，暗示着它们应该被组合成一个独立的对象。\n（7）不必要的复杂性 (Needless Complexity): 用“杀牛刀”去解决“杀鸡”的问题，过度设计使系统变得臃肿且难以理解。\n（8）UI 层约束：100%留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框\n  、弹窗、列表等）的样式，验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件100%一致”\n（9）所有更新及时同步到README.md\n"
+            }
+          }
+        },
+        {
+          "display": "Uncaught ReferenceError: Cannot access 'hasExecutionHistory' before initialization\n    at testCaseHelpers.ts:9:3  ",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +21 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "请重构src\\components\\serial中的所有文件 ，目标是：\n- 提高代码可读性\n- 减少重复代码\n- 遵循最佳实践\n- 保持功能不变\n请先分析现有代码，然后提供重构计划。\n编写代码的硬性指标，包括以下原则：\n（1）对于 Python、JavaScript、TypeScript 等动态语言，尽可能确保每个代码文件不要超过 200 行\n（2）对于 Java、Go、Rust 等静态语言，尽可能确保每个代码文件不要超过 250 行\n（3）每层文件夹中的文件，尽可能不超过 8 个。如有超过，需要规划为多层子文件夹\n除了硬性指标以外，还需要时刻关注优雅的架构设计，避免出现以下可能侵蚀我们代码质量的「坏味道」：\n（1）僵化 (Rigidity): 系统难以变更，任何微小的改动都会引发一连串的连锁修改。\n（2）冗余 (Redundancy): 同样的代码逻辑在多处重复出现，导致维护困难且容易产生不一致。\n（3）循环依赖 (Circular Dependency): 两个或多个模块互相纠缠，形成无法解耦的“死结”，导致难以测试与复用。\n（4）脆弱性 (Fragility): 对代码一处的修改，导致了系统中其他看似无关部分功能的意外损坏。\n（5）晦涩性 (Obscurity): 代码意图不明，结构混乱，导致阅读者难以理解其功能和设计。\n（6）数据泥团 (Data Clump): 多个数据项总是一起出现在不同方法的参数中，暗示着它们应该被组合成一个独立的对象。\n（7）不必要的复杂性 (Needless Complexity): 用“杀牛刀”去解决“杀鸡”的问题，过度设计使系统变得臃肿且难以理解。\n（8）UI 层约束：100%留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框\n  、弹窗、列表等）的样式，验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件100%一致”\n（9）所有更新及时同步到README.md\n"
+            }
+          }
+        },
+        {
+          "display": "#Always reply in Chinese",
+          "pastedContents": {}
+        },
+        {
+          "display": "init",
+          "pastedContents": {}
+        },
+        {
+          "display": "对当未提交的所有所有修改点总结",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +49 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "$ npm run dev\n\n> vite_react_shadcn_ts@0.0.0 dev\n> vite\n\nPort 8080 is in use, trying another one...\n\n  VITE v5.4.19  ready in 318 ms\n\n  ➜  Local:   http://localhost:8081/\n  ➜  Network: http://198.18.0.1:8081/\n  ➜  Network: http://192.168.5.72:8081/\n  ➜  press h + enter to show help\n01:36:10 [vite] Internal server error: Failed to resolve import \"./RunResultDialog\" from \"src/components/serial/TestCaseManager.tsx\". Does the file exist?\n  Plugin: vite:import-analysis\n  File: F:/git/port-pal-automator/src/components/serial/TestCaseManager.tsx:48:47\n  37 |  import { UrcEditor } from './editors/UrcEditor';\n  38 |  import { VariableDisplay } from '../VariableDisplay';\n  39 |  import { RunResultDialog } from './RunResultDialog';\n     |                                   ^\n  40 |  import { eventBus, EVENTS } from '@/lib/eventBus';\n  41 |  import { initializeDefaultWorkspace, loadCases, fromPersistedCase, scheduleAutoSave, getLastOpenedTestCase, setLastOpenedTestCase } from './workspace';\n      at TransformPluginContext._formatError (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49258:41)\n      at TransformPluginContext.error (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49253:16)\n      at normalizeUrl (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64291:23)\n      at async file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64423:39\n      at async Promise.all (index 20)\n      at async TransformPluginContext.transform (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64350:7)\n      at async PluginContainer.transform (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49099:18)\n      at async loadAndTransform (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:51977:27)\n01:36:10 [vite] Pre-transform error: Failed to resolve import \"./RunResultDialog\" from \"src/components/serial/TestCaseManager.tsx\". Does the file exist?\n01:36:15 [vite] Internal server error: Failed to resolve import \"./RunResultDialog\" from \"src/components/serial/TestCaseManager.tsx\". Does the file exist?\n  Plugin: vite:import-analysis\n  File: F:/git/port-pal-automator/src/components/serial/TestCaseManager.tsx:48:47\n  37 |  import { UrcEditor } from './editors/UrcEditor';\n  38 |  import { VariableDisplay } from '../VariableDisplay';\n  39 |  import { RunResultDialog } from './RunResultDialog';\n     |                                   ^\n  40 |  import { eventBus, EVENTS } from '@/lib/eventBus';\n  41 |  import { initializeDefaultWorkspace, loadCases, fromPersistedCase, scheduleAutoSave, getLastOpenedTestCase, setLastOpenedTestCase } from './workspace';\n      at TransformPluginContext._formatError (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49258:41)\n      at TransformPluginContext.error (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49253:16)\n      at normalizeUrl (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64291:23)\n      at async file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64423:39\n      at async Promise.all (index 20)\n      at async TransformPluginContext.transform (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:64350:7)\n      at async PluginContainer.transform (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:49099:18)\n      at async loadAndTransform (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:51977:27)\n      at async viteTransformMiddleware (file:///F:/git/port-pal-automator/node_modules/vite/dist/node/chunks/dep-C6uTJdX2.js:62105:24)\n"
+            }
+          }
+        },
+        {
+          "display": "测试页面展示区显示效果相比与服务器版本被改变了，希望使用服务其的显示效果，并且测试用例配置界面功能以及命令配置功能都被修改了，并没有达到我的要求",
+          "pastedContents": {}
+        },
+        {
+          "display": "bug 进入主页面正常加载，但是点击测试按钮，切换到测试页面，查看网页原代码只有root元素，显示为空白，请检查，怀疑什么语法错误导致无法被正常加载。请检查UI 层约束：保留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框\n  、弹窗、列表等）的样式\n除了明确需要修改的ui控件，其他控件尽量不要改动。\n验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件100%一致”  ",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +48 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "请基于当前项目（支持生成 Web/EXE/IMS 版本，当前聚焦 Web 版本，需优先解决已发现的 “主页面点击测试页面按钮白屏” 问题），执行以下操作生成可运行的 Web 版本：\n\n先检查项目根目录下的 package.json，确认是否存在 dev 脚本（对应命令 npm run dev），若不存在请告知需补充的配置；若存在，直接执行 npm run dev 命令启动 Web 开发服务；\n启动成功后，确认 Web 服务的访问地址（如 http://localhost:8080），并验证服务是否可正常访问（主页面能成功加载，无控制台报错）；\n若启动过程中遇到依赖缺失、配置错误等问题（如 “module not found”“端口被占用”），请自动修复（如安装缺失依赖、修改端口配置），并重新执行 npm run dev 直至 Web 版本可正常访问。\n🧪 测试执行：全量按钮功能与白屏问题验证\n1. 测试范围定义\n请先遍历 Web 版本所有页面，梳理出所有可交互按钮，重点覆盖：\n\n导航类按钮：主页面 “测试页面”“连接页面”“设置页面”“帮助页面” 按钮，各子页面 “返回主页”“切换页面” 按钮；\n功能操作类按钮：测试页面 “新建用例”“运行用例”“保存用例”“删除用例”“导入用例”“导出用例” 按钮，连接页面 “打开串口”“关闭串口”“配置串口” 按钮，设置页面 “保存配置”“恢复默认” 按钮；\n异常处理类按钮：“串口重试连接”“用例重新运行”“异常弹窗确认 / 取消” 按钮。\n2. 测试用例执行\n针对每个按钮编写并执行测试用例，每个用例需包含：\n\n前置条件：如 “已打开 Web 版本主页面”“已新建 1 个有效测试用例”；\n操作步骤：如 “点击主页面顶部的‘测试页面’按钮”；\n预期结果：按钮点击后能触发正确响应（如跳转至测试页面、执行用例运行），且界面无白屏、无死机、无控制台报错；\n实际结果记录：标注通过 / 失败，失败需记录异常现象（如 “点击‘测试页面’按钮后，页面变为空白，控制台报‘Cannot read property xxx of undefined’”）。\n3. 重点问题验证\n优先验证已知问题：“主页面→测试页面按钮白屏”，需额外记录：\n\n白屏触发的具体条件（如是否首次点击、是否在特定操作后触发）；\n控制台报错信息、网络请求状态（如是否有资源加载失败）；\n页面 DOM 结构（如是否存在空白容器、关键组件是否未渲染）。\n🔧 问题修复：针对性解决异常与白屏\n1. 优先修复已知白屏问题\n针对 “主页面→测试页面按钮白屏”，按以下步骤修复：\n\n定位根因：检查按钮绑定的跳转逻辑（如路由配置、组件导入）、测试页面组件代码（如是否有语法错误、生命周期钩子异常）、资源引用（如是否有缺失的 CSS/JS 文件）；\n制定修复方案：如 “路由配置中测试页面的 path 与组件映射错误，需修正为正确的组件路径”“测试页面组件中未处理空数据导致渲染崩溃，需添加数据判空逻辑”；\n执行修复：修改对应代码文件（如 src/router/index.js、src/views/TestPage.vue），确保修复后代码符合项目语法规范（如 TypeScript 类型检查、ESLint 规则）；\n验证修复：重新执行 npm run dev，点击 “主页面→测试页面按钮”，确认页面正常渲染，无白屏、无报错。\n2. 修复其他测试发现的问题\n对测试中发现的其他按钮异常（如点击无响应、死机），按以下原则处理：\n\n若为代码逻辑错误（如事件绑定缺失、函数参数错误）：直接修改代码修复；\n若为资源依赖问题（如文件路径错误、依赖未安装）：补充资源或修正路径；\n若为性能问题（如点击后卡顿超过 3 秒）：优化代码执行效率（如减少冗余计算、懒加载组件）；\n修复后需重新执行对应测试用例，确认问题解决且无新增异常。\n📋 交付物与验证确认\n输出可正常运行的 Web 版本：提供启动命令（npm run dev）、访问地址，确保任何人执行命令后都能正常访问，所有按钮功能正常；\n输出测试报告：包含测试用例清单、通过 / 失败统计、问题修复记录（尤其是白屏问题的修复过程）；\n输出修改记录：标注修复涉及的文件路径、修改内容（如 “src/router/index.js 第 15 行：将测试页面组件路径从‘./Test’修正为‘./TestPage’”）；\n最终验证：重新执行全量按钮测试，确认所有按钮均能正常工作，无白屏、无死机，所有已知问题已解决。\n⚠️ 约束条件\n修复过程中不得改变原有 UI 布局和控件样式（如按钮位置、颜色、尺寸），仅修正功能逻辑与渲染问题；\n若遇到无法自动修复的复杂问题（如底层框架兼容性、第三方依赖冲突），需详细说明：问题原因、尝试的修复方案、需人工介入的操作建议；\n所有修改需确保 Web 版本在不同浏览器（Chrome、Firefox）中均能正常运行，无浏览器兼容性问题。"
+            }
+          }
+        },
+        {
+          "display": "立即行动",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +45 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "代码漏洞检查规则与测试用例场景整理\n一、代码漏洞检查规则\n漏洞记录与修复原则\n所有检测出的漏洞需记录在 buglist.md 文件中，该文件后续用于存档已知问题及对应的更新计划。\n修复范围界定：\n100% 不影响 UI 的漏洞：直接修复，修复后更新 buglist.md 中对应问题的处理状态。\n需记录不修复的漏洞类型：影响 UI 展示的漏洞、UI 交互异常漏洞、UI 操作不符合用户习惯的问题、UI 缺乏用户所需控件的缺陷，仅在 buglist.md 中记录详情，暂不修复。\n二、核心功能测试用例场景\n（一）串口操作相关场景\n场景编号    场景描述    核心验证点\n1    用户打开两个串口，对比不同收发日志差异    双串口同时运行的稳定性、日志展示的区分度（是否清晰区分两个串口的收发数据）\n2    一个设备的 Tx/Rx 连接两个串口，用户在同一数据监控窗口查看两个串口数据    同一窗口中双串口数据的同步展示准确性、无数据混淆 / 丢失\n3    用户正常打开一个串口，进行命令收发    单串口连接稳定性、命令发送成功率、响应数据接收及时性\n4    用户通过串口观测大数据量 Debug 信息，需临时停止日志自动滚动（确认关键信息后恢复滚动）    日志自动滚动控制功能（停止 / 恢复响应及时）、停止时数据不丢失、恢复后滚动连续性\n5    资源不足的 PC 上，对设备进行几天天长时间挂测    日志自动保存功能（是否按配置触发保存）、指定日志文件到达指定大小后自动存储（无溢出 / 覆盖异常）、长时间运行无内存泄漏 / 崩溃\n6    串口异常断开与恢复    1. 异常断开时是否自动关闭串口；2. 配置自动重连后，串口恢复能否成功重连；3. 手动关闭串口后，自动重连功能是否不触发\n（二）测试用例管理场景（含工作区、用例操作）\n场景编号    场景描述    核心验证点\n1    软件安装后默认生成测试页面工作区（桌面端对应一个文件夹），存储测试用例（每个一级用例为独立 JSON 文件），且默认加载预设测试用例（默认测试用例对应的json文件在代码有独立文件控制，反驳后续单独修改）    1. 安装后工作区（文件夹）自动创建；2. 一级用例 JSON 文件存储格式正确性；3. 默认测试用例自动加载成功\n2    用户导入重复用例作为子用例，子用例可嵌套子用例（最大嵌套不超过三级）    1. 用例导入功能（子用例身份识别正确）；2. 嵌套层级控制（不超过三级）；3. 嵌套后用例展示清晰度\n3    用户点击 “添加” 按钮（命令 / URC / 子用例）的位置规则    1. 未选中任何用例时：新增内容添加到当前用例末尾；2. 选中命令 / URC 时：新增内容插入到该用例之后；3. 选中子用例时：新增内容添加到子用例内部\n4    用户选中用例、命令、子用例（及子用例内的命令 / URC），点击 “删除”    选中对象删除成功率（无删错 / 删不干净）、删除后其他用例逻辑无异常\n5    用户在 “测试用例界面 - 连接界面 - 测试用例界面” 间切换    切换回测试用例界面时，能否载入最后退出时的用例界面（状态记忆准确性）\n6    用户对用例的操作（如编写中）触发软件关闭 / 页面切换    重新打开软件 / 切回页面时，能否恢复最后退出时的用例状态（操作进度不丢失）\n7    用户设置 “界面配置默认打开工作区文件夹”    软件启动 / 进入测试用例界面时，是否默认打开配置的工作区文件夹\n8    用户点击 “新建工作区”，选择文件夹后在该文件夹创建用例    1. 新建工作区时文件夹选择功能正常；2. 后续用例能正确存储到所选文件夹\n9    用户配置用例 “单步运行”    1. 选择用例 / 步骤后点击 “运行”，仅执行一条且自动暂停；2. 再次点击 “运行”，按顺序继续执行下一条\n10    用户配置用例 “自动运行 + 循环次数”，触发用户配置的异常检测等级    1. 自动运行按循环次数执行；2. 触发异常时运行终止，弹出结果框（显示失败用例、警告次数、校验失败原因）\n11    用户运行命令（配置监测信息），串口返回多包数据    在超时时间内，所有 Rx 数据符合校验标准时，能否正确判定 “Pass”\n12    命令执行→等待 URC→使用 URC 提取参数执行下一条命令    1. URC 在规定时间内校验成功：继续执行；校验失败：抛出对应异常等级；2. 参数提取失败：无默认值则抛出异常，有默认值（如 0）则正常执行\n13    用户接收特定 URC 后配置后续执行逻辑    1. 串口接收特定 URC 时能否立即处理；2. 处理后可按配置执行：顺序执行、回退到最后运行命令位置、跳转（仅在当前一级用例 / 其子用例中选择跳转步骤）\n14    用户拖拽调整用例顺序（同级移动、跨层级移动）    1. 同级用例拖拽移动后顺序正确；2. 跨层级移动（如一级用例命令→子用例、子用例命令→一级用例）后，用例归属与顺序正确\n15    用例配置检测等级为 “异常”，命令抛出警告    警告触发后能否继续执行后续步骤\n16    用例配置检测等级为 “警告”，命令 / URC / 子用例命令抛出异常    1. 是否触发异常处理流程（停止运行判定 “Fail”/ 继续运行 / 弹出提示框）；2. 提示框能否显示告警信息；3. 用户可选择 “继续执行” 或 “结束运行”\n17    未选择用例运行步骤，在 “用例展示区” 右击    右击菜单能否正常创建命令 / URC / 子用例\n18    选择任意运行步骤 / 子用例后添加内容    1. 选择步骤：添加命令 / URC 成功；2. 选择子用例：添加的命令 / URC 正确归入子用例内部\n19    右击操作触发 “用例载入”    1. 右击菜单含 “用例载入” 选项；2. 载入模式（如子用例方式载入或者直接载入）可配置\n20    选择步骤后右击    右击菜单能否正常执行 “删除”“运行” 操作\n21    用例运行完成后生成测试报告    报告是否包含：每次发送的命令内容、接收的响应内容（无信息缺失）\n22    用户导出测试用例    用例导出功能正常（导出文件格式正确、内容完整）\n23    用例编写指导文档与 AI 生成用例    1. 是否提供用例编写指导文档；2. 用户提供 AT 交互流程 + 指导文档后，AI 能否自动生成测试用例\n24    用户在工作区文件夹内拷贝用例文件    点击 “用例选择” 按钮后，拷贝的用例能否显示在 “用例列表” 中\n25    用户点击 “导入用例” 按钮    1. 有效格式用例能否在 “用例显示区” 加载成功；2. 无效格式用例能否提示异常（无崩溃 / 无静默失败）\n27    长时间运行大数据量用例    程序无卡顿（发送 / 接收 / 响应及时）、无内存溢出 / 崩溃\n28    拖拽文件到数据展示区下方的默认发送输入框内，拖拽文件后能否正常发送（文件内容无损坏 / 无发送失败）\n29    测试用例中命令内容类型（hex\\str\\文件）选择 “文件”    1. 选择 “文件” 类型后，命令内容框是否不可编辑；2. 点击原内容输入框，能否弹出选择文件按钮3，拖拽文件到内容输入框，能否成功；4，当文件载入成功，输入框是否显示文件路径5. 特殊字符路径文件：是否提示异常（不发送异常数据 / 不死机）；6 文件删除后运行该用例：能否提示异常（不发送异常数据）；7. 正常文件能否成功发送内容"
+            }
+          }
+        },
+        {
+          "display": "继续执行",
+          "pastedContents": {}
+        },
+        {
+          "display": "继续",
+          "pastedContents": {}
+        },
+        {
+          "display": "新增：串口数据增加自动滚动控制按钮\n优化：命令、URC内容的单行栏输入改为可支持多行文本输入。\n优化：命令、URC的检测内容增加hex配置。\n优化：用户发送tx如数据3031320d0a3132时，目前数据显示tx为12\\x0d\\x0a12,数据经过转义处理了，删除转义处理。对于不在utf-8数据如0d0a，自动转换为对于utf-8数据显示。hex显示时还是按照0d0a显示。\n新增设置页面，显示配置增加\n1. 增加串口行距配置，默认配置最小行距。\n2. 配置串口tx、rx显示颜色，默认都是用黑色显示。\n优化：优化命令、urc异常处理流程。在命令、urc内容中只支持配置重试次数、问题严重等级、异常提示内容。测试用例中配置对于检测错误等级，错误处理办法（如停止运行，提示用户、继续运行）等。适当优化流程，符合用户操作习惯即可。\n新增：测试用例编辑页面可配置单步运行，当配置单步运行模式后，程序每次只执行一步，剩下需要用户重新点击运行按钮控件继续执行。\nbug:设置页面配置中英文模式时，希望英文模式不要有任何中文显示，且有类似terminal.ui.tx显示异常，正常应该只显示tx。中文模式下，对于部分行业词汇，可以不用翻译为英文，比如TX。\nbug:web预览新增用例点击创建，提示创建失败问题，显示无法创建。\n检查：检查测试用例交互逻辑是否有漏洞，如果有漏洞记录在新文件buglist.md中（后续该文件记录已知问题，以及更新计划），\nUI 层约束：尽量保留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框\n  、弹窗、列表等）的样式\n除了明确需要修改的ui控件，其他控件尽量不要改动。\n验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件基本一致”",
+          "pastedContents": {}
+        },
+        {
+          "display": "检查用户所有对ui所有的所有操作是否都能正常相应，比如点击控件是否正常相应，且功能运行正常。目前已知新增用例无法创建成功。\nUI 层约束：100% 保留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框、弹窗、列表等）的样式、交互反馈、功能绑定均不做修改，禁止新增 / 删除控件、调整控件样式（含颜色、字体、尺寸）或改变控件位置；\n优化聚焦方向：仅允许 AI 针对非 UI 层面优化，例如：代码层面的冗余清除、重复逻辑封装、性能瓶颈突破（如减少渲染卡顿、优化接口请求效率）、兼容性问题修复（不涉及 UI 改动的兼容性调整）等；\n验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件完全一致，仅提升非视觉层面的项目质量。”",
+          "pastedContents": {}
+        },
+        {
+          "display": "检查目前测试用例功能所有实现，修复相关bug。UI 层约束：100% 保留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框、弹窗、列表等）的样式、交互反馈、功能绑定均不做修改，禁止新增 / 删除控件、调整控件样式（含颜色、字体、尺寸）或改变控件位置；\n优化聚焦方向：仅允许 AI 针对非 UI 层面优化，例如：代码层面的冗余清除、重复逻辑封装、性能瓶颈突破（如减少渲染卡顿、优化接口请求效率）、兼容性问题修复（不涉及 UI 改动的兼容性调整）等；\n验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件完全一致，仅提升非视觉层面的项目质量。”",
+          "pastedContents": {}
+        },
+        {
+          "display": "TestCaseManager.tsx拆分这个文件，UI 层约束：100% 保留现有 UI 布局（包括页面框架、组件排列顺序、元素间距、多端适配规则），所有已有控件（如按钮、输入框、弹窗、列表等）的样式、交互反馈、功能绑定均不做修改，禁止新增 / 删除控件、调整控件样式（含颜色、字体、尺寸）或改变控件位置；\n优化聚焦方向：仅允许 AI 针对非 UI 层面优化，例如：代码层面的冗余清除、重复逻辑封装、性能瓶颈突破（如减少渲染卡顿、优化接口请求效率）、兼容性问题修复（不涉及 UI 改动的兼容性调整）等；\n验收标准：优化后需通过 UI 对比测试，确保与原版本布局、控件完全一致，仅提升非视觉层面的项目质量。”",
+          "pastedContents": {}
+        },
+        {
+          "display": "请帮我更新一个用于当前项目UI-Framework.md，确保展示所有UI细节",
+          "pastedContents": {}
+        },
+        {
+          "display": "请阅读项目的 README.md、package.json 和主要目录，帮我了解这个项目的架构和技术栈，但暂时不要编写任何代码。",
+          "pastedContents": {}
+        },
+        {
+          "display": "init",
+          "pastedContents": {}
+        },
+        {
+          "display": "clear",
+          "pastedContents": {}
+        },
+        {
+          "display": "/clear ",
+          "pastedContents": {}
+        },
+        {
+          "display": "@test\\old_suc.html 目前工作区对代码的修改导致与原工程ui、功能产生了很大变化，我希望不要变化。原来显示效果参考old_suc.html效果。此次修改主要是为了优化TestCaseManager等文件过大问题，对他进行拆分。",
+          "pastedContents": {}
+        },
+        {
+          "display": "@test\\new_fail.html 与github上这个版本比较，新的ui变化巨大",
+          "pastedContents": {}
+        },
+        {
+          "display": "制作完整功能的serial-pilot.exe并保证与github 最新版本ui布局、功能无较大出入",
+          "pastedContents": {}
+        },
+        {
+          "display": "那制作完整功能的serial-pilot.exe",
+          "pastedContents": {}
+        },
+        {
+          "display": "构建代码",
+          "pastedContents": {}
+        },
+        {
+          "display": "修复",
+          "pastedContents": {}
+        },
+        {
+          "display": "继续",
+          "pastedContents": {}
+        },
+        {
+          "display": "@test\\old_suc.html @test\\new_fail.html old_suc是github最新的npm run dev运行展示，new_fail是本地运行展示，为什么修改后界面是空白，没有显示如串口操作页面，数据展示页面",
+          "pastedContents": {}
+        },
+        {
+          "display": "新修改的可执行程序启动后界面空白，原 GitHub 版本程序启动后界面正常",
+          "pastedContents": {}
+        },
+        {
+          "display": "/clear ",
+          "pastedContents": {}
+        },
+        {
+          "display": "新修改的可执行程序启动后界面空白，原 GitHub 版本程序启动后界面正常",
+          "pastedContents": {}
+        },
+        {
+          "display": "更新readme",
+          "pastedContents": {}
+        },
+        {
+          "display": "/update readme",
+          "pastedContents": {}
+        },
+        {
+          "display": "/compact ",
+          "pastedContents": {}
+        },
+        {
+          "display": "hllo",
+          "pastedContents": {}
+        },
+        {
+          "display": "Compared with the executable program generated from the latest version on GitHub, the newly modified executable program shows a blank interface after being launched.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/compact ",
+          "pastedContents": {}
+        },
+        {
+          "display": "/status ",
+          "pastedContents": {}
+        },
+        {
+          "display": "hello",
+          "pastedContents": {}
+        },
+        {
+          "display": "/cost ",
+          "pastedContents": {}
+        },
+        {
+          "display": "update redeme",
+          "pastedContents": {}
+        },
+        {
+          "display": "│ >                                                                                                                    │\n╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯\n  ⏸ plan mode on (shift+tab to cycle)",
+          "pastedContents": {}
+        },
+        {
+          "display": "hello",
+          "pastedContents": {}
+        },
+        {
+          "display": "bug Compared with the executable program generated from the latest version on GitHub, the newly modified executable\n  program shows a blank interface after being launched.",
+          "pastedContents": {}
+        },
+        {
+          "display": "> Compared with the executable program generated from the latest version on GitHub, the newly modified executable\n  program shows a blank interface after being launched.\n\n● I'm sorry, but I can't process images at the moment. Please try again with text-only content.",
+          "pastedContents": {}
+        },
+        {
+          "display": "Compared with the executable program generated from the latest version on GitHub, the newly modified executable program shows a blank interface after being launched.",
+          "pastedContents": {}
+        },
+        {
+          "display": " @test\\old_suc.png @test\\new_fail.png  new_fail.png is a screenshot of the application running with the code generated just now, while old_suc.png is a screenshot of the application running with the latest code from the original GitHub repository. It can be seen that the modification has caused the application to display nothing.",
+          "pastedContents": {}
+        },
+        {
+          "display": "@test\\old_suc.png @test\\ ",
+          "pastedContents": {}
+        },
+        {
+          "display": "更新项目的README.md文件，更新记录，已知问题等，并适当补充。",
+          "pastedContents": {}
+        },
+        {
+          "display": "请更新项目的 README.md 文件，确保包含：\n- 项目简介\n- 安装说明\n- 使用方法",
+          "pastedContents": {}
+        },
+        {
+          "display": "#Always reply in Chinese",
+          "pastedContents": {}
+        },
+        {
+          "display": "#UTF-8 - Encoding format: UTF-8",
+          "pastedContents": {}
+        },
+        {
+          "display": "Always reply in Chinese ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Continue execution Always reply in Chinese.",
+          "pastedContents": {}
+        },
+        {
+          "display": "[Pasted text #1 +61 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "### Large Module (≥1k Lines) Splitting and Optimization (Taking `TestCaseManager.tsx` as an Example)\n\n#### Core Objectives\nUnder the premise of maintaining the existing UI display effect, interaction logic, and functional integrity at 100% without any differences, refactor the target module with ≥1k lines of code (such as `TestCaseManager.tsx`) into modular components. This will address issues of code redundancy, mixed responsibilities, and maintenance difficulties in a single file. Ensure that the dependencies between modules after splitting are clear, the expandability is enhanced, and the overall project compilation and operation are not affected.\n\n#### Preceding Constraints (Must be Strictly Followed, No Exceptions)\n- **Zero UI Perception Principle**: After splitting, all page elements (buttons, tables, pop-ups, text prompts, styles and layouts), interaction feedback (click responses, input linkage, state switching), and data display (list rendering, parameter display, execution results) must remain identical to the original module. Users should not notice any differences in the interface during operation.\n- **Functional Integrity Guarantee**: No functionality of the original module (such as test case CRUD operations, data listening, parameter storage, pop-up confirmation, result reporting, etc.) should be lost, and the execution logic of the functions (such as data validation rules, state transition order) must remain unchanged.\n- **External Dependency Integrity**: Maintain the communication interfaces with other project modules (parent components, child components, utility libraries, state libraries) completely consistent. Do not modify the way external modules call the current module, and do not affect upstream and downstream functions.\n- **State Consistency Constraint**: The definitions, initial values, and update logic of the states after splitting (such as `selectedId`, `executingStatus`, `storedData`) must be consistent with the original module. Avoid state synchronization anomalies (such as cross-module state inaccessibility, update delays).\n- **Technology Stack Compatibility**: Strictly follow the existing project technology stack (such as React+TypeScript, Vue+TS, specific hooks/tools libraries). Do not introduce new dependency packages, do not modify existing dependency versions, and ensure that the project can be normally compiled, packaged, and run after splitting.\n\n#### Core Process for Splitting Implementation (Steps to be Followed by AI)\n\n**Step 1: Module Pre-analysis (Essential Actions Before Splitting)**\n\n1. **Code Scanning and Responsibility Classification**: First, thoroughly analyze the code structure of the target module (such as `TestCaseManager.tsx`) and classify code segments by \"functional responsibilities,\" for example:\n   - State definition and management (`useState`, `useRef`, `useReducer`, state update methods);\n   - Business logic processing (data requests, data transformation, event listening and handling, utility functions);\n   - UI rendering logic (JSX structure, component composition, conditional rendering, style association);\n   - External interaction logic (callbacks to child components, props received from parent components, communication with other services);\n2. **Dependency Relationship Analysis**: Record the dependencies of the target module with external modules (such as imported child components, utility functions, state libraries), as well as the internal code dependencies within the module (such as a function depending on a state, a logic depending on a utility method). Form a brief dependency relationship table to avoid dependency breaks after splitting.\n3. **Splitting Boundary Determination**: Based on the \"single responsibility\" principle, determine the number of modules after splitting and the core responsibilities of each module. Ensure that each split module has a reasonable amount of code (it is recommended that a single module ≤500 lines) and low coupling between modules (communication only through explicit interfaces).\n\n**Step 2: Modular Splitting Rules (Taking `TestCaseManager.tsx` as an Example)**\n\nTaking a common large React+TS component as an example, it is recommended to split according to the following dimensions. Other technology stacks can adjust according to this logic:\n\n| Split Module Type | Suggested File Path | Core Responsibilities | Code Segments to Migrate |\n|-------------------|---------------------|-----------------------|--------------------------|\n| State Management Hook | `./hooks/useTestCaseState.ts` | Unified management of all states in the target module (such as `testCases`, `selectedCaseId`, `execStatus`), state update methods (such as `updateCase`, `deleteCase`), and Refs (such as `runningCasesRef`) | All `useState`, `useRef` definitions in the original module, state initialization logic, basic state update functions |\n| Business Utility Functions | `./utils/testCaseUtils.ts` | Encapsulate pure business utility functions (such as `generateUniqueId`, `formatCaseData`, `validateCaseParams`). These functions should have no side effects and only depend on input parameters | Pure utility functions in the original module that are unrelated to UI, avoiding mixing business logic with UI rendering |\n| Event/Data Listening Logic | `./utils/testCaseListener.ts` | Handle external event listening (such as serial data reception, timer events), data subscription (such as WebSocket messages), and business processing after listening (such as URC matching, data parsing) | Event subscription code within `useEffect` in the original module, event callback logic (such as `handleSerialData`) |\n| Dialog/Feedback Components | `./components/TestCaseDialogs.tsx` | Encapsulate dialog components within the target module (such as confirmation dialogs, edit dialogs, prompt dialogs), including dialog UI and interaction logic within dialogs | Dialog-related JSX in the original module, dialog states (such as `isEditDialogOpen`), dialog callbacks (such as `handleDialogConfirm`) |\n| Sub-functional Components (Reusable) | `./components/TestCaseList.tsx` | Encapsulate independent sub-functional UIs within the target module (such as test case list, execution result table), receiving data and callbacks through props | Independent JSX rendering logic in the original module (such as `<Table>` related code), exclusive interaction logic for sub-components |\n| Entry Component (Retained) | `./TestCaseManager.tsx` | As the core entry point, integrate all split modules, only responsible for UI assembly, data distribution, and event binding. Do not include complex business logic | Top-level JSX structure in the original module, import and invocation of split modules, definitions of exposed props/callbacks |\n\n**Step 3: Verification and Validation After Splitting (Ensure No Issues)**\n\n1. **Compilation Validation**: Check all split files for syntax errors, undefined variables, and missing dependencies to ensure the project compiles successfully.\n2. **Functionality Validation**: Test all functionalities of the original module one by one (such as adding test cases, editing parameters, executing tests, viewing results) to confirm that they work properly and the logic remains consistent with the original module.\n3. **UI Consistency Validation**: Compare the interface before and after splitting (including normal states, error states, pop-up displays, loading states) to ensure pixel-perfect consistency. There should be no style disorder, missing text, or changes in element positions.\n4. **Performance and Stability Validation**: Confirm that there is no additional performance loss after splitting (such as redundant rendering, memory leaks). Ensure timely state synchronization between modules and no lag or crashes.\n\n#### Deliverables\n\n- **Complete Set of Split Files**: Including all split module files (Hooks, utility functions, sub-components) with file paths consistent with the existing project directory structure and naming conventions aligned with the project.\n- **Modified Entry Module File** (such as `TestCaseManager.tsx`): Retain only the entry logic, with concise code free of redundant business logic, clearly demonstrating the integration of split modules.\n- **Splitting Documentation**:\n  - List the file structure before and after splitting;\n  - Explain the responsibilities and dependencies of each split module;\n  - Clearly state the unchanged external interfaces (such as prop definitions, callback function parameters) to prove no impact on external modules;\n  - Record the core logic that was not adjusted during the splitting process (such as state transitions, business rules) to ensure functional consistency.\n\n#### Prohibited Actions List\n\n- Do not modify any JSX rendering structure (such as component nesting order, tag attributes, style class names, text content);\n- Do not change the naming, type, initial value, or update logic of state variables (for example, `testCases` should not be changed to `caseList`, and boolean types should not be changed to string types);\n- Do not modify the communication interfaces with external modules (such as prop fields passed from parent components, callback function parameters/return values called by child components);\n- Do not delete or modify any functional code of the original module (such as data validation rules, event listening logic, pop-up triggering conditions);\n- Do not introduce new third-party dependencies, modify existing dependency versions, or use syntax/APIs incompatible with the project;\n- Do not create circular dependencies between modules after splitting (for example, A depends on B, and B depends on A). Ensure that dependencies are unidirectional and clear."
+            }
+          }
+        },
+        {
+          "display": "[Pasted text #1 +66 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "As a \"Technical Documentation Engineer + Project Development Consultant,\" please complete the following core tasks: First, thoroughly familiarize yourself with the specified project code, and then systematically update the project Readme documentation to ensure that it clearly conveys the project's technical details and usage guidelines. The specific requirements are as follows:\n\n### Stage One: Code Familiarization\n#### Code Structure and Framework Analysis\n- **Directory and Framework Analysis**: Identify the core directories of the project (e.g., `src` for source code, `config` for configuration files, `public` for static resources, `test` for testing files) and clarify the responsibilities and file association logic of each directory. Create a \"directory tree structure\" and label key files (e.g., entry files like `main.js` or `app.py`, routing configuration files like `router.js`, core utility classes like `utils/`).\n- **Technical Stack Identification**: Identify the technology stack and frameworks used in the project (e.g., front-end frameworks like Vue/React/Angular, back-end frameworks like Spring Boot/Django/Flask, mobile frameworks like React Native/Flutter). Record the framework versions and briefly explain the core reasons for choosing each framework (e.g., performance requirements, team skill set alignment, ecosystem maturity).\n- **Core Design Patterns Analysis**: Analyze the core design patterns used in the code (e.g., MVC/MVVM architecture, Singleton pattern, Factory pattern, Observer pattern). Provide examples of how a specific module (e.g., user login module, data request module) achieves decoupling and reusability through these design patterns.\n\n#### Core Function Code Dissection\n- **Core Function Modules Extraction**: Identify 3-5 core functional modules of the project (e.g., user authentication module, data visualization module, file upload/download module, payment interface module). For each module:\n  - List the core interfaces/functions (e.g., `login()` function in the front end, `/api/user/info` user information interface in the back end). Explain the input parameters (parameter name, type, necessity), output results (data format, status code meaning), and core logic (e.g., password encryption method, data validation rules).\n  - Label the dependencies between modules (e.g., \"The data visualization module depends on the data request module to fetch backend data. The user authentication module provides Token verification for all permission-required interfaces\").\n  - Identify key technical points in the code (e.g., front-end state management solutions like Redux/Vuex, back-end database ORM frameworks like MyBatis/Hibernate, cross-domain solutions like CORS/reverse proxy, caching strategies like Redis). Explain their specific application scenarios and implementation methods in the project.\n\n#### Potential Issues and Optimization Points Recording\n- **Risk Points Identification**: Identify potential risk points in the code (e.g., unvalidated interfaces, hard-coded configuration information, unhandled exception scenarios, performance bottleneck modules). Briefly label the impact of these risks (e.g., \"Unvalidated file upload interfaces may lead to malicious file injection. Hard-coded database passwords pose a risk of leakage\").\n- **Optimization Suggestions**: Propose 2-3 reasonable optimization suggestions (e.g., \"Migrate hard-coded configurations to a `.env` environment variable file,\" \"Add Redis caching to high-frequency query interfaces to reduce database pressure,\" \"Optimize front-end repeated requests through debouncing/throttling to enhance user experience\"). Focus on clarifying the optimization direction and value without delving into implementation details.\n\n### Stage Two: Readme Documentation Update\n#### Project Overview\n- **Project Name and Positioning**: Briefly describe the core purpose of the project (e.g., \"An enterprise customer relationship management system for integrating customer data, tracking sales processes, and generating performance reports,\" \"A lightweight personal note-taking tool supporting Markdown editing and multi-device synchronization\").\n- **Technology Stack Overview**: Present the core technology frameworks and versions in a table format. Example:\n  | Technology Domain | Framework/Tool | Version | Core Purpose |\n  |-------------------|----------------|---------|--------------|\n  | Front-end Framework | Vue.js | 3.3.4 | Building user interaction interfaces |\n  | Back-end Framework | Spring Boot | 2.7.10 | Providing API interfaces and business logic processing |\n  | Database | MySQL | 8.0 | Storing structured business data |\n  | State Management | Pinia | 2.1.6 | Managing global front-end state |\n- **Development/Maintenance Team (if public), Project Creation Time, Last Update Time**\n\n#### Code Structure\n- **Directory Tree**: Provide the complete project directory tree using Markdown code blocks and add comments for key directories/files.\n  ```plaintext\n  project-name/\n  ├── src/                  # Core source code directory\n  │   ├── api/              # Backend API request encapsulation (contains API addresses, request methods)\n  │   ├── components/       # General UI components (e.g., buttons, tables, pop-ups)\n  │   ├── views/            # Page-level components (e.g., login page, home page, report page)\n  │   ├── router/           # Routing configuration (defines page navigation rules and permission control)\n  │   ├── store/            # State management (Pinia store, manages user information, global configuration)\n  │   └── main.js           # Front-end entry file (initializes Vue instance, loads global resources)\n  ├── config/               # Project configuration files (e.g., database connection, API base address)\n  ├── test/                 # Unit and integration test code\n  ├── .env.development      # Development environment variable configuration (for local development)\n  ├── .env.production       # Production environment variable configuration (for online deployment)\n  ├── package.json          # Project dependencies and script configuration\n  └── README.md             # Project documentation (this document)\n  ```\n- **Core Directory Design Logic**: Explain the design logic of core directories (e.g., \"Separating `components` and `views` decouples general UI components from business pages, facilitating component reuse. The `api` directory centrally manages requests to avoid scattering API addresses across pages, facilitating future maintenance\").\n\n#### UI Requirements & Design\n- **UI Style Positioning**: Describe the project's UI design style (e.g., \"Minimalist business style with blue as the main color tone, fitting the professionalism of an enterprise system; responsive design supports PC (1920x1080) and tablet (1024x768) adaptation\").\n- **Core Page List**: List 3-5 key pages and briefly describe their layout and core elements. Example:\n  - **Login Page**: The left side features project brand introduction (including Logo and slogan), while the right side contains the login form (with account input box, password input box, verification code, \"Remember Me\" checkbox, login button, \"Forgot Password\" link), with copyright information at the bottom.\n  - **Data Report Page**: The top includes a time filter (day/week/month/custom) and export button. The middle section has 2-3 core metric cards (e.g., \"Today's Visits,\" \"This Month's Sales\"). Below are a line chart (trend analysis) and a table (detailed data), supporting chart联动筛选.\n- **Interaction Logic**: Label key interaction scenarios (e.g., \"After clicking the login button, first validate the form's legality (account not empty, password length ≥ 6 characters). If validation passes, initiate the login request with a loading animation. On success, redirect to the home page; on failure, display an error message (e.g., 'Incorrect account or password'). The table supports pagination (default 10 items/page), keyword search, and column sorting (clicking the header toggles ascending/descending order)\").\n\n#### Functional Requirements & Implementation\n- **Function Module Classification**: Categorize functions into \"core functions\" and \"auxiliary functions,\" presenting them in a hierarchical list. Each function should include \"function description,\" \"brief implementation logic,\" and \"associated code location.\" Example:\n  - **Core Function 1: User Authentication (Login/Registration/Logout)**\n    - **Function Description**: Supports user login via account and password. New users can register (with mobile phone verification). After login, users can click their avatar to log out (clearing Token and local storage).\n    - **Implementation Logic**: During login, the front end encrypts the account and password (MD5 + salt) and sends it to the back end. The back end verifies the database and generates a JWT Token, which is returned to the front end. The front end stores the Token in localStorage, and subsequent requests carry the Token in the request header for permission verification. During registration, the back end sends a verification code to the user's mobile phone, and the front end creates a user account after verifying the code.\n    - **Associated Code Location**: Front-end `views/Login.vue` (login page), `api/user.js` (login/registration interface); back-end `controller/UserController.java` (user authentication interface logic), `service/UserService.java` (user data processing).\n  - **Auxiliary Function 1: Data Export**\n    - **Function Description**: Supports exporting report page table data to Excel format. The exported file includes all data under the current filter conditions (not just the current page).\n    - **Implementation Logic**: After clicking the export button, the front end passes the current filter parameters (e.g., time range, keywords) to the back end. The back end queries all data and generates an Excel file using EasyExcel, returning it to the front end as a stream, triggering file download.\n    - **Associated Code Location**: Front-end `components/ExportButton"
+            }
+          }
+        },
+        {
+          "display": "/init ",
+          "pastedContents": {}
+        },
+        {
+          "display": "/login sk-JuMpsZGqgFyScmJcZIfGqCZMdLAxZ4iUCfZpmuepKfzvCBy1",
+          "pastedContents": {}
+        },
+        {
+          "display": "$env:ANTHROPIC_BASE_URL=\"https://api.moonshot.cn/anthropic\";\n$env:ANTHROPIC_AUTH_TOKEN=\"sk-JuMpsZGqgFyScmJcZIfGqCZMdLAxZ4iUCfZpmuepKfzvCBy1\"\n$env:ANTHROPIC_MODEL=\"kimi-k2-turbo-preview\"\n$env:ANTHROPIC_SMALL_FAST_MODEL=\"kimi-k2-turbo-preview\"",
+          "pastedContents": {}
+        },
+        {
+          "display": "/login sk-JuMpsZGqgFyScmJcZIfGqCZMdLAxZ4iUCfZpmuepKfzvCBy1",
+          "pastedContents": {}
+        },
+        {
+          "display": "/init ",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0,
+      "hasCompletedProjectOnboarding": true
+    }
+  },
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "1.0.107",
+  "hasOpusPlanDefault": false,
+  "subscriptionNoticeCount": 0,
+  "hasAvailableSubscription": false,
+  "isQualifiedForDataSharing": false,
+  "hasIdeOnboardingBeenShown": {
+    "vscode": true
+  },
+  "cachedChangelog": "# Changelog\n\n## 1.0.106\n\n- Windows: Fixed path permission matching to consistently use POSIX format (e.g., `Read(//c/Users/...)`)\n\n## 1.0.97\n\n- Settings: /doctor now validates permission rule syntax and suggests corrections\n\n## 1.0.94\n\n- Vertex: add support for global endpoints for supported models\n- /memory command now allows direct editing of all imported memory files\n- SDK: Add custom tools as callbacks\n- Added /todos command to list current todo items\n\n## 1.0.93\n\n- Windows: Add alt + v shortcut for pasting images from clipboard\n- Support NO_PROXY environment variable to bypass proxy for specified hostnames and IPs\n\n## 1.0.90\n\n- Settings file changes take effect immediately - no restart required\n\n## 1.0.88\n\n- Fixed issue causing \"OAuth authentication is currently not supported\"\n- Status line input now includes `exceeds_200k_tokens`\n- Fixed incorrect usage tracking in /cost.\n- Introduced `ANTHROPIC_DEFAULT_SONNET_MODEL` and `ANTHROPIC_DEFAULT_OPUS_MODEL` for controlling model aliases opusplan, opus, and sonnet.\n- Bedrock: Updated default Sonnet model to Sonnet 4\n\n## 1.0.86\n\n- Added /context to help users self-serve debug context issues\n- SDK: Added UUID support for all SDK messages\n- SDK: Added `--replay-user-messages` to replay user messages back to stdout\n\n## 1.0.85\n\n- Status line input now includes session cost info\n- Hooks: Introduced SessionEnd hook\n\n## 1.0.84\n\n- Fix tool_use/tool_result id mismatch error when network is unstable\n- Fix Claude sometimes ignoring real-time steering when wrapping up a task\n- @-mention: Add ~/.claude/\\* files to suggestions for easier agent, output style, and slash command editing\n- Use built-in ripgrep by default; to opt out of this behavior, set USE_BUILTIN_RIPGREP=0\n\n## 1.0.83\n\n- @-mention: Support files with spaces in path\n- New shimmering spinner\n\n## 1.0.82\n\n- SDK: Add request cancellation support\n- SDK: New additionalDirectories option to search custom paths, improved slash command processing\n- Settings: Validation prevents invalid fields in .claude/settings.json files\n- MCP: Improve tool name consistency\n- Bash: Fix crash when Claude tries to automatically read large files\n\n## 1.0.81\n\n- Released output styles, including new built-in educational output styles \"Explanatory\" and \"Learning\". Docs: https://docs.anthropic.com/en/docs/claude-code/output-styles\n- Agents: Fix custom agent loading when agent files are unparsable\n\n## 1.0.80\n\n- UI improvements: Fix text contrast for custom subagent colors and spinner rendering issues\n\n## 1.0.77\n\n- Bash tool: Fix heredoc and multiline string escaping, improve stderr redirection handling\n- SDK: Add session support and permission denial tracking\n- Fix token limit errors in conversation summarization\n- Opus Plan Mode: New setting in `/model` to run Opus only in plan mode, Sonnet otherwise\n\n## 1.0.73\n\n- MCP: Support multiple config files with `--mcp-config file1.json file2.json`\n- MCP: Press Esc to cancel OAuth authentication flows\n- Bash: Improved command validation and reduced false security warnings\n- UI: Enhanced spinner animations and status line visual hierarchy\n- Linux: Added support for Alpine and musl-based distributions (requires separate ripgrep installation)\n\n## 1.0.72\n\n- Ask permissions: have Claude Code always ask for confirmation to use specific tools with /permissions\n\n## 1.0.71\n\n- Background commands: (Ctrl-b) to run any Bash command in the background so Claude can keep working (great for dev servers, tailing logs, etc.)\n- Customizable status line: add your terminal prompt to Claude Code with /statusline\n\n## 1.0.70\n\n- Performance: Optimized message rendering for better performance with large contexts\n- Windows: Fixed native file search, ripgrep, and subagent functionality\n- Added support for @-mentions in slash command arguments\n\n## 1.0.69\n\n- Upgraded Opus to version 4.1\n\n## 1.0.68\n\n- Fix incorrect model names being used for certain commands like `/pr-comments`\n- Windows: improve permissions checks for allow / deny tools and project trust. This may create a new project entry in `.claude.json` - manually merge the history field if desired.\n- Windows: improve sub-process spawning to eliminate \"No such file or directory\" when running commands like pnpm\n- Enhanced /doctor command with CLAUDE.md and MCP tool context for self-serve debugging\n- SDK: Added canUseTool callback support for tool confirmation\n- Added `disableAllHooks` setting\n- Improved file suggestions performance in large repos\n\n## 1.0.65\n\n- IDE: Fixed connection stability issues and error handling for diagnostics\n- Windows: Fixed shell environment setup for users without .bashrc files\n\n## 1.0.64\n\n- Agents: Added model customization support - you can now specify which model an agent should use\n- Agents: Fixed unintended access to the recursive agent tool\n- Hooks: Added systemMessage field to hook JSON output for displaying warnings and context\n- SDK: Fixed user input tracking across multi-turn conversations\n- Added hidden files to file search and @-mention suggestions\n\n## 1.0.63\n\n- Windows: Fixed file search, @agent mentions, and custom slash commands functionality\n\n## 1.0.62\n\n- Added @-mention support with typeahead for custom agents. @<your-custom-agent> to invoke it\n- Hooks: Added SessionStart hook for new session initialization\n- /add-dir command now supports typeahead for directory paths\n- Improved network connectivity check reliability\n\n## 1.0.61\n\n- Transcript mode (Ctrl+R): Changed Esc to exit transcript mode rather than interrupt\n- Settings: Added `--settings` flag to load settings from a JSON file\n- Settings: Fixed resolution of settings files paths that are symlinks\n- OTEL: Fixed reporting of wrong organization after authentication changes\n- Slash commands: Fixed permissions checking for allowed-tools with Bash\n- IDE: Added support for pasting images in VSCode MacOS using ⌘+V\n- IDE: Added `CLAUDE_CODE_AUTO_CONNECT_IDE=false` for disabling IDE auto-connection\n- Added `CLAUDE_CODE_SHELL_PREFIX` for wrapping Claude and user-provided shell commands run by Claude Code\n\n## 1.0.60\n\n- You can now create custom subagents for specialized tasks! Run /agents to get started\n\n## 1.0.59\n\n- SDK: Added tool confirmation support with canUseTool callback\n- SDK: Allow specifying env for spawned process\n- Hooks: Exposed PermissionDecision to hooks (including \"ask\")\n- Hooks: UserPromptSubmit now supports additionalContext in advanced JSON output\n- Fixed issue where some Max users that specified Opus would still see fallback to Sonnet\n\n## 1.0.58\n\n- Added support for reading PDFs\n- MCP: Improved server health status display in 'claude mcp list'\n- Hooks: Added CLAUDE_PROJECT_DIR env var for hook commands\n\n## 1.0.57\n\n- Added support for specifying a model in slash commands\n- Improved permission messages to help Claude understand allowed tools\n- Fix: Remove trailing newlines from bash output in terminal wrapping\n\n## 1.0.56\n\n- Windows: Enabled shift+tab for mode switching on versions of Node.js that support terminal VT mode\n- Fixes for WSL IDE detection\n- Fix an issue causing awsRefreshHelper changes to .aws directory not to be picked up\n\n## 1.0.55\n\n- Clarified knowledge cutoff for Opus 4 and Sonnet 4 models\n- Windows: fixed Ctrl+Z crash\n- SDK: Added ability to capture error logging\n- Add --system-prompt-file option to override system prompt in print mode\n\n## 1.0.54\n\n- Hooks: Added UserPromptSubmit hook and the current working directory to hook inputs\n- Custom slash commands: Added argument-hint to frontmatter\n- Windows: OAuth uses port 45454 and properly constructs browser URL\n- Windows: mode switching now uses alt + m, and plan mode renders properly\n- Shell: Switch to in-memory shell snapshot to fix file-related errors\n\n## 1.0.53\n\n- Updated @-mention file truncation from 100 lines to 2000 lines\n- Add helper script settings for AWS token refresh: awsAuthRefresh (for foreground operations like aws sso login) and awsCredentialExport (for background operation with STS-like response).\n\n## 1.0.52\n\n- Added support for MCP server instructions\n\n## 1.0.51\n\n- Added support for native Windows (requires Git for Windows)\n- Added support for Bedrock API keys through environment variable AWS_BEARER_TOKEN_BEDROCK\n- Settings: /doctor can now help you identify and fix invalid setting files\n- `--append-system-prompt` can now be used in interactive mode, not just --print/-p.\n- Increased auto-compact warning threshold from 60% to 80%\n- Fixed an issue with handling user directories with spaces for shell snapshots\n- OTEL resource now includes os.type, os.version, host.arch, and wsl.version (if running on Windows Subsystem for Linux)\n- Custom slash commands: Fixed user-level commands in subdirectories\n- Plan mode: Fixed issue where rejected plan from sub-task would get discarded\n\n## 1.0.48\n\n- Fixed a bug in v1.0.45 where the app would sometimes freeze on launch\n- Added progress messages to Bash tool based on the last 5 lines of command output\n- Added expanding variables support for MCP server configuration\n- Moved shell snapshots from /tmp to ~/.claude for more reliable Bash tool calls\n- Improved IDE extension path handling when Claude Code runs in WSL\n- Hooks: Added a PreCompact hook\n- Vim mode: Added c, f/F, t/T\n\n## 1.0.45\n\n- Redesigned Search (Grep) tool with new tool input parameters and features\n- Disabled IDE diffs for notebook files, fixing \"Timeout waiting after 1000ms\" error\n- Fixed config file corruption issue by enforcing atomic writes\n- Updated prompt input undo to Ctrl+\\_ to avoid breaking existing Ctrl+U behavior, matching zsh's undo shortcut\n- Stop Hooks: Fixed transcript path after /clear and fixed triggering when loop ends with tool call\n- Custom slash commands: Restored namespacing in command names based on subdirectories. For example, .claude/commands/frontend/component.md is now /frontend:component, not /component.\n\n## 1.0.44\n\n- New /export command lets you quickly export a conversation for sharing\n- MCP: resource_link tool results are now supported\n- MCP: tool annotations and tool titles now display in /mcp view\n- Changed Ctrl+Z to suspend Claude Code. Resume by running `fg`. Prompt input undo is now Ctrl+U.\n\n## 1.0.43\n\n- Fixed a bug where the theme selector was saving excessively\n- Hooks: Added EPIPE system error handling\n\n## 1.0.42\n\n- Added tilde (`~`) expansion support to `/add-dir` command\n\n## 1.0.41\n\n- Hooks: Split Stop hook triggering into Stop and SubagentStop\n- Hooks: Enabled optional timeout configuration for each command\n- Hooks: Added \"hook_event_name\" to hook input\n- Fixed a bug where MCP tools would display twice in tool list\n- New tool parameters JSON for Bash tool in `tool_decision` event\n\n## 1.0.40\n\n- Fixed a bug causing API connection errors with UNABLE_TO_GET_ISSUER_CERT_LOCALLY if `NODE_EXTRA_CA_CERTS` was set\n\n## 1.0.39\n\n- New Active Time metric in OpenTelemetry logging\n\n## 1.0.38\n\n- Released hooks. Special thanks to community input in https://github.com/anthropics/claude-code/issues/712. Docs: https://docs.anthropic.com/en/docs/claude-code/hooks\n\n## 1.0.37\n\n- Remove ability to set `Proxy-Authorization` header via ANTHROPIC_AUTH_TOKEN or apiKeyHelper\n\n## 1.0.36\n\n- Web search now takes today's date into context\n- Fixed a bug where stdio MCP servers were not terminating properly on exit\n\n## 1.0.35\n\n- Added support for MCP OAuth Authorization Server discovery\n\n## 1.0.34\n\n- Fixed a memory leak causing a MaxListenersExceededWarning message to appear\n\n## 1.0.33\n\n- Improved logging functionality with session ID support\n- Added prompt input undo functionality (Ctrl+Z and vim 'u' command)\n- Improvements to plan mode\n\n## 1.0.32\n\n- Updated loopback config for litellm\n- Added forceLoginMethod setting to bypass login selection screen\n\n## 1.0.31\n\n- Fixed a bug where ~/.claude.json would get reset when file contained invalid JSON\n\n## 1.0.30\n\n- Custom slash commands: Run bash output, @-mention files, enable thinking with thinking keywords\n- Improved file path autocomplete with filename matching\n- Added timestamps in Ctrl-r mode and fixed Ctrl-c handling\n- Enhanced jq regex support for complex filters with pipes and select\n\n## 1.0.29\n\n- Improved CJK character support in cursor navigation and rendering\n\n## 1.0.28\n\n- Slash commands: Fix selector display during history navigation\n- Resizes images before upload to prevent API size limit errors\n- Added XDG_CONFIG_HOME support to configuration directory\n- Performance optimizations for memory usage\n- New attributes (terminal.type, language) in OpenTelemetry logging\n\n## 1.0.27\n\n- Streamable HTTP MCP servers are now supported\n- Remote MCP servers (SSE and HTTP) now support OAuth\n- MCP resources can now be @-mentioned\n- /resume slash command to switch conversations within Claude Code\n\n## 1.0.25\n\n- Slash commands: moved \"project\" and \"user\" prefixes to descriptions\n- Slash commands: improved reliability for command discovery\n- Improved support for Ghostty\n- Improved web search reliability\n\n## 1.0.24\n\n- Improved /mcp output\n- Fixed a bug where settings arrays got overwritten instead of merged\n\n## 1.0.23\n\n- Released TypeScript SDK: import @anthropic-ai/claude-code to get started\n- Released Python SDK: pip install claude-code-sdk to get started\n\n## 1.0.22\n\n- SDK: Renamed `total_cost` to `total_cost_usd`\n\n## 1.0.21\n\n- Improved editing of files with tab-based indentation\n- Fix for tool_use without matching tool_result errors\n- Fixed a bug where stdio MCP server processes would linger after quitting Claude Code\n\n## 1.0.18\n\n- Added --add-dir CLI argument for specifying additional working directories\n- Added streaming input support without require -p flag\n- Improved startup performance and session storage performance\n- Added CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR environment variable to freeze working directory for bash commands\n- Added detailed MCP server tools display (/mcp)\n- MCP authentication and permission improvements\n- Added auto-reconnection for MCP SSE connections on disconnect\n- Fixed issue where pasted content was lost when dialogs appeared\n\n## 1.0.17\n\n- We now emit messages from sub-tasks in -p mode (look for the parent_tool_use_id property)\n- Fixed crashes when the VS Code diff tool is invoked multiple times quickly\n- MCP server list UI improvements\n- Update Claude Code process title to display \"claude\" instead of \"node\"\n\n## 1.0.11\n\n- Claude Code can now also be used with a Claude Pro subscription\n- Added /upgrade for smoother switching to Claude Max plans\n- Improved UI for authentication from API keys and Bedrock/Vertex/external auth tokens\n- Improved shell configuration error handling\n- Improved todo list handling during compaction\n\n## 1.0.10\n\n- Added markdown table support\n- Improved streaming performance\n\n## 1.0.8\n\n- Fixed Vertex AI region fallback when using CLOUD_ML_REGION\n- Increased default otel interval from 1s -> 5s\n- Fixed edge cases where MCP_TIMEOUT and MCP_TOOL_TIMEOUT weren't being respected\n- Fixed a regression where search tools unnecessarily asked for permissions\n- Added support for triggering thinking non-English languages\n- Improved compacting UI\n\n## 1.0.7\n\n- Renamed /allowed-tools -> /permissions\n- Migrated allowedTools and ignorePatterns from .claude.json -> settings.json\n- Deprecated claude config commands in favor of editing settings.json\n- Fixed a bug where --dangerously-skip-permissions sometimes didn't work in --print mode\n- Improved error handling for /install-github-app\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.6\n\n- Improved edit reliability for tab-indented files\n- Respect CLAUDE_CONFIG_DIR everywhere\n- Reduced unnecessary tool permission prompts\n- Added support for symlinks in @file typeahead\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.4\n\n- Fixed a bug where MCP tool errors weren't being parsed correctly\n\n## 1.0.1\n\n- Added `DISABLE_INTERLEAVED_THINKING` to give users the option to opt out of interleaved thinking.\n- Improved model references to show provider-specific names (Sonnet 3.7 for Bedrock, Sonnet 4 for Console)\n- Updated documentation links and OAuth process descriptions\n\n## 1.0.0\n\n- Claude Code is now generally available\n- Introducing Sonnet 4 and Opus 4 models\n\n## 0.2.125\n\n- Breaking change: Bedrock ARN passed to `ANTHROPIC_MODEL` or `ANTHROPIC_SMALL_FAST_MODEL` should no longer contain an escaped slash (specify `/` instead of `%2F`)\n- Removed `DEBUG=true` in favor of `ANTHROPIC_LOG=debug`, to log all requests\n\n## 0.2.117\n\n- Breaking change: --print JSON output now returns nested message objects, for forwards-compatibility as we introduce new metadata fields\n- Introduced settings.cleanupPeriodDays\n- Introduced CLAUDE_CODE_API_KEY_HELPER_TTL_MS env var\n- Introduced --debug mode\n\n## 0.2.108\n\n- You can now send messages to Claude while it works to steer Claude in real-time\n- Introduced BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS env vars\n- Fixed a bug where thinking was not working in -p mode\n- Fixed a regression in /cost reporting\n- Deprecated MCP wizard interface in favor of other MCP commands\n- Lots of other bugfixes and improvements\n\n## 0.2.107\n\n- CLAUDE.md files can now import other files. Add @path/to/file.md to ./CLAUDE.md to load additional files on launch\n\n## 0.2.106\n\n- MCP SSE server configs can now specify custom headers\n- Fixed a bug where MCP permission prompt didn't always show correctly\n\n## 0.2.105\n\n- Claude can now search the web\n- Moved system & account status to /status\n- Added word movement keybindings for Vim\n- Improved latency for startup, todo tool, and file edits\n\n## 0.2.102\n\n- Improved thinking triggering reliability\n- Improved @mention reliability for images and folders\n- You can now paste multiple large chunks into one prompt\n\n## 0.2.100\n\n- Fixed a crash caused by a stack overflow error\n- Made db storage optional; missing db support disables --continue and --resume\n\n## 0.2.98\n\n- Fixed an issue where auto-compact was running twice\n\n## 0.2.96\n\n- Claude Code can now also be used with a Claude Max subscription (https://claude.ai/upgrade)\n\n## 0.2.93\n\n- Resume conversations from where you left off from with \"claude --continue\" and \"claude --resume\"\n- Claude now has access to a Todo list that helps it stay on track and be more organized\n\n## 0.2.82\n\n- Added support for --disallowedTools\n- Renamed tools for consistency: LSTool -> LS, View -> Read, etc.\n\n## 0.2.75\n\n- Hit Enter to queue up additional messages while Claude is working\n- Drag in or copy/paste image files directly into the prompt\n- @-mention files to directly add them to context\n- Run one-off MCP servers with `claude --mcp-config <path-to-file>`\n- Improved performance for filename auto-complete\n\n## 0.2.74\n\n- Added support for refreshing dynamically generated API keys (via apiKeyHelper), with a 5 minute TTL\n- Task tool can now perform writes and run bash commands\n\n## 0.2.72\n\n- Updated spinner to indicate tokens loaded and tool usage\n\n## 0.2.70\n\n- Network commands like curl are now available for Claude to use\n- Claude can now run multiple web queries in parallel\n- Pressing ESC once immediately interrupts Claude in Auto-accept mode\n\n## 0.2.69\n\n- Fixed UI glitches with improved Select component behavior\n- Enhanced terminal output display with better text truncation logic\n\n## 0.2.67\n\n- Shared project permission rules can be saved in .claude/settings.json\n\n## 0.2.66\n\n- Print mode (-p) now supports streaming output via --output-format=stream-json\n- Fixed issue where pasting could trigger memory or bash mode unexpectedly\n\n## 0.2.63\n\n- Fixed an issue where MCP tools were loaded twice, which caused tool call errors\n\n## 0.2.61\n\n- Navigate menus with vim-style keys (j/k) or bash/emacs shortcuts (Ctrl+n/p) for faster interaction\n- Enhanced image detection for more reliable clipboard paste functionality\n- Fixed an issue where ESC key could crash the conversation history selector\n\n## 0.2.59\n\n- Copy+paste images directly into your prompt\n- Improved progress indicators for bash and fetch tools\n- Bugfixes for non-interactive mode (-p)\n\n## 0.2.54\n\n- Quickly add to Memory by starting your message with '#'\n- Press ctrl+r to see full output for long tool results\n- Added support for MCP SSE transport\n\n## 0.2.53\n\n- New web fetch tool lets Claude view URLs that you paste in\n- Fixed a bug with JPEG detection\n\n## 0.2.50\n\n- New MCP \"project\" scope now allows you to add MCP servers to .mcp.json files and commit them to your repository\n\n## 0.2.49\n\n- Previous MCP server scopes have been renamed: previous \"project\" scope is now \"local\" and \"global\" scope is now \"user\"\n\n## 0.2.47\n\n- Press Tab to auto-complete file and folder names\n- Press Shift + Tab to toggle auto-accept for file edits\n- Automatic conversation compaction for infinite conversation length (toggle with /config)\n\n## 0.2.44\n\n- Ask Claude to make a plan with thinking mode: just say 'think' or 'think harder' or even 'ultrathink'\n\n## 0.2.41\n\n- MCP server startup timeout can now be configured via MCP_TIMEOUT environment variable\n- MCP server startup no longer blocks the app from starting up\n\n## 0.2.37\n\n- New /release-notes command lets you view release notes at any time\n- `claude config add/remove` commands now accept multiple values separated by commas or spaces\n\n## 0.2.36\n\n- Import MCP servers from Claude Desktop with `claude mcp add-from-claude-desktop`\n- Add MCP servers as JSON strings with `claude mcp add-json <n> <json>`\n\n## 0.2.34\n\n- Vim bindings for text input - enable with /vim or /config\n\n## 0.2.32\n\n- Interactive MCP setup wizard: Run \"claude mcp add\" to add MCP servers with a step-by-step interface\n- Fix for some PersistentShell issues\n\n## 0.2.31\n\n- Custom slash commands: Markdown files in .claude/commands/ directories now appear as custom slash commands to insert prompts into your conversation\n- MCP debug mode: Run with --mcp-debug flag to get more information about MCP server errors\n\n## 0.2.30\n\n- Added ANSI color theme for better terminal compatibility\n- Fixed issue where slash command arguments weren't being sent properly\n- (Mac-only) API keys are now stored in macOS Keychain\n\n## 0.2.26\n\n- New /approved-tools command for managing tool permissions\n- Word-level diff display for improved code readability\n- Fuzzy matching for slash commands\n\n## 0.2.21\n\n- Fuzzy matching for /commands\n",
+  "changelogLastFetched": 1757397411038,
+  "lastReleaseNotesSeen": "1.0.107",
+  "hasAcknowledgedCostThreshold": true,
+  "hasUsedBackslashReturn": true
+}

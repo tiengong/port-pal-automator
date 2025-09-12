@@ -8,6 +8,10 @@ interface TauriPortInfo {
   port_type: string;
   usb_vid?: number;
   usb_pid?: number;
+  // 可能包含系统设备名称的字段
+  friendly_name?: string;
+  description?: string;
+  display_name?: string;
 }
 
 export class TauriSerialTransport extends SerialTransport {
@@ -30,20 +34,50 @@ export class TauriSerialTransport extends SerialTransport {
 
     try {
       const ports = await SerialPort.available_ports();
+      console.log('Raw serial ports data:', ports);
       
       return Object.entries(ports).map(([path, info], index) => {
-        let deviceName = 'Serial Device';
+        // 探索所有可用的字段
+        console.log(`Raw device info for ${path}:`, JSON.stringify(info, null, 2));
         
-        // 根据USB VID/PID确定设备名称
-        if (info.usb_vid && info.usb_pid) {
-          deviceName = this.getDeviceName(info.usb_vid, info.usb_pid);
+        // 尝试从系统获取设备名称 - 按优先级尝试不同字段
+        let deviceName = null;
+        
+        // 尝试各种可能的设备名称字段
+        const possibleNameFields = [
+          'friendly_name', 'description', 'display_name', 'name', 
+          'device_name', 'product_name', 'manufacturer', 'vendor_name'
+        ];
+        
+        for (const field of possibleNameFields) {
+          if (info[field as keyof TauriPortInfo]) {
+            deviceName = info[field as keyof TauriPortInfo] as string;
+            console.log(`Found device name in field '${field}': ${deviceName}`);
+            break;
+          }
         }
         
-        return {
+        // 如果没有找到系统设备名称，使用通用名称或VID/PID映射
+        if (!deviceName) {
+          if (info.usb_vid && info.usb_pid) {
+            deviceName = this.getDeviceName(info.usb_vid, info.usb_pid);
+          } else {
+            deviceName = 'Serial Device';
+          }
+        }
+        
+        const portInfo = {
           id: `tauri-${index}`,
           name: `${path} (${deviceName})`,
           path: path
         };
+        
+        console.log(`Final device ${path}:`, {
+          deviceName,
+          finalName: portInfo.name
+        });
+        
+        return portInfo;
       });
     } catch (error) {
       console.error('Failed to list serial ports:', error);
@@ -180,6 +214,15 @@ export class TauriSerialTransport extends SerialTransport {
       // ESP32
       "303a:1001": "Espressif ESP32-S2",
       "303a:0002": "Espressif ESP32-S3",
+      // Exar/MaxLinear XR21V141x 系列 (包括 XR21V1412)
+      "04e2:1412": "Exar XR21V1412 USB UART Ch A",
+      "04e2:1410": "Exar XR21V1410 USB UART",
+      "04e2:1414": "Exar XR21V1414 USB UART",
+      // 其他常见USB转串口芯片
+      "0403:6010": "FTDI FT2232H USB UART",
+      "0403:6011": "FTDI FT4232H USB UART",
+      "067b:2304": "Prolific PL2303X USB Serial",
+      "1a86:7522": "QinHeng CH340K USB Serial",
     };
     
     const key = `${vendorId.toString(16).padStart(4, '0')}:${productId.toString(16).padStart(4, '0')}`;

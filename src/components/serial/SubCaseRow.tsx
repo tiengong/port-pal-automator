@@ -211,83 +211,8 @@ export const SubCaseRow: React.FC<SubCaseRowProps> = ({
         </div>
       </div>
       
-      {/* 递归渲染子用例的内容 - 修复三级子用例显示问题 */}
-      {subCase.isExpanded && (subCase.commands.length > 0 || subCase.subCases.length > 0) && (
-        <div className={cn("border-l-2 border-primary/30 bg-muted/20", level >= 2 && "ml-2")}>
-          {/* 渲染命令列表 */}
-          {subCase.commands.map((command, index) => (
-            <CommandRow
-              key={command.id}
-              command={command}
-              commandIndex={index}
-              caseId={subCase.id}
-              level={level + 1}
-              isExecuting={executingCommand?.caseId === subCase.id && executingCommand?.commandIndex === index}
-              isExpanded={subCase.isExpanded}
-              dragInfo={dragInfo}
-              inlineEdit={inlineEdit}
-              storedParameters={storedParameters}
-              onToggleSelection={(selected) => onToggleCommandSelection?.(subCase.id, command.id, selected)}
-              onInlineEditStart={(value) => onInlineEditStart?.(command.id, value)}
-              onInlineEditSave={() => onInlineEditSave?.(subCase.id, command.id)}
-              onInlineEditChange={onInlineEditChange}
-              onRunCommand={() => onRunCommand?.(subCase.id, index)}
-              onEditCommand={() => onEditCommand?.(subCase.id, index)}
-              onDeleteCommand={() => onDeleteCommand?.(subCase.id, command.id)}
-              onDragStart={(e) => onDragStart(e, subCase.id, 'command', command.id, index)}
-              onDragOver={(e, position) => onDragOver(e, subCase.id, index, position)}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-              onContextMenu={(e) => onContextMenuCommand?.(e, command.id, 'command')}
-              onMoveCommand={(fromIndex, toIndex) => onMoveCommand?.(fromIndex, toIndex)}
-              formatCommandIndex={formatCommandIndex}
-              t={t}
-            />
-          ))}
-          
-          {/* 递归渲染子用例 - 关键修复 */}
-          {subCase.subCases.map((childCase) => (
-            <SubCaseRow
-              key={childCase.id}
-              subCase={childCase}
-              parentCaseId={subCase.id}
-              level={level + 1}
-              isDragging={isDragging}
-              isDropTarget={isDropTarget}
-              dropPosition={dropPosition}
-              onDragStart={onDragStart}
-              onDragOver={onDragOver}
-              onDragLeave={onDragLeave}
-              onDrop={onDrop}
-              onSelectCase={onSelectCase}
-              onToggleExpand={onToggleExpand}
-              onUpdateCaseSelection={onUpdateCaseSelection}
-              onRunTestCase={onRunTestCase}
-              onEditCase={onEditCase}
-              onSetLastFocusedChild={onSetLastFocusedChild}
-              // 递归传递所有必要的props
-              onRunCommand={onRunCommand}
-              onEditCommand={onEditCommand}
-              onDeleteCommand={onDeleteCommand}
-              onToggleCommandSelection={onToggleCommandSelection}
-              onInlineEditStart={onInlineEditStart}
-              onInlineEditSave={onInlineEditSave}
-              onInlineEditChange={onInlineEditChange}
-              onMoveCommand={onMoveCommand}
-              onContextMenuCommand={onContextMenuCommand}
-              onAddSubCase={onAddSubCase}
-              onAddCommand={onAddCommand}
-              onAddUrc={onAddUrc}
-              storedParameters={storedParameters}
-              executingCommand={executingCommand}
-              inlineEdit={inlineEdit}
-              dragInfo={dragInfo}
-              formatCommandIndex={formatCommandIndex}
-              t={t}
-            />
-          ))}
-        </div>
-      )}
+      {/* 子用例的内容由外部统一渲染逻辑处理，不再内部递归 */}
+      {/* 这样可以避免双重渲染问题 */}
     </div>
   );
 };

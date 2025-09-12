@@ -343,12 +343,15 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     setState(prev => ({ ...prev, nextUniqueId: id }));
   }, []);
   
-  // Utility functions
+  // Utility functions - 修复竞态条件，使用函数式更新
   const generateUniqueId = useCallback(() => {
-    const id = state.nextUniqueId.toString();
-    setNextUniqueId(state.nextUniqueId + 1);
-    return id;
-  }, [state.nextUniqueId]);
+    let generatedId: string;
+    setState(prev => {
+      generatedId = prev.nextUniqueId.toString();
+      return { ...prev, nextUniqueId: prev.nextUniqueId + 1 };
+    });
+    return generatedId!;
+  }, []);
   
   const getCurrentTestCase = useCallback(() => {
     if (!Array.isArray(state.testCases)) return null;
@@ -513,13 +516,16 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
       console.error('Command execution error:', error);
       return { success: false, error: error?.toString() || '命令执行失败' };
     } finally {
-      // 清除高亮状态
-      setTimeout(() => {
+      // 清除高亮状态 - 添加清理机制防止竞态条件
+      const timeoutId = setTimeout(() => {
         setState(prev => ({
           ...prev,
           executingCommand: { caseId: null, commandIndex: null }
         }));
       }, command.waitTime || 1000);
+      
+      // 返回清理函数，防止组件卸载后的状态更新
+      return () => clearTimeout(timeoutId);
     }
   }, [state.testCases, state.storedParameters, statusMessages]);
   

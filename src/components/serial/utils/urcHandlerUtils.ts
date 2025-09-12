@@ -54,7 +54,7 @@ const handleIncomingData = (event: SerialDataEvent, context: UrcHandlerContext) 
   // Check for active URC listeners
   currentTestCase.commands.forEach((command, commandIndex) => {
     if (command.type === 'urc' && command.selected && command.urcPattern) {
-      const matches = checkUrcMatch(event.data, command);
+      const matches = checkUrcMatch(event.data, command.urcPattern || '');
       if (matches) {
         handleUrcMatch({
           command,
@@ -98,8 +98,16 @@ const handleUrcMatch = async (options: {
   // Extract parameters
   const extractedParams = parseUrcData(data, command);
   if (Object.keys(extractedParams).length > 0) {
-    // Update stored parameters, newer values override older ones
-    const newParameters = { ...storedParameters, ...extractedParams };
+    // Update stored parameters with timestamp format, newer values override older ones
+    const newParameters = { 
+      ...storedParameters, 
+      ...Object.fromEntries(
+        Object.entries(extractedParams).map(([key, value]) => [
+          key, 
+          { value, timestamp: Date.now() }
+        ])
+      )
+    };
     onUpdateParameters(newParameters);
     
     // Emit parameter extraction event
@@ -110,7 +118,7 @@ const handleUrcMatch = async (options: {
     
     globalToast({
       title: "参数解析成功",
-      description: `提取参数: ${Object.entries(extractedParams).map(([k, v]) => `${k}=${v.value}`).join(', ')}`,
+      description: `提取参数: ${Object.entries(extractedParams).map(([k, v]) => `${k}=${v}`).join(', ')}`,
     });
   }
   

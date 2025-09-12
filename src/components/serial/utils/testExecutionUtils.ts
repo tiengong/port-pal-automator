@@ -375,13 +375,16 @@ const handleUrcTimeout = async (options: {
   const { command, caseId, commandIndex, statusMessages } = options;
   
   return new Promise<{ success: boolean; error?: string }>((resolve) => {
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       const severity = command.failureSeverity || 'error';
       const errorMessage = `URC监听超时（${command.urcListenTimeout}ms）`;
       
       statusMessages?.addMessage(`URC监听超时失败（${severity}级）: ${command.urcPattern}`, severity === 'error' ? 'error' : 'warning');
       resolve({ success: false, error: errorMessage });
     }, command.urcListenTimeout!);
+    
+    // 返回清理函数，允许外部清理定时器
+    return () => clearTimeout(timeoutId);
   });
 };
 

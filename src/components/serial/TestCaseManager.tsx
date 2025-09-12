@@ -823,73 +823,72 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             
             <ContextMenuSeparator />
             
+            {/* 载入功能 - 直接显示为一级菜单 */}
             <ContextMenuSub>
               <ContextMenuSubTrigger className="flex items-center gap-2">
                 <Upload className="w-4 h-4" />
-                载入
+                载入到当前用例
               </ContextMenuSubTrigger>
-              <ContextMenuSubContent className="w-64">
+              <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
                 <ContextMenuSub>
-                  <ContextMenuSubTrigger>载入到当前用例</ContextMenuSubTrigger>
-                  <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
-                    <ContextMenuSub>
-                      <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
-                      <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
-                        {state.testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
-                          state.testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
-                            <ContextMenuItem key={testCase.id} onClick={() => {
-                              // Implementation would use importExportUtils
-                              console.log('Load test case:', testCase.name);
-                            }} className="flex items-center justify-between">
-                              <span className="truncate mr-2">{testCase.name}</span>
-                              <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
-                            </ContextMenuItem>
-                          ))
-                        ) : (
-                          <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
-                        )}
-                      </ContextMenuSubContent>
-                    </ContextMenuSub>
-                    <ContextMenuItem onClick={() => {
-                      // Implementation would use importExportUtils
-                      console.log('Import from file: merge');
-                    }}
-                    >
-                      自现有文件
-                    </ContextMenuItem>
+                  <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
+                    {state.testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
+                      state.testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
+                        <ContextMenuItem key={testCase.id} onClick={() => {
+                          // Implementation would use importExportUtils
+                          console.log('Load test case:', testCase.name);
+                        }} className="flex items-center justify-between">
+                          <span className="truncate mr-2">{testCase.name}</span>
+                          <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
+                        </ContextMenuItem>
+                      ))
+                    ) : (
+                      <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
+                    )}
                   </ContextMenuSubContent>
                 </ContextMenuSub>
-                
+                <ContextMenuItem onClick={() => {
+                  // Implementation would use importExportUtils
+                  console.log('Import from file: merge');
+                }}
+                >
+                  自现有文件
+                </ContextMenuItem>
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            
+            <ContextMenuSub>
+              <ContextMenuSubTrigger className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                以子用例方式载入
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
                 <ContextMenuSub>
-                  <ContextMenuSubTrigger>以子用例方式载入到当前用例</ContextMenuSubTrigger>
-                  <ContextMenuSubContent className="w-72 max-h-64 overflow-y-auto">
-                    <ContextMenuSub>
-                      <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
-                      <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
-                        {state.testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
-                          state.testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
-                            <ContextMenuItem key={testCase.id} onClick={() => {
-                              // Implementation would use importExportUtils
-                              console.log('Load as subcase:', testCase.name);
-                            }} className="flex items-center justify-between">
-                              <span className="truncate mr-2">{testCase.name}</span>
-                              <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
-                            </ContextMenuItem>
-                          ))
-                        ) : (
-                          <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
-                        )}
-                      </ContextMenuSubContent>
-                    </ContextMenuSub>
-                    <ContextMenuItem onClick={() => {
-                      // Implementation would use importExportUtils
-                      console.log('Import from file: subcase');
-                    }}
-                    >
-                      自现有文件
-                    </ContextMenuItem>
+                  <ContextMenuSubTrigger>自当前仓库</ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-64 max-h-64 overflow-y-auto">
+                    {state.testCases.filter(tc => tc.id !== currentTestCase?.id).length > 0 ? (
+                      state.testCases.filter(tc => tc.id !== currentTestCase?.id).map(testCase => (
+                        <ContextMenuItem key={testCase.id} onClick={() => {
+                          // Implementation would use importExportUtils
+                          console.log('Load as subcase:', testCase.name);
+                        }} className="flex items-center justify-between">
+                          <span className="truncate mr-2">{testCase.name}</span>
+                          <span className="text-xs text-muted-foreground">#{testCase.uniqueId}</span>
+                        </ContextMenuItem>
+                      ))
+                    ) : (
+                      <ContextMenuItem disabled>暂无其他用例</ContextMenuItem>
+                    )}
                   </ContextMenuSubContent>
                 </ContextMenuSub>
+                <ContextMenuItem onClick={() => {
+                  // Implementation would use importExportUtils
+                  console.log('Import from file: subcase');
+                }}
+                >
+                  自现有文件
+                </ContextMenuItem>
               </ContextMenuSubContent>
             </ContextMenuSub>
             

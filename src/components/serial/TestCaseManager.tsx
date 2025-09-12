@@ -280,6 +280,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0"
+                    onClick={() => handleEditCase(subCase)}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>设置</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
                     onClick={() => toggleCaseExpand(subCase.id)}
                   >
                     {subCase.subCases.length > 0 || subCase.commands.length > 0 ? (
@@ -431,6 +449,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => handleEditCommand(testCase.id, index)}
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>设置</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </div>
@@ -495,6 +531,24 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>运行</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          onClick={() => handleEditCommand(testCase.id, index)}
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>设置</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

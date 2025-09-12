@@ -366,9 +366,54 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     });
   };
 
+  // 新增：全选所有测试用例
+  const handleSelectAllTestCases = () => {
+    const allSelected = testCases.length > 0 && testCases.every(tc => tc.selected);
+    const updatedTestCases = testCases.map(tc => ({
+      ...tc,
+      selected: !allSelected
+    }));
+    setTestCases(updatedTestCases);
+    
+    toast({
+      title: allSelected ? "取消全选用例" : "全选所有用例",
+      description: allSelected ? "已取消选择所有测试用例" : `已选择所有 ${testCases.length} 个测试用例`,
+    });
+  };
+
   return (
     <div className="flex items-center gap-0.5 flex-shrink-0">
-      {/* 全选/取消全选按钮 */}
+      {/* 全选所有测试用例按钮 */}
+      {testCases.length > 0 && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                onClick={handleSelectAllTestCases}
+                variant="outline" 
+                size="sm" 
+                className="h-7 w-7 p-0"
+              >
+                {testCases.length > 0 && testCases.every(tc => tc.selected) ? (
+                  <CheckSquare className="w-3.5 h-3.5" />
+                ) : (
+                  <SquareIcon className="w-3.5 h-3.5" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>
+                {testCases.length > 0 && testCases.every(tc => tc.selected)
+                  ? "取消全选用例"
+                  : "全选所有用例"
+                }
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+      
+      {/* 全选当前用例命令按钮 */}
       {currentTestCase && currentTestCase.commands.length > 0 && (
         <TooltipProvider>
           <Tooltip>

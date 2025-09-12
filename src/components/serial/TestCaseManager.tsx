@@ -898,7 +898,27 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
             <ContextMenuItem 
               onClick={toggleSelectAllViaContextMenu}
               className="flex items-center gap-2"
-              disabled={!currentTestCase || currentTestCase.commands.length === 0}
+              disabled={(() => {
+                if (!currentTestCase) return true;
+                
+                // 检查当前用例是否有命令
+                if (currentTestCase.commands.length > 0) return false;
+                
+                // 检查是否有聚焦的子项
+                if (state.lastFocusedChild) {
+                  // 如果聚焦的是子用例，检查该子用例是否有命令
+                  if (state.lastFocusedChild.type === 'subcase') {
+                    const focusedSubCase = state.testCases.find(tc => tc.id === state.lastFocusedChild?.itemId);
+                    return !focusedSubCase || focusedSubCase.commands.length === 0;
+                  }
+                  // 如果聚焦的是命令，允许全选（同级别的命令）
+                  return false;
+                }
+                
+                // 检查子用例是否有命令
+                const hasCommandsInSubCases = currentTestCase.subCases.some(subCase => subCase.commands.length > 0);
+                return !hasCommandsInSubCases;
+              })()}
             >
               <CheckSquare className="w-4 h-4" />
               全选/取消全选

@@ -116,7 +116,7 @@ const handleUrcMatch = async (options: {
   } = options;
   
   // Extract parameters
-  const extractedParams = parseUrcData(data, command);
+  const extractedParams = parseUrcData(data, command.urcPattern || '');
   if (Object.keys(extractedParams).length > 0) {
     // Update stored parameters with timestamp format, newer values override older ones
     const newParameters = { 
@@ -262,7 +262,7 @@ export const processUrcData = (data: string, command: TestCommand): {
     return { parameters: {}, shouldTrigger: false };
   }
   
-  const extractedParams = parseUrcData(data, command);
+  const extractedParams = parseUrcData(data, command.urcPattern || '');
   return {
     parameters: extractedParams,
     shouldTrigger: true

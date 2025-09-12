@@ -207,6 +207,7 @@ export interface UseTestCaseManagerReturn {
   setLastFocusedChild: (child: { caseId: string; type: 'command' | 'subcase'; itemId: string; index: number } | null) => void;
   setCurrentWorkspace: (workspace: string | null) => void;
   setNextUniqueId: (id: number) => void;
+  setExecutingCommand: (command: { caseId: string | null; commandIndex: number | null }) => void;
 }
 
 /**
@@ -483,7 +484,10 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     if (!command) return { success: false, error: '命令未找到' };
     
     // 设置当前执行的命令高亮
-    setExecutingCommand({ caseId, commandIndex });
+    setState(prev => ({
+      ...prev,
+      executingCommand: { caseId, commandIndex }
+    }));
     
     try {
       // 使用模块化的命令执行函数
@@ -511,7 +515,10 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     } finally {
       // 清除高亮状态
       setTimeout(() => {
-        setExecutingCommand({ caseId: null, commandIndex: null });
+        setState(prev => ({
+          ...prev,
+          executingCommand: { caseId: null, commandIndex: null }
+        }));
       }, command.waitTime || 1000);
     }
   }, [state.testCases, state.storedParameters, statusMessages]);
@@ -892,6 +899,12 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     setFailurePromptDialog,
     setLastFocusedChild,
     setCurrentWorkspace,
-    setNextUniqueId
+    setNextUniqueId,
+    setExecutingCommand: (command: { caseId: string | null; commandIndex: number | null }) => {
+      setState(prev => ({
+        ...prev,
+        executingCommand: command
+      }));
+    }
   };
 };

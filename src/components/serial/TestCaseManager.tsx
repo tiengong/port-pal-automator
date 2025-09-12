@@ -122,7 +122,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setFailurePromptDialog,
     setLastFocusedChild,
     setCurrentWorkspace,
-    setNextUniqueId
+    setNextUniqueId,
+    setExecutingCommand
   } = useTestCaseManager({
     connectedPorts,
     receivedData,

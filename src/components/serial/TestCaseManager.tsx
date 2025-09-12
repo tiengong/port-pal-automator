@@ -123,7 +123,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     setLastFocusedChild,
     setCurrentWorkspace,
     setNextUniqueId,
-    setExecutingCommand
+    setExecutingCommand,
+    updateCommand
   } = useTestCaseManager({
     connectedPorts,
     receivedData,
@@ -947,8 +948,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 <ExecutionEditor
                   command={currentTestCase.commands[state.editingCommandIndex]}
                   onUpdate={(updates) => {
-                    // Implementation would use testCaseRecursiveUtils
-                    console.log('Update execution command:', updates);
+                    // 更新执行命令配置
+                    if (state.editingCommandIndex !== null) {
+                      updateCommand(currentTestCase.id, state.editingCommandIndex, updates);
+                    }
                   }}
                 />
               )}
@@ -956,8 +959,10 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 <UrcEditor
                   command={currentTestCase.commands[state.editingCommandIndex]}
                   onUpdate={(updates) => {
-                    // Implementation would use testCaseRecursiveUtils
-                    console.log('Update URC command:', updates);
+                    // 更新URC命令配置
+                    if (state.editingCommandIndex !== null) {
+                      updateCommand(currentTestCase.id, state.editingCommandIndex, updates);
+                    }
                   }}
                   jumpOptions={{
                     // Implementation would use testCaseNavigationUtils

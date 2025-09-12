@@ -16,7 +16,8 @@
       "Bash(python:*)",
       "Bash(gh run list:*)",
       "Bash(node:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": []

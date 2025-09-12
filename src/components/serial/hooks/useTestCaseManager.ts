@@ -23,7 +23,8 @@ import {
   handleDragOver as handleDragOverUtil,
   handleDragLeave as handleDragLeaveUtil,
   handleDrop as handleDropUtil,
-  handleDragEnd as handleDragEndUtil
+  handleDragEnd as handleDragEndUtil,
+  DragDropContext
 } from '../utils/dragDropUtils';
 import { 
   exportTestCase, 
@@ -108,7 +109,7 @@ export interface TestCaseManagerState {
   waitingForUser: boolean;
   userPrompt: string;
   contextMenu: ContextMenuState;
-  dragInfo: any;
+  dragInfo: DragDropContext;
   inlineEdit: { commandId: string | null; value: string };
   
   // Dialog state
@@ -200,7 +201,7 @@ export interface UseTestCaseManagerReturn {
   setStoredParameters: (params: { [key: string]: { value: string; timestamp: number } }) => void;
   setTriggeredUrcIds: (ids: Set<string>) => void;
   setContextMenu: (menu: ContextMenuState) => void;
-  setDragInfo: (info: any) => void;
+  setDragInfo: (info: DragDropContext) => void;
   setInlineEdit: (edit: { commandId: string | null; value: string }) => void;
   setUserActionDialog: (dialog: any) => void;
   setFailurePromptDialog: (dialog: any) => void;
@@ -315,7 +316,7 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     setState(prev => ({ ...prev, contextMenu: menu }));
   }, []);
   
-  const setDragInfo = useCallback((info: any) => {
+  const setDragInfo = useCallback((info: DragDropContext) => {
     setState(prev => ({ ...prev, dragInfo: info }));
   }, []);
   
@@ -829,7 +830,7 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     
     const unsubscribe = setupUrcListeners(urcContext);
     return unsubscribe;
-  }, [getCurrentTestCase(), state.testCases, state.storedParameters, state.triggeredUrcIds]);
+  }, [state.testCases.length, state.storedParameters, state.triggeredUrcIds]);
   
   return {
     state,
@@ -911,6 +912,17 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
         ...prev,
         executingCommand: command
       }));
+    },
+    
+    // 新增：更新命令的函数
+    updateCommand: (caseId: string, commandIndex: number, updates: Partial<TestCommand>) => {
+      const updatedTestCases = updateCaseById(state.testCases, caseId, (testCase) => ({
+        ...testCase,
+        commands: testCase.commands.map((cmd, idx) => 
+          idx === commandIndex ? { ...cmd, ...updates } : cmd
+        )
+      }));
+      setTestCases(updatedTestCases);
     }
   };
 };

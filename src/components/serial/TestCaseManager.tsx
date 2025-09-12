@@ -81,6 +81,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     handleEditCase,
     handleRunTestCase,
     handleDeleteTestCase,
+    updateCaseName,
     handleRunCommand,
     handleEditCommand,
     updateCommandSelection,
@@ -190,8 +191,49 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
 
   // 渲染子用例行（支持拖拽）
   const renderSubCaseRow = (subCase: TestCase, parentCaseId: string, level: number) => {
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editingName, setEditingName] = useState(subCase.name);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+    
     const isDragging = state.dragInfo.draggedItem?.caseId === parentCaseId && state.dragInfo.draggedItem?.itemId === subCase.id;
     const isDropTarget = state.dragInfo.dropTarget?.caseId === parentCaseId && state.dragInfo.dropTarget?.index === level;
+    
+    // 处理双击开始编辑
+    const handleDoubleClick = () => {
+      setIsEditingName(true);
+      setEditingName(subCase.name);
+    };
+
+    // 处理名称保存
+    const handleNameSave = () => {
+      if (editingName.trim() !== subCase.name) {
+        updateCaseName(subCase.id, editingName.trim());
+      }
+      setIsEditingName(false);
+    };
+
+    // 处理输入框键盘事件
+    const handleInputKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleNameSave();
+      } else if (e.key === 'Escape') {
+        setIsEditingName(false);
+        setEditingName(subCase.name);
+      }
+    };
+
+    // 处理输入框失焦
+    const handleInputBlur = () => {
+      handleNameSave();
+    };
+
+    // 自动聚焦输入框
+    useEffect(() => {
+      if (isEditingName && nameInputRef.current) {
+        nameInputRef.current.focus();
+        nameInputRef.current.select();
+      }
+    }, [isEditingName]);
     
     return (
       <div 
@@ -239,13 +281,27 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 index: level
               });
             }}
+            onDoubleClick={handleDoubleClick}
           >
             <div className="flex items-center gap-2">
-              <span className={`font-medium text-sm truncate ${
-                state.selectedTestCaseId === subCase.id ? 'text-primary' : ''
-              }`}>
-                {subCase.name}
-              </span>
+              {isEditingName ? (
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={handleInputKeyDown}
+                  onBlur={handleInputBlur}
+                  className="font-medium text-sm bg-transparent border-b border-primary outline-none focus:border-primary-dark truncate w-full"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span className={`font-medium text-sm truncate ${
+                  state.selectedTestCaseId === subCase.id ? 'text-primary' : ''
+                }`}>
+                  {subCase.name}
+                </span>
+              )}
             </div>
           </div>
           

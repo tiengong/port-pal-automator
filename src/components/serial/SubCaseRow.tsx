@@ -1,5 +1,5 @@
 // SubCaseRow.tsx
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -25,6 +25,7 @@ interface SubCaseRowProps {
   onRunTestCase: (caseId: string) => void;
   onEditCase: (testCase: TestCase) => void;
   onSetLastFocusedChild: (caseId: string, type: 'subcase', itemId: string, index: number) => void;
+  onUpdateCaseName?: (caseId: string, name: string) => void;
   // 新增：递归渲染子用例所需的props
   onRunCommand?: (caseId: string, commandIndex: number) => void;
   onEditCommand?: (caseId: string, commandIndex: number) => void;
@@ -63,6 +64,7 @@ export const SubCaseRow: React.FC<SubCaseRowProps> = ({
   onRunTestCase,
   onEditCase,
   onSetLastFocusedChild,
+  onUpdateCaseName,
   // 新增props
   onRunCommand,
   onEditCommand,
@@ -83,6 +85,10 @@ export const SubCaseRow: React.FC<SubCaseRowProps> = ({
   formatCommandIndex,
   t
 }) => {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState(subCase.name);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -97,6 +103,45 @@ export const SubCaseRow: React.FC<SubCaseRowProps> = ({
         return null;
     }
   };
+
+  // 处理双击开始编辑
+  const handleDoubleClick = () => {
+    if (onUpdateCaseName) {
+      setIsEditingName(true);
+      setEditingName(subCase.name);
+    }
+  };
+
+  // 处理名称保存
+  const handleNameSave = () => {
+    if (onUpdateCaseName && editingName.trim() !== subCase.name) {
+      onUpdateCaseName(subCase.id, editingName.trim());
+    }
+    setIsEditingName(false);
+  };
+
+  // 处理输入框键盘事件
+  const handleInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      setIsEditingName(false);
+      setEditingName(subCase.name);
+    }
+  };
+
+  // 处理输入框失焦
+  const handleInputBlur = () => {
+    handleNameSave();
+  };
+
+  // 自动聚焦输入框
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditingName]);
 
   return (
     <div 
@@ -156,13 +201,27 @@ export const SubCaseRow: React.FC<SubCaseRowProps> = ({
             onSelectCase(subCase.id);
             onSetLastFocusedChild(parentCaseId, 'subcase', subCase.id, 0);
           }}
+          onDoubleClick={handleDoubleClick}
         >
           <div className="flex items-center gap-2">
-            <span className={`font-medium text-xs truncate ${
-              subCase.id === subCase.id ? 'text-primary' : ''
-            }`}>
-              {subCase.name}
-            </span>
+            {isEditingName ? (
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onKeyDown={handleInputKeyDown}
+                onBlur={handleInputBlur}
+                className="font-medium text-xs bg-transparent border-b border-primary outline-none focus:border-primary-dark truncate w-full"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <span className={`font-medium text-xs truncate ${
+                subCase.id === subCase.id ? 'text-primary' : ''
+              }`}>
+                {subCase.name}
+              </span>
+            )}
           </div>
         </div>
         

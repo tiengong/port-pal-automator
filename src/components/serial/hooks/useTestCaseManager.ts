@@ -141,6 +141,7 @@ export interface UseTestCaseManagerReturn {
   handleEditCase: (testCase: TestCase) => void;
   handleRunTestCase: (caseId: string) => Promise<void>;
   handleDeleteTestCase: (caseId: string) => void;
+  updateCaseName: (caseId: string, name: string) => void;
   
   // Command operations
   handleRunCommand: (caseId: string, commandIndex: number) => Promise<{ success: boolean; error?: string }>;
@@ -400,6 +401,18 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     setEditingCase(testCase);
     setIsEditDialogOpen(true);
   }, []);
+
+  const updateCaseName = useCallback((caseId: string, name: string) => {
+    setTestCases(updateCaseById(state.testCases, caseId, (testCase) => ({
+      ...testCase,
+      name: name.trim()
+    })));
+    
+    toast({
+      title: "名称已更新",
+      description: `测试用例名称已更新为: ${name.trim()}`,
+    });
+  }, [state.testCases, toast]);
   
   const handleRunTestCase = useCallback(async (caseId: string) => {
     const testCase = findTestCaseById(caseId, state.testCases);
@@ -840,6 +853,7 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     handleEditCase,
     handleRunTestCase,
     handleDeleteTestCase,
+    updateCaseName,
     
     // Command operations
     handleRunCommand,

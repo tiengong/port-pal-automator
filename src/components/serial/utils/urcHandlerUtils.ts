@@ -1,9 +1,23 @@
 import { TestCommand, TestCase } from '../types';
 import { eventBus, EVENTS, SerialDataEvent } from '@/lib/eventBus';
 import { checkUrcMatch, parseUrcData } from './testCaseUrcUtils';
-import { findCommandLocation } from './testCaseRecursiveUtils';
 import { getNextStepFrom } from './testCaseNavigationUtils';
 import { globalToast } from '@/hooks/useGlobalMessages';
+
+/**
+ * Find a command's location within test cases
+ */
+const findCommandLocation = (commandId: string, testCases: TestCase[]): { caseId: string; commandIndex: number } | null => {
+  for (const testCase of testCases) {
+    const commandIndex = testCase.commands.findIndex(cmd => cmd.id === commandId);
+    if (commandIndex !== -1) {
+      return { caseId: testCase.id, commandIndex };
+    }
+    const found = findCommandLocation(commandId, testCase.subCases);
+    if (found) return found;
+  }
+  return null;
+};
 
 export interface UrcHandlerContext {
   currentTestCase: TestCase | null;
@@ -63,7 +77,7 @@ const handleIncomingData = (event: SerialDataEvent, context: UrcHandlerContext) 
 /**
  * Handle URC pattern matching and parameter extraction
  */
-const handleUrcMatch = (options: {
+const handleUrcMatch = async (options: {
   command: TestCommand;
   commandIndex: number;
   data: string;

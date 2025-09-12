@@ -8,9 +8,29 @@ import { useTranslation } from 'react-i18next';
 // Import utility functions
 import { executeTestCase, executeCommand, ExecutionContext } from '../utils/testExecutionUtils';
 import { setupUrcListeners, UrcHandlerContext } from '../utils/urcHandlerUtils';
-import { processContextMenuEvent, ContextMenuOperations } from '../utils/contextMenuUtils';
-import { initializeDragDropState, cleanupDragDropState } from '../utils/dragDropUtils';
-import { exportTestCase, loadTestCaseToCurrentCase, loadTestCaseAsSubCaseToCurrentCase } from '../utils/importExportUtils';
+import { 
+  processContextMenuEvent, 
+  addCommandViaContextMenu as addCommandViaContextMenuUtil,
+  addUrcViaContextMenu as addUrcViaContextMenuUtil,
+  addSubCaseViaContextMenu as addSubCaseViaContextMenuUtil,
+  toggleSelectAllViaContextMenu as toggleSelectAllViaContextMenuUtil,
+  deleteSelectedCommands as deleteSelectedCommandsUtil
+} from '../utils/contextMenuUtils';
+import { 
+  initializeDragDropState, 
+  cleanupDragDropState,
+  handleDragStart as handleDragStartUtil,
+  handleDragOver as handleDragOverUtil,
+  handleDragLeave as handleDragLeaveUtil,
+  handleDrop as handleDropUtil,
+  handleDragEnd as handleDragEndUtil
+} from '../utils/dragDropUtils';
+import { 
+  exportTestCase, 
+  loadTestCaseToCurrentCase as loadTestCaseToCurrentCaseUtil, 
+  loadTestCaseAsSubCaseToCurrentCase as loadTestCaseAsSubCaseToCurrentCaseUtil,
+  importTestCaseFromFile 
+} from '../utils/importExportUtils';
 import { createNewScript, executeScript, stopScript, selectScript, deleteScript } from '../utils/scriptManagementUtils';
 
 // Import workspace utilities
@@ -125,12 +145,17 @@ export interface UseTestCaseManagerReturn {
   handleRunCommand: (caseId: string, commandIndex: number) => Promise<{ success: boolean; error?: string }>;
   handleEditCommand: (caseId: string, commandIndex: number) => void;
   updateCommandSelection: (caseId: string, commandId: string, selected: boolean) => void;
+  updateCaseSelection: (caseId: string, selected: boolean) => void;
+  updateSubCaseSelection: (parentCaseId: string, subCaseId: string, selected: boolean) => void;
+  toggleCaseExpand: (caseId: string) => void;
   
   // Context menu operations
   handleContextMenu: (e: React.MouseEvent, targetId: string, targetType: 'case' | 'command') => void;
   addCommandViaContextMenu: () => void;
   addUrcViaContextMenu: () => void;
   addSubCaseViaContextMenu: () => void;
+  toggleSelectAllViaContextMenu: () => void;
+  deleteSelectedCommands: () => void;
   
   // Drag and drop operations
   handleDragStart: (e: React.DragEvent, caseId: string, type: 'command' | 'subcase', itemId: string, index: number) => void;
@@ -374,10 +399,68 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
   const handleRunTestCase = useCallback(async (caseId: string) => {
     const testCase = findTestCaseById(caseId, state.testCases);
     if (!testCase) return;
+
+    // 如果正在运行，则暂停
+    if (state.runningCasesRef.current.has(caseId)) {
+      state.runningCasesRef.current.delete(caseId);
+      setTestCases(updateCaseById(state.testCases, caseId, (tc) => ({
+        ...tc,
+        isRunning: false,
+        status: 'pending'
+      })));
+      statusMessages?.addMessage(`测试用例 "${testCase.name}" 已暂停`, 'warning');
+      return;
+    }
+
+    // 添加到运行中的用例集合
+    state.runningCasesRef.current.add(caseId);
+
+    // 每次运行测试用例时清空存储的变量和触发状态
+    setStoredParameters({});
+    setTriggeredUrcIds(new Set());
     
-    // Implementation would use the testExecutionUtils
-    console.log('Running test case:', testCase.name);
-  }, [state.testCases]);
+    // 更新状态为运行中
+    setTestCases(updateCaseById(state.testCases, caseId, (tc) => ({
+      ...tc,
+      isRunning: true,
+      status: 'running',
+      currentCommand: 0
+    })));
+    
+    statusMessages?.addMessage(`开始执行测试用例: ${testCase.name}`, 'info');
+
+    // 使用模块化的执行函数
+    const executionContext: ExecutionContext = {
+      storedParameters: state.storedParameters,
+      triggeredUrcIds: state.triggeredUrcIds,
+      runningCasesRef: state.runningCasesRef,
+      statusMessages
+    };
+
+    // 执行所有选中的命令，如果没有选中则执行全部命令
+    const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
+    const commandsToRun = selectedCommands.length > 0 ? selectedCommands : testCase.commands;
+
+    await executeTestCase({
+      testCase,
+      caseId,
+      commandsToRun,
+      context: executionContext,
+      onStatusUpdate: (updates) => {
+        setTestCases(updateCaseById(state.testCases, caseId, (tc) => ({
+          ...tc,
+          ...updates
+        })));
+      },
+      onCommandExecute: async (caseId: string, commandIndex: number) => {
+        return await handleRunCommand(caseId, commandIndex);
+      },
+      onComplete: (result) => {
+        setRunResult(result);
+        setShowRunResult(true);
+      }
+    });
+  }, [state.testCases, state.storedParameters, state.triggeredUrcIds, state.runningCasesRef, statusMessages]);
   
   const handleDeleteTestCase = useCallback((caseId: string) => {
     setTestCases(state.testCases.filter(tc => tc.id !== caseId));
@@ -393,10 +476,45 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
   
   // Command operations
   const handleRunCommand = useCallback(async (caseId: string, commandIndex: number): Promise<{ success: boolean; error?: string }> => {
-    // Implementation would use the testExecutionUtils
-    console.log('Running command:', caseId, commandIndex);
-    return { success: true };
-  }, []);
+    const targetCase = findTestCaseById(caseId, state.testCases);
+    if (!targetCase) return { success: false, error: '测试用例未找到' };
+    
+    const command = targetCase.commands[commandIndex];
+    if (!command) return { success: false, error: '命令未找到' };
+    
+    // 设置当前执行的命令高亮
+    setExecutingCommand({ caseId, commandIndex });
+    
+    try {
+      // 使用模块化的命令执行函数
+      const result = await executeCommand(
+        command,
+        caseId,
+        commandIndex,
+        state.storedParameters,
+        statusMessages
+      );
+      
+      // 更新命令状态
+      const updatedTestCases = updateCaseById(state.testCases, caseId, (tc) => ({
+        ...tc,
+        commands: tc.commands.map((cmd, idx) => 
+          idx === commandIndex ? { ...cmd, status: result.success ? 'success' : 'failed' } : cmd
+        )
+      }));
+      setTestCases(updatedTestCases);
+      
+      return result;
+    } catch (error) {
+      console.error('Command execution error:', error);
+      return { success: false, error: error?.toString() || '命令执行失败' };
+    } finally {
+      // 清除高亮状态
+      setTimeout(() => {
+        setExecutingCommand({ caseId: null, commandIndex: null });
+      }, command.waitTime || 1000);
+    }
+  }, [state.testCases, state.storedParameters, statusMessages]);
   
   const handleEditCommand = useCallback((caseId: string, commandIndex: number) => {
     setSelectedTestCaseId(caseId);
@@ -420,42 +538,99 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
   }, [state.testCases]);
   
   const addCommandViaContextMenu = useCallback(() => {
-    // Implementation would use contextMenuUtils
-    console.log('Adding command via context menu');
-  }, []);
+    addCommandViaContextMenuUtil(
+      state.contextMenu,
+      getCurrentTestCase(),
+      state.selectedTestCaseId,
+      state.testCases,
+      setTestCases,
+      generateUniqueId
+    );
+  }, [state.contextMenu, state.selectedTestCaseId, state.testCases, generateUniqueId]);
   
   const addUrcViaContextMenu = useCallback(() => {
-    // Implementation would use contextMenuUtils
-    console.log('Adding URC via context menu');
-  }, []);
+    addUrcViaContextMenuUtil(
+      state.contextMenu,
+      getCurrentTestCase(),
+      state.selectedTestCaseId,
+      state.testCases,
+      setTestCases
+    );
+  }, [state.contextMenu, state.selectedTestCaseId, state.testCases]);
   
   const addSubCaseViaContextMenu = useCallback(() => {
-    // Implementation would use contextMenuUtils
-    console.log('Adding sub-case via context menu');
-  }, []);
+    addSubCaseViaContextMenuUtil(
+      state.contextMenu,
+      getCurrentTestCase(),
+      state.selectedTestCaseId,
+      state.testCases,
+      setTestCases,
+      generateUniqueId
+    );
+  }, [state.contextMenu, state.selectedTestCaseId, state.testCases, generateUniqueId]);
+
+  const toggleSelectAllViaContextMenu = useCallback(() => {
+    const currentCase = getCurrentTestCase();
+    if (currentCase) {
+      toggleSelectAllViaContextMenuUtil(
+        currentCase.id,
+        state.lastFocusedChild,
+        state.testCases,
+        setTestCases
+      );
+    }
+  }, [getCurrentTestCase, state.lastFocusedChild, state.testCases]);
+
+  const deleteSelectedCommands = useCallback(() => {
+    const currentCase = getCurrentTestCase();
+    if (currentCase) {
+      deleteSelectedCommandsUtil(
+        currentCase,
+        state.testCases,
+        setTestCases
+      );
+    }
+  }, [getCurrentTestCase, state.testCases]);
+
+  const updateCaseSelection = useCallback((caseId: string, selected: boolean) => {
+    const updatedTestCases = updateCaseById(state.testCases, caseId, (testCase) => ({
+      ...testCase,
+      selected
+    }));
+    setTestCases(updatedTestCases);
+  }, [state.testCases]);
+
+  const updateSubCaseSelection = useCallback((parentCaseId: string, subCaseId: string, selected: boolean) => {
+    const updatedTestCases = updateCaseById(state.testCases, parentCaseId, (testCase) => ({
+      ...testCase,
+      subCases: testCase.subCases.map(subCase => 
+        subCase.id === subCaseId ? { ...subCase, selected } : subCase
+      )
+    }));
+    setTestCases(updatedTestCases);
+  }, [state.testCases]);
+
+  const toggleCaseExpand = useCallback((caseId: string) => {
+    const updatedTestCases = toggleExpandById(state.testCases, caseId);
+    setTestCases(updatedTestCases);
+  }, [state.testCases]);
   
   // Drag and drop operations
   const handleDragStart = useCallback((e: React.DragEvent, caseId: string, type: 'command' | 'subcase', itemId: string, index: number) => {
-    // Implementation would use dragDropUtils
-    console.log('Drag start:', caseId, type, itemId, index);
-  }, []);
+    handleDragStartUtil(e, caseId, type, itemId, index, setDragInfo);
+  }, [setDragInfo]);
   
   const handleDragOver = useCallback((e: React.DragEvent, caseId: string, index: number) => {
-    // Implementation would use dragDropUtils
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  }, []);
+    handleDragOverUtil(e, caseId, index, setDragInfo);
+  }, [setDragInfo]);
   
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    // Implementation would use dragDropUtils
-    console.log('Drag leave');
-  }, []);
+    handleDragLeaveUtil(e, setDragInfo);
+  }, [setDragInfo]);
   
   const handleDrop = useCallback((e: React.DragEvent) => {
-    // Implementation would use dragDropUtils
-    e.preventDefault();
-    console.log('Drop event');
-  }, []);
+    handleDropUtil(e, state.dragInfo, state.testCases, setTestCases, setDragInfo);
+  }, [state.dragInfo, state.testCases]);
   
   // Import/Export operations
   const exportCurrentTestCase = useCallback(() => {
@@ -466,9 +641,34 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
   }, [getCurrentTestCase]);
   
   const importFromFile = useCallback((mode: 'merge' | 'subcase') => {
-    // Implementation would create file input and handle import
-    console.log('Import from file:', mode);
-  }, []);
+    const currentCase = getCurrentTestCase();
+    if (!currentCase) {
+      globalToast({
+        title: "无法导入",
+        description: "请先选择当前用例",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        importTestCaseFromFile(file, (importedCase) => {
+          if (mode === 'merge') {
+            loadTestCaseToCurrentCaseUtil(importedCase, currentCase, state.testCases, setTestCases);
+          } else if (mode === 'subcase') {
+            loadTestCaseAsSubCaseToCurrentCaseUtil(importedCase, currentCase, state.testCases, setTestCases, generateUniqueId);
+          }
+        }, mode);
+      }
+    };
+    input.click();
+  }, [getCurrentTestCase, state.testCases, generateUniqueId]);
   
   const loadTestCaseToCurrentCase = useCallback((sourceCase: TestCase) => {
     const currentCase = getCurrentTestCase();
@@ -631,12 +831,17 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
     handleRunCommand,
     handleEditCommand,
     updateCommandSelection,
+    updateCaseSelection,
+    updateSubCaseSelection,
+    toggleCaseExpand,
     
     // Context menu operations
     handleContextMenu,
     addCommandViaContextMenu,
     addUrcViaContextMenu,
     addSubCaseViaContextMenu,
+    toggleSelectAllViaContextMenu,
+    deleteSelectedCommands,
     
     // Drag and drop operations
     handleDragStart,

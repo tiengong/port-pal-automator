@@ -78,6 +78,8 @@ export const CommandRow: React.FC<CommandRowProps> = ({
 
   const handleInlineEditSave = (caseId: string, commandId: string) => {
     if (inlineEdit.commandId === commandId && localEditValue.trim()) {
+      // 更新内联编辑的值
+      setInlineEdit({ commandId, value: localEditValue });
       onSaveInlineEdit(caseId, commandId);
       setLocalEditValue("");
     }
@@ -118,6 +120,8 @@ export const CommandRow: React.FC<CommandRowProps> = ({
         onClick={() => {
           onSelectCase(caseId);
           onSetLastFocusedChild(caseId, 'command', command.id, commandIndex);
+          // 选中当前点击的命令
+          onUpdateCommandSelection(caseId, command.id, true);
         }}
       >
         {/* 复选框 */}

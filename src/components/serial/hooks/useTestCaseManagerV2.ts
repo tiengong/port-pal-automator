@@ -10,6 +10,7 @@ import { useTestCaseEditor } from './useTestCaseEditor';
 import { useTestCaseExecution } from './useTestCaseExecution';
 import { useTestCaseUserInteraction } from './useTestCaseUserInteraction';
 import { useTestCaseDrag } from './useTestCaseDrag';
+import { useTestCaseDragIntegration } from './useTestCaseDragIntegration';
 import { useTestCaseScripts } from './useTestCaseScripts';
 import { useTestCaseMisc } from './useTestCaseMisc';
 
@@ -26,8 +27,11 @@ export const useTestCaseManagerV2 = () => {
   // 用户交互状态管理
   const userInteraction = useTestCaseUserInteraction();
   
-  // 拖拽状态管理
-  const drag = useTestCaseDrag();
+  // 拖拽状态管理 - 使用集成的拖拽hook
+  const drag = useTestCaseDragIntegration({
+    testCases: base.testCases,
+    setTestCases: base.setTestCases
+  });
   
   // 脚本状态管理
   const scripts = useTestCaseScripts();

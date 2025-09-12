@@ -12,12 +12,14 @@ export interface DragDropOptions {
   testCases: TestCase[];
   setTestCases: (cases: TestCase[]) => void;
   setDragInfo: (info: any) => void;
+  dragInfo: any; // 添加当前拖拽信息的引用
 }
 
 export const useTestCaseDragDrop = ({
   testCases,
   setTestCases,
-  setDragInfo
+  setDragInfo,
+  dragInfo
 }: DragDropOptions) => {
   /**
    * 处理拖拽开始
@@ -113,11 +115,10 @@ export const useTestCaseDragDrop = ({
     dragItemId: string,
     sourceCaseId: string
   ) => {
-    // 获取当前拖拽信息
-    const currentDragInfo = (setDragInfo as any).currentDragInfo;
-    if (!currentDragInfo?.dropTarget) return;
+    // 使用传入的dragInfo而不是尝试从setDragInfo获取
+    if (!dragInfo?.dropTarget) return;
 
-    const { caseId: targetCaseId, position } = currentDragInfo.dropTarget;
+    const { caseId: targetCaseId, position } = dragInfo.dropTarget;
 
     // 在同一用例内重新排序
     if (sourceCaseId === targetCaseId) {
@@ -126,7 +127,7 @@ export const useTestCaseDragDrop = ({
       // 跨用例移动（复杂场景，暂时不支持）
       console.log('跨用例移动暂不支持');
     }
-  }, []);
+  }, [dragInfo]);
 
   /**
    * 处理内部重新排序

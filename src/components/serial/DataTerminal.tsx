@@ -123,6 +123,98 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     setAutoSendInterval(settings.defaultAutoSendInterval);
   }, [settings.displayFormat, settings.showTimestamp, settings.defaultAutoSendInterval]);
 
+  // 监听测试用例发送的命令事件
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe(EVENTS.SEND_COMMAND, (event: SendCommandEvent) => {
+      console.log('[DataTerminal] Received SEND_COMMAND event:', event);
+      
+      // 将命令数据发送到串口
+      const sendCommandData = async () => {
+        try {
+          // 根据目标端口确定要发送的端口
+          const targetPorts = event.targetPort === 'ALL' 
+            ? connectedPorts.map((_, index) => index)
+            : connectedPorts.map((portInfo, index) => index).filter(index => {
+                const portLabel = connectedPortLabels[index]?.label;
+                return portLabel === event.targetPort;
+              });
+
+          // 转换数据格式
+          let dataToSend = event.command;
+          let uint8Array: Uint8Array;
+          
+          if (event.format === 'hex') {
+            // 处理十六进制数据
+            const hexData = dataToSend.replace(/\s/g, '');
+            const bytes = [];
+            for (let i = 0; i < hexData.length; i += 2) {
+              const hex = hexData.substr(i, 2);
+              if (!/^[0-9A-Fa-f]{2}$/.test(hex)) {
+                throw new Error(`无效的十六进制数据: ${hex}`);
+              }
+              bytes.push(parseInt(hex, 16));
+            }
+            uint8Array = new Uint8Array(bytes);
+          } else {
+            // UTF-8 数据，添加换行符
+            if (event.lineEnding !== 'none') {
+              switch (event.lineEnding) {
+                case 'lf':
+                  dataToSend += '\n';
+                  break;
+                case 'cr':
+                  dataToSend += '\r';
+                  break;
+                case 'crlf':
+                  dataToSend += '\r\n';
+                  break;
+              }
+            }
+            const encoder = new TextEncoder();
+            uint8Array = encoder.encode(dataToSend);
+          }
+
+          // 发送到目标端口
+          const sendPromises = targetPorts.map(async (portIndex) => {
+            const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
+            
+            try {
+              await serialManager.serialManager.write(portLabel, uint8Array);
+              
+              // 记录发送的数据到对应端口
+              addLog('sent', dataToSend, displayFormat, portIndex);
+              console.log(`[DataTerminal] Sent command data to ${portLabel}:`, dataToSend);
+              return { success: true, portLabel };
+            } catch (error) {
+              console.error(`[DataTerminal] Send command failed to ${portLabel}:`, error);
+              statusMessages?.addMessage(`发送命令到${portLabel}失败: ${(error as Error).message}`, 'error');
+              return { success: false, portLabel };
+            }
+          });
+
+          const results = await Promise.all(sendPromises);
+          const successCount = results.filter(r => r.success).length;
+          
+          if (successCount > 0) {
+            statusMessages?.addMessage(`命令已发送到${successCount}个端口`, 'info');
+          } else {
+            statusMessages?.addMessage('命令发送失败', 'error');
+          }
+          
+        } catch (error) {
+          console.error('[DataTerminal] Error processing SEND_COMMAND event:', error);
+          statusMessages?.addMessage(`处理发送命令事件失败: ${(error as Error).message}`, 'error');
+        }
+      };
+
+      sendCommandData();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [connectedPorts, connectedPortLabels, displayFormat, serialManager, statusMessages, t]);
+
   // 添加日志条目 - 只记录发送和接收的UART数据
   const addLog = (type: LogEntry['type'], data: string, format: 'utf8' | 'hex' = displayFormat, portIndex?: number) => {
     // 只记录发送和接收的数据，不记录系统消息

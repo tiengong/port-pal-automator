@@ -183,21 +183,21 @@ jobs:
           echo "=== Renaming Release artifacts ==="
           if (Test-Path "src-tauri/target/release/bundle/msi") {
             Get-ChildItem "src-tauri/target/release/bundle/msi/*.msi" | ForEach-Object {
-              $newName = $_.Name -replace "\.msi$", "-Setup.msi"
+              $newName = "Serial-Pilot-Setup.msi"
               Rename-Item $_.FullName $newName
               echo "✅ Renamed MSI to: $newName"
             }
           }
           if (Test-Path "src-tauri/target/release/bundle/nsis") {
             Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" | ForEach-Object {
-              $newName = $_.Name -replace "\.exe$", "-Portable.exe"
+              $newName = "Serial-Pilot-Portable.exe"
               Rename-Item $_.FullName $newName
               echo "✅ Renamed Portable to: $newName"
             }
           }
           if (Test-Path "src-tauri/target/release/bundle/app") {
             Get-ChildItem "src-tauri/target/release/bundle/app" -Directory | ForEach-Object {
-              $newName = $_.Name + "-Portable"
+              $newName = "Serial-Pilot-Portable"
               Rename-Item $_.FullName $newName
               echo "✅ Renamed app folder to: $newName"
             }
@@ -242,7 +242,7 @@ jobs:
         with:
           name: serial-pilot-windows-msi-setup
           path: |
-            ./src-tauri/target/release/bundle/msi/*Setup.msi
+            ./src-tauri/target/release/bundle/msi/Serial-Pilot-Setup.msi
             !./src-tauri/target/release/bundle/**/temp/
           retention-days: 30
           compression-level: 0
@@ -253,8 +253,8 @@ jobs:
         with:
           name: serial-pilot-windows-portable
           path: |
-            ./src-tauri/target/release/bundle/nsis/*Portable.exe
-            ./src-tauri/target/release/bundle/app/*Portable*/
+            ./src-tauri/target/release/bundle/nsis/Serial-Pilot-Portable.exe
+            ./src-tauri/target/release/bundle/app/Serial-Pilot-Portable*/
             !./src-tauri/target/release/bundle/**/temp/
           retention-days: 30
           compression-level: 0

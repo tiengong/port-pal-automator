@@ -33,6 +33,7 @@ import { useSerialManager } from "@/hooks/useSerialManager";
 import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from "@/lib/eventBus";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
+import { logEntryPool, LogEntry as PoolableLogEntry } from "./utils/objectPool";
 
 interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -51,6 +52,7 @@ interface LogEntry {
   type: 'sent' | 'received' | 'system' | 'error';
   data: string;
   format: 'utf8' | 'hex';
+  portLabel?: string;
 }
 
 export const DataTerminal: React.FC<DataTerminalProps> = ({
@@ -220,20 +222,29 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     // 只记录发送和接收的数据，不记录系统消息
     if (type !== 'sent' && type !== 'received') return;
     
-    const entry: LogEntry = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      timestamp: new Date(),
-      type,
-      data,
-      format
-    };
+    // 从对象池获取日志条目
+    const poolEntry = logEntryPool.acquire();
+    poolEntry.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    poolEntry.timestamp = new Date();
+    poolEntry.type = type;
+    poolEntry.data = data;
+    poolEntry.format = format;
     
     if (portIndex !== undefined) {
       // 更新分端口日志
       setLogs(prev => {
-        const newPortLogs = [...(prev[portIndex] || []), entry];
+        const newPortLogs = [...(prev[portIndex] || []), poolEntry as LogEntry];
         // 应用最大日志行数限制
         const limitedLogs = newPortLogs.slice(-settings.maxLogLines);
+        
+        // 释放被移除的旧日志条目
+        const removedLogs = newPortLogs.slice(0, -settings.maxLogLines);
+        removedLogs.forEach(entry => {
+          if (entry !== poolEntry) {
+            logEntryPool.release(entry as PoolableLogEntry);
+          }
+        });
+        
         return {
           ...prev,
           [portIndex]: limitedLogs
@@ -243,13 +254,22 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       // 更新合并日志（用于 MERGED_TXRX 模式）
       const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
       const mergedEntry: MergedLogEntry = {
-        ...entry,
+        ...poolEntry as LogEntry,
         portLabel
       };
+      
       setMergedLogs(prev => {
         const newMergedLogs = [...prev, mergedEntry];
         // 应用最大日志行数限制
-        return newMergedLogs.slice(-settings.maxLogLines);
+        const limitedMergedLogs = newMergedLogs.slice(-settings.maxLogLines);
+        
+        // 释放被移除的旧日志条目
+        const removedMergedLogs = newMergedLogs.slice(0, -settings.maxLogLines);
+        removedMergedLogs.forEach(entry => {
+          logEntryPool.release(entry as PoolableLogEntry);
+        });
+        
+        return limitedMergedLogs;
       });
       
       setStats(prev => ({
@@ -260,6 +280,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           sentBytes: type === 'sent' ? (prev[portIndex]?.sentBytes || 0) + data.length : (prev[portIndex]?.sentBytes || 0)
         }
       }));
+    } else {
+      // 如果没有指定端口索引，需要手动释放对象池条目
+      logEntryPool.release(poolEntry);
     }
 
     // 自动滚动到底部（仅当启用自动滚动时）
@@ -516,14 +539,37 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   // 清空日志
   const clearLogs = (portIndex?: number) => {
     if (portIndex !== undefined) {
-      // 清空特定端口的日志
-      setLogs(prev => ({ ...prev, [portIndex]: [] }));
+      // 清空特定端口的日志 - 释放对象池中的对象
+      setLogs(prev => {
+        const oldLogs = prev[portIndex] || [];
+        // 释放所有旧日志对象
+        oldLogs.forEach(entry => {
+          logEntryPool.release(entry as PoolableLogEntry);
+        });
+        return { ...prev, [portIndex]: [] };
+      });
       setStats(prev => ({ ...prev, [portIndex]: { sentBytes: 0, receivedBytes: 0, totalLogs: 0 } }));
       statusMessages?.addMessage(`${t('terminal.port')} ${portIndex + 1} ${t('terminal.logsCleared')}`, 'success');
     } else {
-      // 清空所有日志
-      setLogs({});
-      setMergedLogs([]);
+      // 清空所有日志 - 释放所有对象池中的对象
+      setLogs(prev => {
+        // 释放所有日志对象
+        Object.values(prev).forEach(portLogs => {
+          portLogs.forEach(entry => {
+            logEntryPool.release(entry as PoolableLogEntry);
+          });
+        });
+        return {};
+      });
+      
+      setMergedLogs(prev => {
+        // 释放所有合并日志对象
+        prev.forEach(entry => {
+          logEntryPool.release(entry as PoolableLogEntry);
+        });
+        return [];
+      });
+      
       setStats({});
       statusMessages?.addMessage(t('terminal.logsCleared'), 'success');
     }
@@ -653,6 +699,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         stopReading(portLabel);
       }
       isReadingRef.current.clear();
+      
+      // 清理对象池中的日志对象
+      clearLogs();
     };
   }, []);
 

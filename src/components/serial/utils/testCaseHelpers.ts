@@ -4,7 +4,7 @@
  */
 
 import { TestCase, TestCommand } from '@/components/serial/types';
-import { updateCaseById, findTestCaseById } from '../testCaseRecursiveUtils';
+import { updateCaseById, findTestCaseById } from './testCaseRecursiveUtils';
 
 /**
  * 检查测试用例是否有执行历史

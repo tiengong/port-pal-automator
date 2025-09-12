@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { TestCase } from '@/components/serial/types';
 import { DragDropWrapper } from './common/DragDropWrapper';
 import { StatusIcon } from './common/StatusIcon';
@@ -35,7 +35,7 @@ export interface TestCaseTreeViewProps {
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
 }
 
-export const TestCaseTreeView: React.FC<TestCaseTreeViewProps> = ({
+export const TestCaseTreeView: React.FC<TestCaseTreeViewProps> = memo(({
   testCases,
   selectedCaseId,
   dragInfo,
@@ -53,40 +53,40 @@ export const TestCaseTreeView: React.FC<TestCaseTreeViewProps> = ({
   onDrop
 }) => {
   
-  const renderTestCase = (testCase: TestCase, index: number) => {
+  const renderTestCase = useCallback((testCase: TestCase, index: number) => {
     const isSelected = testCase.id === selectedCaseId;
     const isDragging = dragInfo.isDragging && dragInfo.dragItemId === testCase.id;
     const isDropTarget = dragInfo.dropTarget?.caseId === testCase.id;
     const dropPosition = dragInfo.dropTarget?.position || null;
     const hasChildren = testCase.subCases.length > 0 || testCase.commands.length > 0;
 
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
       onDragStart(e, parentCaseId || testCase.id, level === 0 ? 'case' : 'subcase', testCase.id, index);
-    };
+    }, [onDragStart, parentCaseId, testCase.id, index, level]);
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const midpoint = rect.top + rect.height / 2;
       const position = e.clientY < midpoint ? 'above' : 'below';
       onDragOver(e, parentCaseId || testCase.id, index, position);
-    };
+    }, [onDragOver, parentCaseId, testCase.id, index]);
 
-    const handleToggleExpand = () => onToggleExpand(testCase.id);
-    const handleCheckboxChange = (checked: boolean) => onUpdateCaseSelection(testCase.id, checked);
-    const handleClick = () => {
+    const handleToggleExpand = useCallback(() => onToggleExpand(testCase.id), [onToggleExpand, testCase.id]);
+    const handleCheckboxChange = useCallback((checked: boolean) => onUpdateCaseSelection(testCase.id, checked), [onUpdateCaseSelection, testCase.id]);
+    const handleClick = useCallback(() => {
       onSelectCase(testCase.id);
       onSetLastFocusedChild(parentCaseId || testCase.id, level === 0 ? 'case' : 'subcase', testCase.id, index);
-    };
+    }, [onSelectCase, onSetLastFocusedChild, parentCaseId, testCase.id, index, level]);
 
-    const handleRunTestCase = (e: React.MouseEvent) => {
+    const handleRunTestCase = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
       onRunTestCase(testCase.id);
-    };
+    }, [onRunTestCase, testCase.id]);
 
-    const handleEditCase = (e: React.MouseEvent) => {
+    const handleEditCase = useCallback((e: React.MouseEvent) => {
       e.stopPropagation();
       onEditCase(testCase);
-    };
+    }, [onEditCase, testCase]);
 
     return (
       <React.Fragment key={testCase.id}>
@@ -225,4 +225,13 @@ export const TestCaseTreeView: React.FC<TestCaseTreeViewProps> = ({
       {testCases.map(renderTestCase)}
     </>
   );
-};
+}, (prevProps, nextProps) => {
+  // 自定义比较函数，只比较必要的属性
+  return (
+    prevProps.testCases === nextProps.testCases &&
+    prevProps.selectedCaseId === nextProps.selectedCaseId &&
+    prevProps.dragInfo === nextProps.dragInfo &&
+    prevProps.level === nextProps.level &&
+    prevProps.parentCaseId === nextProps.parentCaseId
+  );
+});

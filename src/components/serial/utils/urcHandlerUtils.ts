@@ -3,6 +3,7 @@ import { eventBus, EVENTS, SerialDataEvent } from '@/lib/eventBus';
 import { checkUrcMatch, parseUrcData } from './testCaseUrcUtils';
 import { getNextStepFrom } from './testCaseNavigationUtils';
 import { globalToast } from '@/hooks/useGlobalMessages';
+import { eventThrottleManager, SERIAL_THROTTLE_CONFIG } from './eventThrottle';
 
 /**
  * Find a command's location within test cases
@@ -44,12 +45,31 @@ export const setupUrcListeners = (context: UrcHandlerContext): (() => void) => {
 };
 
 /**
- * Handle incoming serial data for URC matching
+ * Handle incoming serial data for URC matching (with throttling)
  */
 const handleIncomingData = (event: SerialDataEvent, context: UrcHandlerContext) => {
   const { currentTestCase, testCases, storedParameters, triggeredUrcIds, onUpdateTestCases, onUpdateParameters, onUpdateTriggeredUrcIds, onExecuteCommand } = context;
   
   if (!currentTestCase) return;
+  
+  // 使用节流处理高频串口数据
+  const throttledHandler = eventThrottleManager.getThrottledFunction(
+    'urc_data_processing',
+    () => {
+      handleUrcDataProcessing(event, context);
+    },
+    SERIAL_THROTTLE_CONFIG.URC_PROCESSING,
+    { leading: true, trailing: true }
+  );
+  
+  throttledHandler();
+};
+
+/**
+ * 处理URC数据（内部处理逻辑）
+ */
+const handleUrcDataProcessing = (event: SerialDataEvent, context: UrcHandlerContext) => {
+  const { currentTestCase, testCases, storedParameters, triggeredUrcIds, onUpdateTestCases, onUpdateParameters, onUpdateTriggeredUrcIds, onExecuteCommand } = context;
   
   // Check for active URC listeners
   currentTestCase.commands.forEach((command, commandIndex) => {
@@ -231,7 +251,7 @@ const executeUrcJumpLogic = async (options: {
 };
 
 /**
- * Process URC data and extract parameters
+ * Process URC data and extract parameters (exported function)
  */
 export const processUrcData = (data: string, command: TestCommand): {
   parameters: { [key: string]: { value: string; timestamp: number } };

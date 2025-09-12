@@ -34,6 +34,7 @@ import { eventBus, EVENTS, SerialDataEvent, SendCommandEvent } from "@/lib/event
 import { useSettings } from "@/contexts/SettingsContext";
 import { useTranslation } from "react-i18next";
 import { logEntryPool, LogEntry as PoolableLogEntry } from "./utils/objectPool";
+import { eventThrottleManager, SERIAL_THROTTLE_CONFIG } from "./utils/eventThrottle";
 
 interface DataTerminalProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -217,7 +218,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     };
   }, [connectedPorts, connectedPortLabels, displayFormat, serialManager, statusMessages, t]);
 
-  // 添加日志条目 - 只记录发送和接收的UART数据
+  // 添加日志条目 - 只记录发送和接收的UART数据（带节流优化）
   const addLog = (type: LogEntry['type'], data: string, format: 'utf8' | 'hex' = displayFormat, portIndex?: number) => {
     // 只记录发送和接收的数据，不记录系统消息
     if (type !== 'sent' && type !== 'received') return;
@@ -230,60 +231,73 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     poolEntry.data = data;
     poolEntry.format = format;
     
-    if (portIndex !== undefined) {
-      // 更新分端口日志
-      setLogs(prev => {
-        const newPortLogs = [...(prev[portIndex] || []), poolEntry as LogEntry];
-        // 应用最大日志行数限制
-        const limitedLogs = newPortLogs.slice(-settings.maxLogLines);
-        
-        // 释放被移除的旧日志条目
-        const removedLogs = newPortLogs.slice(0, -settings.maxLogLines);
-        removedLogs.forEach(entry => {
-          if (entry !== poolEntry) {
-            logEntryPool.release(entry as PoolableLogEntry);
-          }
+    // 使用节流处理高频日志更新
+    const performAddLog = () => {
+      if (portIndex !== undefined) {
+        // 更新分端口日志
+        setLogs(prev => {
+          const newPortLogs = [...(prev[portIndex] || []), poolEntry as LogEntry];
+          // 应用最大日志行数限制
+          const limitedLogs = newPortLogs.slice(-settings.maxLogLines);
+          
+          // 释放被移除的旧日志条目
+          const removedLogs = newPortLogs.slice(0, -settings.maxLogLines);
+          removedLogs.forEach(entry => {
+            if (entry !== poolEntry) {
+              logEntryPool.release(entry as PoolableLogEntry);
+            }
+          });
+          
+          return {
+            ...prev,
+            [portIndex]: limitedLogs
+          };
         });
         
-        return {
-          ...prev,
-          [portIndex]: limitedLogs
+        // 更新合并日志（用于 MERGED_TXRX 模式）
+        const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
+        const mergedEntry: MergedLogEntry = {
+          ...poolEntry as LogEntry,
+          portLabel
         };
-      });
-      
-      // 更新合并日志（用于 MERGED_TXRX 模式）
-      const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
-      const mergedEntry: MergedLogEntry = {
-        ...poolEntry as LogEntry,
-        portLabel
-      };
-      
-      setMergedLogs(prev => {
-        const newMergedLogs = [...prev, mergedEntry];
-        // 应用最大日志行数限制
-        const limitedMergedLogs = newMergedLogs.slice(-settings.maxLogLines);
         
-        // 释放被移除的旧日志条目
-        const removedMergedLogs = newMergedLogs.slice(0, -settings.maxLogLines);
-        removedMergedLogs.forEach(entry => {
-          logEntryPool.release(entry as PoolableLogEntry);
+        setMergedLogs(prev => {
+          const newMergedLogs = [...prev, mergedEntry];
+          // 应用最大日志行数限制
+          const limitedMergedLogs = newMergedLogs.slice(-settings.maxLogLines);
+          
+          // 释放被移除的旧日志条目
+          const removedMergedLogs = newMergedLogs.slice(0, -settings.maxLogLines);
+          removedMergedLogs.forEach(entry => {
+            logEntryPool.release(entry as PoolableLogEntry);
+          });
+          
+          return limitedMergedLogs;
         });
         
-        return limitedMergedLogs;
-      });
-      
-      setStats(prev => ({
-        ...prev,
-        [portIndex]: {
-          totalLogs: (prev[portIndex]?.totalLogs || 0) + 1,
-          receivedBytes: type === 'received' ? (prev[portIndex]?.receivedBytes || 0) + data.length : (prev[portIndex]?.receivedBytes || 0),
-          sentBytes: type === 'sent' ? (prev[portIndex]?.sentBytes || 0) + data.length : (prev[portIndex]?.sentBytes || 0)
-        }
-      }));
-    } else {
-      // 如果没有指定端口索引，需要手动释放对象池条目
-      logEntryPool.release(poolEntry);
-    }
+        setStats(prev => ({
+          ...prev,
+          [portIndex]: {
+            totalLogs: (prev[portIndex]?.totalLogs || 0) + 1,
+            receivedBytes: type === 'received' ? (prev[portIndex]?.receivedBytes || 0) + data.length : (prev[portIndex]?.receivedBytes || 0),
+            sentBytes: type === 'sent' ? (prev[portIndex]?.sentBytes || 0) + data.length : (prev[portIndex]?.sentBytes || 0)
+          }
+        }));
+      } else {
+        // 如果没有指定端口索引，需要手动释放对象池条目
+        logEntryPool.release(poolEntry);
+      }
+    };
+    
+    // 使用节流处理高频日志更新
+    const throttledAddLog = eventThrottleManager.getThrottledFunction(
+      `log_update_${type}_${portIndex}`,
+      performAddLog,
+      SERIAL_THROTTLE_CONFIG.LOG_UPDATE,
+      { leading: true, trailing: true }
+    );
+    
+    throttledAddLog();
 
     // 自动滚动到底部（仅当启用自动滚动时）
     if (settings.autoScroll) {

@@ -1,117 +1,70 @@
-import { TestCase, TestCommand } from '../types';
+/**
+ * 测试用例工具函数统一入口 (V2 - 架构重构版本)
+ * 提供清晰模块边界的工具函数集合
+ * 
+ * 模块职责：
+ * - testCaseExecutionUtils: 执行相关工具函数
+ * - testCaseSelectionUtils: 选择状态管理工具函数  
+ * - testCaseNavigationUtils: 导航定位工具函数
+ * - testCaseOrderingUtils: 排序移动工具函数
+ * - testCaseCoreUtils: 核心基础工具函数
+ * - testCaseRecursiveUtils: 递归操作工具函数 (保留)
+ * - testCaseUrcUtils: URC相关工具函数 (保留)
+ */
+
+// 执行相关工具函数
+export * from './testCaseExecutionUtils';
+
+// 选择状态管理工具函数
+export * from './testCaseSelectionUtils';
+
+// 导航定位工具函数
+export * from './testCaseNavigationUtils';
+
+// 排序移动工具函数
+export * from './testCaseOrderingUtils';
+
+// 核心基础工具函数
+export * from './testCaseCoreUtils';
+
+// 保留的原有工具函数 (避免破坏现有引用)
+export * from './testCaseRecursiveUtils';
+export * from './testCaseUrcUtils';
+
+// 缓存机制
+export * from './testCaseCache';
+
+// 对象池机制
+export * from './objectPool';
 
 /**
- * Generate children order for sorting
+ * 测试用例工具函数版本信息
  */
-export const generateChildrenOrder = (children: (TestCase | TestCommand)[]): string[] => {
-  return children.map(child => child.id);
-};
+export const TEST_CASE_UTILS_VERSION = '2.0.0';
 
 /**
- * Get sorted children based on order
+ * 工具函数模块分类
  */
-export const getSortedChildren = (
-  children: (TestCase | TestCommand)[],
-  order: string[]
-): (TestCase | TestCommand)[] => {
-  const childMap = new Map(children.map(child => [child.id, child]));
-  
-  return order
-    .map(id => childMap.get(id))
-    .filter(Boolean) as (TestCase | TestCommand)[];
-};
+export const TestCaseUtilsModules = {
+  EXECUTION: 'testCaseExecutionUtils',
+  SELECTION: 'testCaseSelectionUtils', 
+  NAVIGATION: 'testCaseNavigationUtils',
+  ORDERING: 'testCaseOrderingUtils',
+  CORE: 'testCaseCoreUtils',
+  RECURSIVE: 'testCaseRecursiveUtils',
+  URC: 'testCaseUrcUtils',
+  CACHE: 'testCaseCache',
+  POOL: 'objectPool'
+} as const;
 
 /**
- * Update children order after operations
+ * 获取工具函数统计信息
  */
-export const updateChildrenOrder = (
-  children: (TestCase | TestCommand)[],
-  newOrder: string[]
-): (TestCase | TestCommand)[] => {
-  return getSortedChildren(children, newOrder);
-};
-
-/**
- * Move an item in a list
- */
-export const moveItem = <T>(
-  items: T[],
-  fromIndex: number,
-  toIndex: number
-): T[] => {
-  const result = [...items];
-  const [removed] = result.splice(fromIndex, 1);
-  result.splice(toIndex, 0, removed);
-  return result;
-};
-
-/**
- * Get case depth in the hierarchy
- */
-export const getCaseDepth = (testCase: TestCase, testCases: TestCase[]): number => {
-  let depth = 0;
-  let currentCase = testCase;
-  
-  while (true) {
-    const parent = findParentCase(currentCase.id, testCases);
-    if (!parent) break;
-    depth++;
-    currentCase = parent;
-  }
-  
-  return depth;
-};
-
-/**
- * Check if can add sub-case (prevent deep nesting)
- */
-export const canAddSubCase = (testCase: TestCase, testCases: TestCase[], maxDepth: number = 5): boolean => {
-  const currentDepth = getCaseDepth(testCase, testCases);
-  return currentDepth < maxDepth;
-};
-
-/**
- * Find parent case of a given case
- */
-const findParentCase = (caseId: string, testCases: TestCase[]): TestCase | null => {
-  for (const testCase of testCases) {
-    const subCase = testCase.subCases.find(sub => sub.id === caseId);
-    if (subCase) {
-      return testCase;
-    }
-    const foundInSub = findParentCase(caseId, testCase.subCases);
-    if (foundInSub) return foundInSub;
-  }
-  return null;
-};
-
-/**
- * Check if a case is a stats case
- */
-export const isStatsCase = (testCase: TestCase): boolean => {
-  return testCase.name.includes('统计') || testCase.name.includes('Stats');
-};
-
-/**
- * Generate unique ID for new items
- */
-let nextId = 1000;
-export const generateUniqueId = (): string => {
-  return `item_${++nextId}`;
-};
-
-/**
- * Check if command is selected
- */
-export const isCommandSelected = (command: TestCommand): boolean => {
-  return command.selected || false;
-};
-
-/**
- * Check if case has selected items
- */
-export const hasSelectedItems = (testCase: TestCase): boolean => {
-  const hasSelectedCommands = testCase.commands.some(cmd => cmd.selected);
-  const hasSelectedSubCases = testCase.subCases.some(subCase => hasSelectedItems(subCase));
-  return hasSelectedCommands || hasSelectedSubCases;
+export const getUtilsStats = () => {
+  // 这里可以添加工具函数使用统计
+  return {
+    version: TEST_CASE_UTILS_VERSION,
+    modules: Object.keys(TestCaseUtilsModules),
+    timestamp: Date.now()
+  };
 };

@@ -228,11 +228,11 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const renderCaseContent = (testCase: TestCase, level: number): React.ReactNode[] => {
     const elements: React.ReactNode[] = [];
 
-    // 渲染命令
+    // 渲染命令（确保正确的缩进级别）
     testCase.commands.forEach((command, index) => {
       elements.push(
         <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 12}px` }}>
+          <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
             <Checkbox
               checked={command.selected}
               onCheckedChange={(checked) => {
@@ -313,7 +313,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     // 渲染用例行
     elements.push(
       <div key={testCase.id} className="p-2 hover:bg-muted/50 transition-colors">
-        <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 12}px` }}>
+        <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
           {/* 复选框 */}
           <Checkbox
             checked={testCase.selected}
@@ -396,7 +396,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       testCase.commands.forEach((command, index) => {
         elements.push(
           <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-2" style={{ paddingLeft: `${(level + 1) * 12}px` }}>
+            <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
               <Checkbox
                 checked={command.selected}
                 onCheckedChange={(checked) => {
@@ -481,7 +481,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         testCase.commands.forEach((command, index) => {
           elements.push(
             <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-2" style={{ paddingLeft: `${(level + 1) * 12}px` }}>
+              <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
                 <Checkbox
                   checked={command.selected}
                   onCheckedChange={(checked) => {

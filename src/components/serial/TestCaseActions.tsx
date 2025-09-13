@@ -412,88 +412,16 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-0.5 flex-shrink-0">
-      {/* 全选所有测试用例按钮 */}
-      {testCases.length > 0 && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                onClick={handleSelectAllTestCases}
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2 text-xs"
-              >
-                {testCases.length > 0 && testCases.every(tc => tc.selected) ? (
-                  <>
-                    <CheckSquare className="w-3 h-3 mr-1" />
-                    取消全选用例
-                  </>
-                ) : (
-                  <>
-                    <SquareIcon className="w-3 h-3 mr-1" />
-                    全选用例
-                  </>
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                {testCases.length > 0 && testCases.every(tc => tc.selected)
-                  ? "取消全选所有测试用例"
-                  : "全选所有测试用例"
-                }
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-      
-      {/* 全选当前用例命令按钮 */}
-      {currentTestCase && currentTestCase.commands.length > 0 && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                onClick={handleToggleSelectAll}
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2 text-xs"
-              >
-                {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected) ? (
-                  <>
-                    <CheckSquare className="w-3 h-3 mr-1" />
-                    取消全选命令
-                  </>
-                ) : (
-                  <>
-                    <SquareIcon className="w-3 h-3 mr-1" />
-                    全选命令
-                  </>
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>
-                {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected)
-                  ? "取消全选当前用例的所有命令"
-                  : "全选当前用例的所有命令"
-                }
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-      
-      {/* 删除选中命令和子用例按钮 */}
+    <div className="flex items-center gap-1 flex-shrink-0">
+      {/* 保留删除按钮 */}
       {currentTestCase && hasSelectedItems && hasSelectedItems(currentTestCase) && (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                onClick={onDeleteSelectedCommands || handleDeleteSelectedCommands} 
-                variant="destructive" 
-                size="sm" 
+              <Button
+                onClick={onDeleteSelectedCommands || handleDeleteSelectedCommands}
+                variant="destructive"
+                size="sm"
                 className="h-7 w-7 p-0"
               >
                 <Trash2 className="w-3.5 h-3.5" />

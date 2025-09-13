@@ -17,7 +17,7 @@ export interface TestCaseBaseState {
 export interface TestCaseBaseActions {
   // 设置函数
   setTestCases: (cases: TestCase[]) => void;
-  setSelectedCase: (case: TestCase | null) => void;
+  setSelectedCase: (testCase: TestCase | null) => void;
   setSelectedTestCaseId: (id: string) => void;
   setCurrentWorkspace: (workspace: any) => void;
   // 工具函数

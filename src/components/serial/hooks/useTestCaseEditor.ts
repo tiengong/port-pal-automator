@@ -19,7 +19,7 @@ export interface TestCaseEditorState {
 
 export interface TestCaseEditorActions {
   // 设置函数
-  setEditingCase: (case: TestCase | null) => void;
+  setEditingCase: (testCase: TestCase | null) => void;
   setIsEditDialogOpen: (open: boolean) => void;
   setEditingCommandIndex: (index: number | null) => void;
   setInlineEdit: (edit: { commandId: string | null; value: string }) => void;

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
-import { SerialManager } from '@/lib/serial/serialManager';
+import { EnhancedSerialManager } from '@/lib/serial/enhanced/enhancedSerialManager';
 import { SerialPortInfo as TransportPortInfo, SerialConfig } from '@/lib/serial/transport';
 
 export interface SerialPortInfo {
@@ -24,7 +24,7 @@ export interface ConnectionStrategy {
 export const useSerialManager = () => {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [serialManager] = useState(() => new SerialManager());
+  const [serialManager] = useState(() => new EnhancedSerialManager());
   const [ports, setPorts] = useState<SerialPortInfo[]>([]);
   const [strategy, setStrategy] = useState<ConnectionStrategy>({
     mode: 'P1_ONLY',

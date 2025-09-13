@@ -218,7 +218,7 @@ export const TestCaseTreeView: React.FC<TestCaseTreeViewProps> = memo(({
         )}
       </React.Fragment>
     );
-  };
+  }, [parentCaseId, onSelectCase, onToggleExpand, onUpdateCaseSelection, onRunTestCase, onEditCase, onSetLastFocusedChild, onDragStart, onDragOver, onDragLeave, onDrop, selectedCaseId, dragInfo]);
 
   return (
     <>

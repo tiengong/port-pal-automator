@@ -327,4 +327,4 @@ export class ATCommandAutoCompleteManager {
 }
 
 // 导出单例实例
-nexport const atCommandAutoCompleteManager = ATCommandAutoCompleteManager.getInstance();
+export const atCommandAutoCompleteManager = ATCommandAutoCompleteManager.getInstance();

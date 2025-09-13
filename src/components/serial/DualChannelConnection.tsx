@@ -462,15 +462,15 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                             </div>
                           </SelectItem>
                         </>
-                      ) : (
-                        availablePorts.map((port, index) => {
-                        return (
-                          <SelectItem key={index} value={index.toString()}>
-                            {port.name}
-                          </SelectItem>
-                        );
-                        })
-                      )}
+                       ) : (
+                         availablePorts.map((port, index) => {
+                           return (
+                             <SelectItem key={index} value={index.toString()}>
+                               {port.name}
+                             </SelectItem>
+                           );
+                         })
+                       )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -478,14 +478,14 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 {/* Detailed Configuration */}
                 <div className="grid grid-cols-2 gap-4">
                   <BaudRateSelect
-                  value={strategy.p2Config.baudRate}
-                  onChange={(value) => 
-                    updateStrategy({ 
-                      p2Config: { ...strategy.p2Config, baudRate: value }
-                    })
-                  }
-                  label={t("connection.baudRate")}
-                />
+                    value={strategy.p2Config.baudRate}
+                    onChange={(value) => 
+                      updateStrategy({ 
+                        p2Config: { ...strategy.p2Config, baudRate: value }
+                      })
+                    }
+                    label={t("connection.baudRate")}
+                  />
 
                   <div className="space-y-2">
                     <Label>{t("connection.dataBits")}</Label>

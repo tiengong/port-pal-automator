@@ -122,46 +122,58 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
   // 应用主题设置
   const applyTheme = (theme: AppSettings['theme']) => {
-    const root = document.documentElement;
-    
-    // Clean up previous listener
-    if (themeCleanupRef.current) {
-      themeCleanupRef.current();
-      themeCleanupRef.current = null;
-    }
-    
-    if (theme === 'auto') {
-      // 监听系统主题变化
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const applySystemTheme = () => {
-        root.classList.toggle('dark', mediaQuery.matches);
-      };
+    try {
+      const root = document.documentElement;
       
-      applySystemTheme();
-      mediaQuery.addEventListener('change', applySystemTheme);
+      // Clean up previous listener
+      if (themeCleanupRef.current) {
+        themeCleanupRef.current();
+        themeCleanupRef.current = null;
+      }
       
-      // Store cleanup function
-      themeCleanupRef.current = () => mediaQuery.removeEventListener('change', applySystemTheme);
-    } else {
-      root.classList.toggle('dark', theme === 'dark');
+      if (theme === 'auto') {
+        // 监听系统主题变化
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const applySystemTheme = () => {
+          root.classList.toggle('dark', mediaQuery.matches);
+        };
+        
+        applySystemTheme();
+        mediaQuery.addEventListener('change', applySystemTheme);
+        
+        // Store cleanup function
+        themeCleanupRef.current = () => mediaQuery.removeEventListener('change', applySystemTheme);
+      } else {
+        root.classList.toggle('dark', theme === 'dark');
+      }
+    } catch (error) {
+      console.error('Failed to apply theme setting:', error);
     }
   };
   
   // Apply language setting
   const applyLanguage = (language: AppSettings['language']) => {
-    i18n.changeLanguage(language);
-    document.documentElement.lang = language;
+    try {
+      i18n.changeLanguage(language);
+      document.documentElement.lang = language;
+    } catch (error) {
+      console.error('Failed to apply language setting:', error);
+    }
   };
 
   // 应用字体大小设置
   const applyFontSize = (fontSize: AppSettings['fontSize']) => {
-    const fontSizeMap = {
-      small: '12px',
-      medium: '14px',
-      large: '16px'
-    };
-    
-    document.documentElement.style.setProperty('--app-font-size', fontSizeMap[fontSize]);
+    try {
+      const fontSizeMap = {
+        small: '12px',
+        medium: '14px',
+        large: '16px'
+      };
+      
+      document.documentElement.style.setProperty('--app-font-size', fontSizeMap[fontSize]);
+    } catch (error) {
+      console.error('Failed to apply font size setting:', error);
+    }
   };
 
   // 加载设置
@@ -183,10 +195,15 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       }
     } catch (error) {
       console.error('加载设置失败:', error);
-      // 使用默认设置并立即应用
+    }
+    
+    // 使用默认设置并立即应用
+    try {
       applyTheme(defaultSettings.theme);
       applyFontSize(defaultSettings.fontSize);
       applyLanguage(defaultSettings.language);
+    } catch (applyError) {
+      console.error('Failed to apply default settings:', applyError);
     }
     
     return defaultSettings;
@@ -194,7 +211,19 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
 
   // 初始化设置
   useEffect(() => {
-    loadSettings();
+    try {
+      loadSettings();
+    } catch (error) {
+      console.error('Settings initialization failed:', error);
+      // Ensure we still apply default settings if loading fails
+      try {
+        applyTheme(defaultSettings.theme);
+        applyFontSize(defaultSettings.fontSize);
+        applyLanguage(defaultSettings.language);
+      } catch (applyError) {
+        console.error('Failed to apply default settings:', applyError);
+      }
+    }
     
     // Cleanup theme listener on unmount
     return () => {

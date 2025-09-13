@@ -50,6 +50,7 @@ interface MergedLogEntry extends LogEntry {
 interface LogEntry {
   id: string;
   timestamp: Date;
+  timestampMs: number; // 毫秒级时间戳
   type: 'sent' | 'received' | 'system' | 'error';
   data: string;
   format: 'utf8' | 'hex';
@@ -113,10 +114,42 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   const getBadgeContent = (logType: LogEntry['type']) => {
     switch (logType) {
       case 'sent': return '[TX]';
-      case 'received': return '[RX]'; 
+      case 'received': return '[RX]';
       case 'system': return '[SYS]';
       default: return '[?]';
     }
+  };
+
+  // 波特率相关的数据组包管理器
+  interface DataPacket {
+    buffer: Uint8Array[];
+    lastTimestamp: number;
+    timeoutId: NodeJS.Timeout | null;
+  }
+
+  const dataPackets = useRef<Map<number, DataPacket>>(new Map());
+
+  // 计算波特率相关的组包时间
+  const getPacketTimeout = useCallback((portIndex: number) => {
+    const portInfo = connectedPortLabels[portIndex];
+    const baudRate = portInfo?.params?.baudRate || 115200;
+
+    // 基本规则：波特率越高，超时时间越短
+    if (baudRate >= 115200) return 15;     // 高速串口: 15ms
+    if (baudRate >= 57600) return 25;      // 中高速: 25ms
+    if (baudRate >= 19200) return 35;      // 中速: 35ms
+    return 45;                             // 低速: 45ms
+  }, [connectedPortLabels]);
+
+  // 格式化时间戳显示，精确到毫秒
+  const formatTimestamp = (timestamp: Date, timestampMs?: number) => {
+    const hours = timestamp.getHours().toString().padStart(2, '0');
+    const minutes = timestamp.getMinutes().toString().padStart(2, '0');
+    const seconds = timestamp.getSeconds().toString().padStart(2, '0');
+    const ms = timestampMs || timestamp.getTime();
+    const milliseconds = (ms % 1000).toString().padStart(3, '0');
+
+    return `${hours}:${minutes}:${seconds}.${milliseconds}`;
   };
 
   // 同步设置到组件状态
@@ -125,6 +158,72 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     setShowTimestamp(settings.showTimestamp);
     setAutoSendInterval(settings.defaultAutoSendInterval);
   }, [settings.displayFormat, settings.showTimestamp, settings.defaultAutoSendInterval]);
+
+  // 组包超时处理函数
+  const flushPacket = useCallback((portIndex: number) => {
+    const packet = dataPackets.current.get(portIndex);
+    if (!packet || packet.buffer.length === 0) return;
+
+    // 合并所有数据
+    const totalLength = packet.buffer.reduce((sum, buf) => sum + buf.length, 0);
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    packet.buffer.forEach(buf => {
+      combined.set(buf, offset);
+      offset += buf.length;
+    });
+
+    // 解码并显示
+    const decoder = new TextDecoder();
+    const text = decoder.decode(combined);
+
+    // 清空缓冲区
+    packet.buffer = [];
+    if (packet.timeoutId) {
+      clearTimeout(packet.timeoutId);
+      packet.timeoutId = null;
+    }
+
+    // 立即显示
+    addLog('received', text, displayFormat, portIndex);
+  }, [displayFormat]);
+
+  // 接收数据缓冲组包处理
+  const handleReceivedData = useCallback((data: Uint8Array, portIndex: number) => {
+    const timeout = getPacketTimeout(portIndex);
+    let packet = dataPackets.current.get(portIndex);
+
+    if (!packet) {
+      packet = {
+        buffer: [],
+        lastTimestamp: Date.now(),
+        timeoutId: null
+      };
+      dataPackets.current.set(portIndex, packet);
+    }
+
+    // 添加到缓冲区
+    packet.buffer.push(data);
+    packet.lastTimestamp = Date.now();
+
+    // 清除之前的超时
+    if (packet.timeoutId) {
+      clearTimeout(packet.timeoutId);
+    }
+
+    // 如果数据较大或包含特定字符，立即显示
+    const text = new TextDecoder().decode(data);
+    if (data.length > 64 || text.includes('\n') || text.includes('\r')) {
+      // 包含换行符或数据较大，立即刷新
+      flushPacket(portIndex);
+      return;
+    }
+
+    // 设置新的超时
+    packet.timeoutId = setTimeout(() => {
+      flushPacket(portIndex);
+    }, timeout);
+  }, [getPacketTimeout, flushPacket]);
 
   // 监听测试用例发送的命令事件
   useEffect(() => {
@@ -219,19 +318,23 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   }, [connectedPorts, connectedPortLabels, displayFormat, serialManager, statusMessages, t]);
 
   // 中断式数据添加 - 立即显示，无节流延迟
-  const addLog = (type: LogEntry['type'], data: string, format: 'utf8' | 'hex' = displayFormat, portIndex?: number) => {
+  const addLog = (type: LogEntry['type'], data: string, format: 'utf8' | 'hex' = displayFormat, portIndex?: number, timestampMs?: number) => {
     // 只记录发送和接收的数据，不记录系统消息
     if (type !== 'sent' && type !== 'received') return;
-    
-    // 直接创建日志条目，避免对象池开销
+
+    // 使用传入的时间戳或当前时间，精确到毫秒
+    const now = timestampMs || Date.now();
+    const currentTime = new Date(now);
+
     const logEntry: LogEntry = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      timestamp: new Date(),
+      id: now.toString() + Math.random().toString(36).substr(2, 9),
+      timestamp: currentTime,
+      timestampMs: now,
       type,
       data,
       format
     };
-    
+
     if (portIndex !== undefined) {
       // 立即更新分端口日志 - 无延迟
       setLogs(prev => {
@@ -242,19 +345,19 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
           [portIndex]: newPortLogs.slice(-settings.maxLogLines)
         };
       });
-      
+
       // 立即更新合并日志（用于 MERGED_TXRX 模式）
       const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
       const mergedEntry: MergedLogEntry = {
         ...logEntry,
         portLabel
       };
-      
+
       setMergedLogs(prev => {
         const newMergedLogs = [...prev, mergedEntry];
         return newMergedLogs.slice(-settings.maxLogLines);
       });
-      
+
       // 立即更新统计信息
       setStats(prev => ({
         ...prev,
@@ -303,21 +406,21 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       isReadingRef.current.add(portLabel);
 
       await serialManager.serialManager.startReading(portLabel, (data: Uint8Array) => {
-        // 中断式数据处理：立即显示，无延迟
+        // 中断式数据处理：先组包，再分流
+        const timestamp = Date.now();
+
+        // 1. 波特率相关的组包处理
+        handleReceivedData(data, portIndex);
+
+        // 2. 测试用例解析路径（独立的原始数据流）
         const decoder = new TextDecoder();
         const text = decoder.decode(data);
 
-        console.log(`[DataTerminal] Interrupt-driven data from ${portLabel}:`, text);
-        
-        // 立即显示数据（显示路径）
-        addLog('received', text, displayFormat, portIndex);
-
-        // 发送到事件总线供测试命令使用（测试路径）
         const serialEvent: SerialDataEvent = {
           portIndex,
           portLabel,
           data: text,
-          timestamp: new Date(),
+          timestamp: new Date(timestamp),
           type: 'received'
         };
         eventBus.emit(EVENTS.SERIAL_DATA_RECEIVED, serialEvent);
@@ -576,7 +679,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     Object.entries(logs).forEach(([portIndex, portLogs]) => {
       content += `=== ${t('terminal.port')} ${parseInt(portIndex) + 1} ===\n`;
       portLogs.forEach(log => {
-        const timestamp = showTimestamp ? `[${log.timestamp.toLocaleTimeString()}] ` : '';
+        const timestamp = showTimestamp ? `[${formatTimestamp(log.timestamp, log.timestampMs)}] ` : '';
         const type = log.type === 'sent' ? t('terminal.sent') : log.type === 'received' ? t('terminal.received') : t('terminal.system');
         content += `${timestamp}${type}: ${log.data}\n`;
       });
@@ -718,6 +821,14 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       
       // 清理状态
       setLogs({});
+
+      // 清理组包缓冲区
+      dataPackets.current.forEach((packet, portIndex) => {
+        if (packet.timeoutId) {
+          clearTimeout(packet.timeoutId);
+        }
+      });
+      dataPackets.current.clear();
       // Note: setReceivedData is not available in this scope, it will be cleaned up by parent component
       
       console.log('[DataTerminal] Cleanup completed');
@@ -963,7 +1074,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                          >
                            {showTimestamp && (
                              <span className="text-muted-foreground mr-2">
-                               [{log.timestamp.toLocaleTimeString()}]
+                               [{formatTimestamp(log.timestamp, log.timestampMs)}]
                              </span>
                            )}
                            <span className="text-xs text-muted-foreground mr-2 font-mono">
@@ -1052,7 +1163,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                   >
                     {showTimestamp && (
                       <span className="text-muted-foreground mr-2">
-                        [{log.timestamp.toLocaleTimeString()}]
+                        [{formatTimestamp(log.timestamp, log.timestampMs)}]
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground mr-1 font-mono">
@@ -1079,7 +1190,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                   >
                     {showTimestamp && (
                       <span className="text-muted-foreground mr-2">
-                        [{log.timestamp.toLocaleTimeString()}]
+                        [{formatTimestamp(log.timestamp, log.timestampMs)}]
                       </span>
                     )}
                     <span className="text-xs text-muted-foreground mr-2 font-mono">

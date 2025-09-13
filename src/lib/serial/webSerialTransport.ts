@@ -150,10 +150,9 @@ export class WebSerialTransport extends SerialTransport {
       throw new Error('Port not readable');
     }
 
-    // Stop any existing reader
     await this.stopReading(connection);
 
-    // Note: 优化数据读取，提高实时性，使用更频繁的检查
+    // 中断驱动模式：立即处理每个数据包
     const reader = port.readable.getReader();
     this.readers.set(connection.id, reader);
 
@@ -162,18 +161,29 @@ export class WebSerialTransport extends SerialTransport {
         const { value, done } = await reader.read();
         if (done) break;
 
-        // Note: 立即处理数据，无额外处理延迟，确保实时性
+        // 中断触发：立即处理数据，无缓冲延迟
         if (value && value.length > 0) {
+          // 时间戳精确到毫秒
+          const timestamp = Date.now();
+          const packet = {
+            data: value,
+            timestamp,
+            connectionId: connection.id
+          };
+
+          // 直接传递数据包，上层负责组包和显示
           onData(value);
         }
       }
     } catch (error) {
-      console.error('Reading stopped:', error);
+      console.error('Serial interrupt reading error:', error);
     } finally {
       this.readers.delete(connection.id);
       try {
         reader.releaseLock();
-      } catch {}
+      } catch (cleanupError) {
+        console.log('Reader cleanup (expected):', cleanupError);
+      }
     }
   }
 

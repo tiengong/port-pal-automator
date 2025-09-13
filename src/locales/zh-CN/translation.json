@@ -14,7 +14,7 @@
     "testCase": "测试"
   },
   "status": {
-    "serialTool": "Serial Pilot v2.2.0",
+    "serialTool": "Serial Pilot v0.0.1",
     "webSerialSupported": "Web Serial API 已支持",
     "webSerialNotSupported": "Web Serial API 不支持",
     "activeConnections": "活跃连接",

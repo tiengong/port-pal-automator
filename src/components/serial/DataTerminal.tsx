@@ -867,13 +867,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
                      <Button 
                        variant={settings.autoScroll ? "default" : "outline"}
                        size="sm" 
-                       onClick={() => {
-                         updateSetting('autoScroll', !settings.autoScroll);
-                         statusMessages?.addMessage(
-                           !settings.autoScroll ? t('terminal.messages.autoScrollEnabled') : t('terminal.messages.autoScrollDisabled'), 
-                           'info'
-                         );
-                       }}
+                        onClick={() => {
+                          updateSetting('autoScroll', !settings.autoScroll);
+                        }}
                        className="w-8 h-8 p-0"
                      >
                       <ArrowDown className="w-4 h-4" />

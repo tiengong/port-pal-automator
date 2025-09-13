@@ -167,7 +167,9 @@
       "autoSendStarted": "Auto send started (interval: {{interval}}ms)",
       "exportSuccess": "Exported {{count}} log records",
       "noDataToSend": "No data to send",
-      "demoModeSent": "Demo mode: Sent '{{data}}' (Web Serial API not available)"
+      "demoModeSent": "Demo mode: Sent '{{data}}' (Web Serial API not available)",
+      "autoScrollEnabled": "Auto scroll enabled",
+      "autoScrollDisabled": "Auto scroll disabled"
     }
   },
   "connection": {

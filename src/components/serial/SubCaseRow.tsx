@@ -94,7 +94,7 @@ export const SubCaseRow = React.memo<SubCaseRowProps>(({
   };
 
   return (
-    <div 
+    <div
       className={`p-3 hover:bg-muted/50 transition-colors cursor-move select-none ${
         isDragging ? 'opacity-50' : ''
       } ${
@@ -115,7 +115,7 @@ export const SubCaseRow = React.memo<SubCaseRowProps>(({
         console.log('Drop event');
       }}
     >
-      <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 20}px` }}>
+      <div className="flex items-center gap-3 pl-4" style={{ paddingLeft: `${level * 20}px` }}>
         {/* 复选框 */}
         <Checkbox
           checked={isSelected}

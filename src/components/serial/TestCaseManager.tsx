@@ -232,7 +232,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
     testCase.commands.forEach((command, index) => {
       elements.push(
         <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
+          <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20 + 16}px` }}>
             <Checkbox
               checked={command.selected}
               onCheckedChange={(checked) => {
@@ -396,7 +396,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       testCase.commands.forEach((command, index) => {
         elements.push(
           <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
+            <div className="flex items-center gap-2 pl-4" style={{ paddingLeft: `${level * 20 + 16}px` }}>
               <Checkbox
                 checked={command.selected}
                 onCheckedChange={(checked) => {
@@ -481,7 +481,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         testCase.commands.forEach((command, index) => {
           elements.push(
             <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20}px` }}>
+              <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 20 + 16}px` }}>
                 <Checkbox
                   checked={command.selected}
                   onCheckedChange={(checked) => {

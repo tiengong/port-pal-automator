@@ -131,13 +131,14 @@ export const loadTestCaseToCurrentCase = (
   sourceCase: TestCase,
   currentCase: TestCase,
   testCases: TestCase[],
-  setTestCases: (testCases: TestCase[]) => void
+  setTestCases: (testCases: TestCase[]) => void,
+  generateUniqueId: () => string
 ): void => {
   if (!currentCase) return;
   
   const commandsToAdd = sourceCase.commands.map(cmd => ({
     ...cmd,
-    id: `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `cmd_${generateUniqueId()}`,
     selected: false,
     status: 'pending' as const
   }));
@@ -189,15 +190,15 @@ export const loadTestCaseAsSubCaseToCurrentCase = (
 const cloneCaseForSubcase = (sourceCase: TestCase, generateUniqueId: () => string): TestCase => {
   const cloneCmd = (cmd: TestCommand): TestCommand => ({
     ...cmd,
-    id: `cmd_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+    id: `cmd_${generateUniqueId()}`,
     status: 'pending',
     selected: false
   });
   
   const cloneCase = (tc: TestCase): TestCase => ({
     ...tc,
-    id: `case_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-    uniqueId: '', // Sub-cases don't need unique IDs
+    id: `case_${generateUniqueId()}`,
+    uniqueId: generateUniqueId(),
     commands: tc.commands.map(cloneCmd),
     subCases: tc.subCases.map(cloneCase),
     isExpanded: false,

@@ -33,7 +33,8 @@
       "general": "General",
       "serial": "Serial",
       "display": "Display",
-      "terminal": "Terminal"
+      "terminal": "Terminal",
+      "about": "About"
     },
     "general": {
       "theme": "Theme",

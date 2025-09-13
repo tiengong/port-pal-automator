@@ -243,7 +243,7 @@ export const addSubCaseViaContextMenu = (
   }
   
   const newSubCase: TestCase = {
-    id: `subcase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `subcase_${generateUniqueId()}`,
     uniqueId: generateUniqueId(),
     name: '新建子用例',
     description: '',

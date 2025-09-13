@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { useSerialManager, type SerialPortInfo } from "@/hooks/useSerialManager";
 import { SerialPortInfo as TransportPortInfo } from '@/lib/serial/transport';
+import { BaudRateSelect } from './BaudRateSelect';
 
 interface DualChannelConnectionProps {
   serialManager: ReturnType<typeof useSerialManager>;
@@ -41,8 +42,8 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
   const { strategy, updateStrategy, ports, serialManager: manager } = serialManager;
 
-  // 获取可用串口
-  const refreshPorts = async () => {
+  // 获取可用串口 - 优化性能
+  const refreshPorts = useCallback(async () => {
     if (!manager.isSupported()) {
       toast({
         title: t("connection.webSerialNotSupported"),
@@ -70,10 +71,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         variant: "destructive"
       });
     }
-  };
+  }, [manager, toast, t]);
 
-  // 请求新串口访问并刷新
-  const requestPortAndRefresh = async () => {
+  // 请求新串口访问并刷新 - 优化性能
+  const requestPortAndRefresh = useCallback(async () => {
     if (!manager.isSupported()) return;
 
     try {
@@ -93,10 +94,10 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
         variant: "destructive"
       });
     }
-  };
+  }, [manager, refreshPorts, toast, t]);
 
-  // 连接指定通道
-  const connectChannel = async (channel: 'P1' | 'P2') => {
+  // 连接指定通道 - 优化性能
+  const connectChannel = useCallback(async (channel: 'P1' | 'P2') => {
     const selectedPort = selectedPorts[channel];
     if (!selectedPort || isConnecting[channel]) return;
 
@@ -114,12 +115,12 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
     } finally {
       setIsConnecting(prev => ({ ...prev, [channel]: false }));
     }
-  };
+  }, [selectedPorts, isConnecting, strategy.p1Config, strategy.p2Config, serialManager]);
 
-  // 断开指定通道
-  const disconnectChannel = (channel: 'P1' | 'P2') => {
+  // 断开指定通道 - 优化性能
+  const disconnectChannel = useCallback((channel: 'P1' | 'P2') => {
     serialManager.disconnectPort(channel);
-  };
+  }, [serialManager]);
 
   // 组件挂载时刷新端口列表
   useEffect(() => {
@@ -127,6 +128,42 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
       refreshPorts();
     }
   }, [manager]);
+
+  // P1端口选择处理器 - 优化性能
+  const handleP1PortSelect = useCallback(async (value: string) => {
+    if (value === "add-port") {
+      await requestPortAndRefresh();
+      return;
+    }
+    const port = availablePorts[parseInt(value)];
+    setSelectedPorts(prev => ({ ...prev, P1: port }));
+    setSelectedIndex(prev => ({ ...prev, P1: value }));
+  }, [availablePorts, requestPortAndRefresh]);
+
+  // P1端口下拉菜单打开处理器 - 优化性能
+  const handleP1PortDropdownOpen = useCallback(async (isOpen: boolean) => {
+    if (isOpen) {
+      await refreshPorts();
+    }
+  }, [refreshPorts]);
+
+  // P2端口选择处理器 - 优化性能
+  const handleP2PortSelect = useCallback(async (value: string) => {
+    if (value === "add-port") {
+      await requestPortAndRefresh();
+      return;
+    }
+    const port = availablePorts[parseInt(value)];
+    setSelectedPorts(prev => ({ ...prev, P2: port }));
+    setSelectedIndex(prev => ({ ...prev, P2: value }));
+  }, [availablePorts, requestPortAndRefresh]);
+
+  // P2端口下拉菜单打开处理器 - 优化性能
+  const handleP2PortDropdownOpen = useCallback(async (isOpen: boolean) => {
+    if (isOpen) {
+      await refreshPorts();
+    }
+  }, [refreshPorts]);
 
   if (!manager.isSupported()) {
     return (
@@ -189,21 +226,8 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                 <Label>{t("connection.selectPort")}</Label>
                 <Select
                   value={selectedIndex.P1}
-                  onValueChange={async (value) => {
-                    if (value === "add-port") {
-                      await requestPortAndRefresh();
-                      return;
-                    }
-                    const port = availablePorts[parseInt(value)];
-                    setSelectedPorts(prev => ({ ...prev, P1: port }));
-                    setSelectedIndex(prev => ({ ...prev, P1: value }));
-                  }}
-                  onOpenChange={async (isOpen) => {
-                    if (isOpen) {
-                      // 每次打开时都刷新串口列表
-                      await refreshPorts();
-                    }
-                  }}
+                  onValueChange={handleP1PortSelect}
+                  onOpenChange={handleP1PortDropdownOpen}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={t("connection.selectDeviceAuto")} />
@@ -236,28 +260,15 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
               {/* Basic Configuration */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t("connection.baudRate")}</Label>
-                  <Select
-                    value={strategy.p1Config.baudRate.toString()}
-                    onValueChange={(value) => 
-                      updateStrategy({ 
-                        p1Config: { ...strategy.p1Config, baudRate: parseInt(value) }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600].map(rate => (
-                        <SelectItem key={rate} value={rate.toString()}>
-                          {rate} bps
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <BaudRateSelect
+                  value={strategy.p1Config.baudRate}
+                  onChange={(value) => 
+                    updateStrategy({ 
+                      p1Config: { ...strategy.p1Config, baudRate: value }
+                    })
+                  }
+                  label={t("connection.baudRate")}
+                />
 
                 <div className="space-y-2">
                   <Label>{t("connection.dataBits")}</Label>
@@ -432,21 +443,8 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
                   <Label>{t("connection.selectPort")}</Label>
                   <Select
                     value={selectedIndex.P2}
-                    onValueChange={async (value) => {
-                      if (value === "add-port") {
-                        await requestPortAndRefresh();
-                        return;
-                      }
-                      const port = availablePorts[parseInt(value)];
-                      setSelectedPorts(prev => ({ ...prev, P2: port }));
-                      setSelectedIndex(prev => ({ ...prev, P2: value }));
-                    }}
-                    onOpenChange={async (isOpen) => {
-                      if (isOpen) {
-                        // 每次打开时都刷新串口列表
-                        await refreshPorts();
-                      }
-                    }}
+                    onValueChange={handleP2PortSelect}
+                    onOpenChange={handleP2PortDropdownOpen}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={t("connection.selectDeviceAuto")} />
@@ -479,28 +477,15 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
 
                 {/* Detailed Configuration */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>{t("connection.baudRate")}</Label>
-                    <Select
-                      value={strategy.p2Config.baudRate.toString()}
-                      onValueChange={(value) => 
-                        updateStrategy({ 
-                          p2Config: { ...strategy.p2Config, baudRate: parseInt(value) }
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600].map(rate => (
-                          <SelectItem key={rate} value={rate.toString()}>
-                            {rate} bps
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <BaudRateSelect
+                  value={strategy.p2Config.baudRate}
+                  onChange={(value) => 
+                    updateStrategy({ 
+                      p2Config: { ...strategy.p2Config, baudRate: value }
+                    })
+                  }
+                  label={t("connection.baudRate")}
+                />
 
                   <div className="space-y-2">
                     <Label>{t("connection.dataBits")}</Label>

@@ -238,7 +238,7 @@ export const listWorkspaces = (): Workspace[] => {
 export const createWorkspace = async (name: string, useFileSystem = false): Promise<Workspace> => {
   const workspaceId = `workspace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
-  let workspace: Workspace = {
+  const workspace: Workspace = {
     id: workspaceId,
     name,
     persistence: 'browser',

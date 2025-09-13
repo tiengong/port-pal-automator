@@ -33,7 +33,8 @@
       "general": "通用",
       "serial": "串口",
       "display": "显示",
-      "terminal": "终端"
+      "terminal": "终端",
+      "about": "关于"
     },
     "general": {
       "theme": "主题",

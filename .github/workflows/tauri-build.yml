@@ -3,14 +3,67 @@ name: Tauri Build for Windows
 on:
   push:
     branches: [main]
+    tags:
+      - 'v*'
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0)'
+        required: false
+        default: '0.1.0'
+      build_type:
+        description: 'Build type'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - release
+          - debug
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    
     steps:
+      # 步骤0：确定版本号和构建类型
+      - name: Determine version and build configuration
+        id: config
+        run: |
+          # 确定版本号
+          if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ github.event.inputs.version }}" -ne "") {
+            $VERSION = "${{ github.event.inputs.version }}"
+          } elseif ("${{ github.ref }}" -like "refs/tags/v*") {
+            $VERSION = "${{ github.ref }}" -replace "refs/tags/v", ""
+          } else {
+            $VERSION = "0.1.0-beta" + (Get-Date -Format "yyyyMMddHHmm")
+          }
+          
+          # 确定构建类型
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $BUILD_TYPE = "${{ github.event.inputs.build_type }}"
+          } elseif ("${{ github.ref }}" -like "refs/tags/v*") {
+            $BUILD_TYPE = "release"
+          } else {
+            $BUILD_TYPE = "all"
+          }
+          
+          # 确定是否为预发布版本
+          $IS_PRERELEASE = $VERSION -match "(alpha|beta|rc|pre)"
+          
+          echo "version=$VERSION" >> $env:GITHUB_OUTPUT
+          echo "build_type=$BUILD_TYPE" >> $env:GITHUB_OUTPUT  
+          echo "is_prerelease=$IS_PRERELEASE" >> $env:GITHUB_OUTPUT
+          
+          echo "📋 Build Configuration:"
+          echo "  Version: $VERSION"
+          echo "  Build Type: $BUILD_TYPE"
+          echo "  Is Prerelease: $IS_PRERELEASE"
+          echo "  Ref: ${{ github.ref }}"
+          echo "  Event: ${{ github.event_name }}"
+        shell: pwsh
       # 步骤1：拉取代码（包含完整历史，确保依赖解析正确）
       - name: Checkout code
         uses: actions/checkout@v4
@@ -149,30 +202,48 @@ jobs:
 
       # 步骤7：构建Tauri应用 Release版本（MSI安装包）
       - name: Build Tauri app (Release MSI)
+        if: ${{ steps.config.outputs.build_type == 'all' || steps.config.outputs.build_type == 'release' }}
         run: |
           echo "=== Building Tauri app (Release MSI) ==="
+          echo "构建模式: Release"
+          echo "版本: $env:TAURI_APP_VERSION"
+          echo "应用名称: $env:TAURI_APP_NAME"
+          
           npx --yes @tauri-apps/cli@latest build --bundles msi
           if ($LASTEXITCODE -ne 0) {
             echo "❌ MSI build failed with exit code $LASTEXITCODE"
             echo "=== Build logs will be collected in artifacts ==="
             exit 1
           }
+          
+          echo "✅ Release MSI build completed successfully"
         env:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot"
-          TAURI_APP_VERSION: "0.1.0"
+          TAURI_APP_VERSION: ${{ steps.config.outputs.version }}
           TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
         working-directory: ./
 
       # 步骤8：构建Tauri应用 Release版本（绿色便携版）
       - name: Build Tauri app (Release Portable)
+        if: ${{ steps.config.outputs.build_type == 'all' || steps.config.outputs.build_type == 'release' }}
         run: |
           echo "=== Building Tauri app (Release Portable) ==="
+          echo "构建模式: Release (Portable)"
+          echo "版本: $env:TAURI_APP_VERSION"
+          echo "应用名称: $env:TAURI_APP_NAME"
+          
           npx --yes @tauri-apps/cli@latest build --bundles nsis
+          if ($LASTEXITCODE -ne 0) {
+            echo "❌ Portable build failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          
+          echo "✅ Release Portable build completed successfully"
         env:
           TAURI_BUILD_MODE: release
           TAURI_APP_NAME: "Serial Pilot Portable"
-          TAURI_APP_VERSION: "0.1.0"
+          TAURI_APP_VERSION: ${{ steps.config.outputs.version }}
           TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
           TAURI_BUNDLER: nsis-portable
         working-directory: ./
@@ -206,14 +277,25 @@ jobs:
 
       # 步骤9：构建Tauri应用 Debug版本（带控制台）
       - name: Build Tauri app (Debug with console)
+        if: ${{ steps.config.outputs.build_type == 'all' || steps.config.outputs.build_type == 'debug' }}
         run: |
           echo "=== Building Tauri app (Debug with console) ==="
+          echo "构建模式: Debug (带控制台)"
+          echo "版本: $env:TAURI_APP_VERSION"
+          echo "应用名称: $env:TAURI_APP_NAME"
+          
           npx --yes @tauri-apps/cli@latest build --features console
+          if ($LASTEXITCODE -ne 0) {
+            echo "❌ Debug build failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          
+          echo "✅ Debug build completed successfully"
         env:
-          TAURI_BUILD_MODE: release
+          TAURI_BUILD_MODE: debug
           TAURI_APP_NAME: "Serial Pilot Debug"
-          TAURI_APP_VERSION: "0.1.0"
-          TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"
+          TAURI_APP_VERSION: ${{ steps.config.outputs.version }}
+          TAURI_APP_IDENTIFIER: "com.serialpilot.desktop"  
         working-directory: ./
 
       # 步骤10：重命名Debug构建产物以区分版本
@@ -287,3 +369,43 @@ jobs:
             ./src-tauri/Cargo.lock
           retention-days: 7
           compression-level: 0
+
+      # 步骤15：创建GitHub Release（仅针对tag推送）
+      - name: Create GitHub Release
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Serial Pilot v${{ steps.config.outputs.version }}"
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ steps.config.outputs.is_prerelease }}
+          generate_release_notes: true
+          files: |
+            ./src-tauri/target/release/bundle/msi/Serial-Pilot-Setup.msi
+            ./src-tauri/target/release/bundle/nsis/Serial-Pilot-Portable.exe
+            ./src-tauri/target/release/bundle/**/*Debug*
+          body: |
+            ## Serial Pilot v${{ steps.config.outputs.version }}
+            
+            ### 🎯 主要更新
+            - 自动生成的发布版本
+            - 包含安装版和便携版
+            - 支持Windows平台
+            
+            ### 📦 下载说明
+            - **Serial-Pilot-Setup.msi**: Windows安装程序，推荐使用
+            - **Serial-Pilot-Portable.exe**: 绿色便携版，无需安装即可使用
+            - **Debug版本**: 开发者调试版本，包含控制台输出
+            
+            ### 🔧 系统要求
+            - Windows 10 或更高版本
+            - 支持Web Serial API的现代浏览器（如Chrome 89+）
+            
+            ### 📝 安装说明
+            1. 下载适合您需求的版本
+            2. 安装版：运行MSI文件按提示安装
+            3. 便携版：直接运行EXE文件即可使用
+            
+            ### 🐛 反馈与支持
+            如遇到问题，请在GitHub Issues中反馈。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

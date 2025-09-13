@@ -20,7 +20,8 @@
       "Bash(npm run lint:*)",
       "Bash(madge:*)",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Read(//f//**)"
     ],
     "deny": [],
     "ask": []

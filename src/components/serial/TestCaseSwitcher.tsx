@@ -24,6 +24,7 @@ interface TestCaseSwitcherProps {
   onCreateTestCase?: () => void;
   onSync?: () => void;
   onWorkspaceChange?: () => void;
+  generateUniqueId?: () => string;
   // Script related props
   scripts?: Script[];
   currentScript?: Script | null;
@@ -45,7 +46,8 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
   currentScript,
   onSelectScript,
   onCreateScript,
-  onDeleteScript
+  onDeleteScript,
+  generateUniqueId
 }) => {
   const {
     toast
@@ -112,7 +114,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
     try {
       const uniqueId = await getNextUniqueId();
       const newTestCase: TestCase = {
-        id: `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `case_${generateUniqueId ? generateUniqueId() : `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`}`,
         uniqueId,
         name: newCaseName.trim(),
         description: newCaseDescription.trim(),
@@ -366,7 +368,7 @@ export const TestCaseSwitcher: React.FC<TestCaseSwitcherProps> = ({
     if (!newScriptName.trim()) return;
     
     const newScript: Script = {
-      id: `script_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `script_${generateUniqueId ? generateUniqueId() : `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`}`,
       name: newScriptName.trim(),
       description: newScriptDescription.trim(),
       filePath: `./scripts/${newScriptName.trim()}.${newScriptLanguage}`,

@@ -4,6 +4,7 @@ import { Script } from '../types/ScriptTypes';
 import { eventBus, EVENTS } from '@/lib/eventBus';
 import { globalToast } from '@/hooks/useGlobalMessages';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/hooks/use-toast';
 
 // Import utility functions
 import { executeTestCase, executeCommand, ExecutionContext } from '../utils/testExecutionUtils';
@@ -218,6 +219,7 @@ export interface UseTestCaseManagerReturn {
 export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseManagerReturn => {
   const { connectedPorts, receivedData, statusMessages } = props;
   const { t } = useTranslation();
+  const { toast } = useToast();
   const runningCasesRef = useRef<Set<string>>(new Set());
   
   // Initialize state
@@ -700,9 +702,9 @@ export const useTestCaseManager = (props: TestCaseManagerProps): UseTestCaseMana
   const loadTestCaseToCurrentCase = useCallback((sourceCase: TestCase) => {
     const currentCase = getCurrentTestCase();
     if (currentCase) {
-      loadTestCaseToCurrentCase(sourceCase, currentCase, state.testCases, setTestCases);
+      loadTestCaseToCurrentCase(sourceCase, currentCase, state.testCases, setTestCases, generateUniqueId);
     }
-  }, [getCurrentTestCase, state.testCases]);
+  }, [getCurrentTestCase, state.testCases, generateUniqueId]);
   
   const loadTestCaseAsSubCaseToCurrentCase = useCallback((sourceCase: TestCase) => {
     const currentCase = getCurrentTestCase();

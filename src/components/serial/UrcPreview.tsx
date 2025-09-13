@@ -23,7 +23,7 @@ export const UrcPreview: React.FC<UrcPreviewProps> = ({ command }) => {
 
     const { parseType, parsePattern, parameterMap } = command.dataParseConfig;
     let matches = false;
-    let extractedVars: { [key: string]: string } = {};
+    const extractedVars: { [key: string]: string } = {};
     let error: string | undefined;
 
     try {

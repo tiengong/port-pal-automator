@@ -20,7 +20,11 @@ import {
   FolderOpen,
   Hash,
   ChevronDown,
-  FileCode
+  FileCode,
+  Info,
+  Github,
+  Globe,
+  Zap
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/SettingsContext";
@@ -245,11 +249,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
       
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="general">{t('settings.tabs.general')}</TabsTrigger>
             <TabsTrigger value="serial">{t('settings.tabs.serial')}</TabsTrigger>
             <TabsTrigger value="display">{t('settings.tabs.display')}</TabsTrigger>
             <TabsTrigger value="terminal">{t('settings.tabs.terminal')}</TabsTrigger>
+            <TabsTrigger value="about">{t('settings.tabs.about')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" className="space-y-4 mt-4">
@@ -631,6 +636,142 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ className, statusM
               </Select>
               <div className="text-xs text-muted-foreground">
                 {t('settings.terminal.colorModeDesc')}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="about" className="space-y-6 mt-4">
+            {/* 应用信息 */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Serial Pilot</h3>
+                  <p className="text-sm text-muted-foreground">高级串口调试工具</p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 p-4 bg-muted/50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">版本:</span>
+                  <Badge variant="secondary">v0.1.0</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">构建时间:</span>
+                  <span className="text-sm text-muted-foreground">{new Date().toLocaleDateString('zh-CN')}</span>
+                </div>                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">平台:</span>
+                  <span className="text-sm text-muted-foreground">{window.__TAURI__ ? '桌面版' : 'Web版'}</span>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* 功能特性 */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                核心功能
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>双通道串口通信支持</li>
+                <li>实时数据监控与记录</li>
+                <li>高级测试用例管理</li>
+                <li>脚本编辑与执行</li>
+                <li>变量提取与验证</li>
+                <li>多语言界面支持</li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            {/* 链接与资源 */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                相关链接
+              </h4>
+              <div className="grid gap-2">
+                <Button variant="outline" size="sm" className="justify-start" onClick={() => window.open('https://github.com/your-repo/serial-pilot', '_blank')}>
+                  <Github className="w-4 h-4 mr-2" />
+                  GitHub 仓库
+                </Button>
+                <Button variant="outline" size="sm" className="justify-start" onClick={() => window.open('https://github.com/your-repo/serial-pilot/issues', '_blank')}>
+                  <Info className="w-4 h-4 mr-2" />
+                  问题反馈
+                </Button>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* 版本检查与更新 */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                版本更新
+              </h4>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      // 检查更新的逻辑
+                      const response = await fetch('https://api.github.com/repos/your-repo/serial-pilot/releases/latest');
+                      const data = await response.json();
+                      
+                      if (data.tag_name && data.tag_name !== `v${'0.1.0'}`) {
+                        toast({
+                          title: "发现新版本",
+                          description: `新版本 ${data.tag_name} 可用，点击链接下载。`,
+                          action: {
+                            label: "下载",
+                            onClick: () => window.open(data.html_url, '_blank')
+                          }
+                        });
+                      } else {
+                        toast({
+                          title: "已是最新版本",
+                          description: "当前版本已是最新。"
+                        });
+                      }
+                    } catch (error) {
+                      toast({
+                        title: "检查更新失败",
+                        description: "无法连接到更新服务器。",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  检查更新
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // 重新启动应用（如果是Tauri环境）
+                    if (window.__TAURI__) {
+                      // Tauri重启逻辑
+                      toast({
+                        title: "重启应用",
+                        description: "应用将重新启动..."
+                      });
+                      setTimeout(() => {
+                        // 这里可以添加实际的重启逻辑
+                        window.location.reload();
+                      }, 1000);
+                    } else {
+                      window.location.reload();
+                    }
+                  }}
+                >
+                  重启应用
+                </Button>
               </div>
             </div>
           </TabsContent>

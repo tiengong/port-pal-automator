@@ -230,8 +230,8 @@ export class RobustWebSerialTransport extends SerialTransport {
           state.isHealthy = true;
           state.retryCount = 0;
 
-          // Process data with batching for performance
-          this.processDataBatch(connectionId, value, onData);
+          // Interrupt-driven immediate data processing - no batching delays
+          onData(value);
         }
       }
     } catch (error) {
@@ -248,34 +248,7 @@ export class RobustWebSerialTransport extends SerialTransport {
     }
   }
 
-  private processDataBatch(connectionId: string, data: Uint8Array, onData: (data: Uint8Array) => void): void {
-    // Add to buffer for batching
-    const buffer = this.dataBuffers.get(connectionId);
-    if (buffer) {
-      buffer.push(data);
-      
-      // Process buffer immediately for real-time response
-      // But batch multiple small packets if they arrive within 10ms
-      setTimeout(() => {
-        if (buffer.length > 0) {
-          const combinedLength = buffer.reduce((sum, chunk) => sum + chunk.length, 0);
-          const combined = new Uint8Array(combinedLength);
-          let offset = 0;
-          
-          for (const chunk of buffer) {
-            combined.set(chunk, offset);
-            offset += chunk.length;
-          }
-          
-          buffer.length = 0; // Clear buffer
-          onData(combined);
-        }
-      }, 1);
-    } else {
-      // Fallback: direct processing
-      onData(data);
-    }
-  }
+  // Removed processDataBatch - using direct interrupt-driven processing for zero latency
 
   private async attemptRecovery(connectionId: string, onData?: (data: Uint8Array) => void): Promise<void> {
     const state = this.connectionStates.get(connectionId);

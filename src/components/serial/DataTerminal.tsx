@@ -218,106 +218,69 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     };
   }, [connectedPorts, connectedPortLabels, displayFormat, serialManager, statusMessages, t]);
 
-  // 添加日志条目 - 只记录发送和接收的UART数据（带节流优化）
+  // 中断式数据添加 - 立即显示，无节流延迟
   const addLog = (type: LogEntry['type'], data: string, format: 'utf8' | 'hex' = displayFormat, portIndex?: number) => {
     // 只记录发送和接收的数据，不记录系统消息
     if (type !== 'sent' && type !== 'received') return;
     
-    // 从对象池获取日志条目
-    const poolEntry = logEntryPool.acquire();
-    poolEntry.id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    poolEntry.timestamp = new Date();
-    poolEntry.type = type;
-    poolEntry.data = data;
-    poolEntry.format = format;
-    
-    // 使用节流处理高频日志更新
-    const performAddLog = () => {
-      if (portIndex !== undefined) {
-        // 更新分端口日志
-        setLogs(prev => {
-          const newPortLogs = [...(prev[portIndex] || []), poolEntry as LogEntry];
-          // 应用最大日志行数限制
-          const limitedLogs = newPortLogs.slice(-settings.maxLogLines);
-          
-          // 释放被移除的旧日志条目
-          const removedLogs = newPortLogs.slice(0, -settings.maxLogLines);
-          removedLogs.forEach(entry => {
-            if (entry !== poolEntry) {
-              logEntryPool.release(entry as PoolableLogEntry);
-            }
-          });
-          
-          return {
-            ...prev,
-            [portIndex]: limitedLogs
-          };
-        });
-        
-        // 更新合并日志（用于 MERGED_TXRX 模式）
-        const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
-        const mergedEntry: MergedLogEntry = {
-          ...poolEntry as LogEntry,
-          portLabel
-        };
-        
-        setMergedLogs(prev => {
-          const newMergedLogs = [...prev, mergedEntry];
-          // 应用最大日志行数限制
-          const limitedMergedLogs = newMergedLogs.slice(-settings.maxLogLines);
-          
-          // 释放被移除的旧日志条目
-          const removedMergedLogs = newMergedLogs.slice(0, -settings.maxLogLines);
-          removedMergedLogs.forEach(entry => {
-            logEntryPool.release(entry as PoolableLogEntry);
-          });
-          
-          return limitedMergedLogs;
-        });
-        
-        setStats(prev => ({
-          ...prev,
-          [portIndex]: {
-            totalLogs: (prev[portIndex]?.totalLogs || 0) + 1,
-            receivedBytes: type === 'received' ? (prev[portIndex]?.receivedBytes || 0) + data.length : (prev[portIndex]?.receivedBytes || 0),
-            sentBytes: type === 'sent' ? (prev[portIndex]?.sentBytes || 0) + data.length : (prev[portIndex]?.sentBytes || 0)
-          }
-        }));
-      } else {
-        // 如果没有指定端口索引，需要手动释放对象池条目
-        logEntryPool.release(poolEntry);
-      }
+    // 直接创建日志条目，避免对象池开销
+    const logEntry: LogEntry = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      timestamp: new Date(),
+      type,
+      data,
+      format
     };
     
-    // 使用节流处理高频日志更新
-    const throttledAddLog = eventThrottleManager.getThrottledFunction(
-      `log_update_${type}_${portIndex}`,
-      performAddLog,
-      SERIAL_THROTTLE_CONFIG.LOG_UPDATE,
-      { leading: true, trailing: false } // 只保留leading，去掉trailing以提高响应速度
-    );
+    if (portIndex !== undefined) {
+      // 立即更新分端口日志 - 无延迟
+      setLogs(prev => {
+        const newPortLogs = [...(prev[portIndex] || []), logEntry];
+        // 应用最大日志行数限制
+        return {
+          ...prev,
+          [portIndex]: newPortLogs.slice(-settings.maxLogLines)
+        };
+      });
+      
+      // 立即更新合并日志（用于 MERGED_TXRX 模式）
+      const portLabel = connectedPortLabels[portIndex]?.label || `${t('terminal.port')} ${portIndex + 1}`;
+      const mergedEntry: MergedLogEntry = {
+        ...logEntry,
+        portLabel
+      };
+      
+      setMergedLogs(prev => {
+        const newMergedLogs = [...prev, mergedEntry];
+        return newMergedLogs.slice(-settings.maxLogLines);
+      });
+      
+      // 立即更新统计信息
+      setStats(prev => ({
+        ...prev,
+        [portIndex]: {
+          totalLogs: (prev[portIndex]?.totalLogs || 0) + 1,
+          receivedBytes: type === 'received' ? (prev[portIndex]?.receivedBytes || 0) + data.length : (prev[portIndex]?.receivedBytes || 0),
+          sentBytes: type === 'sent' ? (prev[portIndex]?.sentBytes || 0) + data.length : (prev[portIndex]?.sentBytes || 0)
+        }
+      }));
+    }
 
-    throttledAddLog();
-
-    // 立即滚动到底部（移除延迟以提升实时性）
+    // 使用 requestAnimationFrame 优化DOM更新
     if (settings.autoScroll) {
-      if (synchronizedScrolling && connectedPorts.length > 1) {
-        // 同步滚动所有终端
-        terminalRefs.current.forEach(ref => {
-          if (ref) {
-            ref.scrollTo({
-              top: ref.scrollHeight,
-              behavior: 'auto' // 改为auto以提高性能
-            });
-          }
-        });
-      } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
-        // 只滚动特定终端
-        terminalRefs.current[portIndex]!.scrollTo({
-          top: terminalRefs.current[portIndex]!.scrollHeight,
-          behavior: 'auto' // 改为auto以提高性能
-        });
-      }
+      requestAnimationFrame(() => {
+        if (synchronizedScrolling && connectedPorts.length > 1) {
+          // 同步滚动所有终端
+          terminalRefs.current.forEach(ref => {
+            if (ref) {
+              ref.scrollTop = ref.scrollHeight;
+            }
+          });
+        } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
+          // 只滚动特定终端
+          terminalRefs.current[portIndex]!.scrollTop = terminalRefs.current[portIndex]!.scrollHeight;
+        }
+      });
     }
   };
 
@@ -340,23 +303,24 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       isReadingRef.current.add(portLabel);
 
       await serialManager.serialManager.startReading(portLabel, (data: Uint8Array) => {
-        // 将接收到的数据转换为字符串
+        // 中断式数据处理：立即显示，无延迟
         const decoder = new TextDecoder();
         const text = decoder.decode(data);
 
-        console.log(`[DataTerminal] Received data from ${portLabel}:`, text);
+        console.log(`[DataTerminal] Interrupt-driven data from ${portLabel}:`, text);
+        
+        // 立即显示数据（显示路径）
         addLog('received', text, displayFormat, portIndex);
 
-        // Note: 不再发送数据到事件总线，避免状态栏噪音
-        // 发送数据到事件总线
-        // const serialEvent: SerialDataEvent = {
-        //   portIndex,
-        //   portLabel,
-        //   data: text,
-        //   timestamp: new Date(),
-        //   type: 'received'
-        // };
-        // eventBus.emit(EVENTS.SERIAL_DATA_RECEIVED, serialEvent);
+        // 发送到事件总线供测试命令使用（测试路径）
+        const serialEvent: SerialDataEvent = {
+          portIndex,
+          portLabel,
+          data: text,
+          timestamp: new Date(),
+          type: 'received'
+        };
+        eventBus.emit(EVENTS.SERIAL_DATA_RECEIVED, serialEvent);
       });
     } catch (error) {
       isReadingRef.current.delete(portLabel);

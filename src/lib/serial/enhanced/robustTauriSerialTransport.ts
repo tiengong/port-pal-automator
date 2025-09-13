@@ -215,8 +215,8 @@ export class RobustTauriSerialTransport extends SerialTransport {
         state.isHealthy = true;
         state.retryCount = 0;
 
-        // Process data with intelligent batching
-        this.processDataBatch(connectionId, data, onData);
+        // Interrupt-driven immediate data processing - no batching delays
+        onData(data);
       });
 
       this.listeners.set(connectionId, unlisten);
@@ -229,37 +229,7 @@ export class RobustTauriSerialTransport extends SerialTransport {
     }
   }
 
-  private processDataBatch(connectionId: string, data: Uint8Array, onData: (data: Uint8Array) => void): void {
-    const buffer = this.dataBuffers.get(connectionId);
-    if (buffer) {
-      buffer.push(data);
-      
-      // Use requestAnimationFrame for optimal UI updates
-      requestAnimationFrame(() => {
-        if (buffer.length > 0) {
-          // Combine multiple small packets
-          if (buffer.length === 1) {
-            onData(buffer[0]);
-          } else {
-            const combinedLength = buffer.reduce((sum, chunk) => sum + chunk.length, 0);
-            const combined = new Uint8Array(combinedLength);
-            let offset = 0;
-            
-            for (const chunk of buffer) {
-              combined.set(chunk, offset);
-              offset += chunk.length;
-            }
-            
-            onData(combined);
-          }
-          
-          buffer.length = 0; // Clear buffer
-        }
-      });
-    } else {
-      onData(data);
-    }
-  }
+  // Removed processDataBatch - using direct interrupt-driven processing for zero latency
 
   private async attemptRecovery(connectionId: string, onData?: (data: Uint8Array) => void): Promise<void> {
     const state = this.connectionStates.get(connectionId);

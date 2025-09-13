@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -294,32 +294,30 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       `log_update_${type}_${portIndex}`,
       performAddLog,
       SERIAL_THROTTLE_CONFIG.LOG_UPDATE,
-      { leading: true, trailing: true }
+      { leading: true, trailing: false } // 只保留leading，去掉trailing以提高响应速度
     );
-    
+
     throttledAddLog();
 
-    // 自动滚动到底部（仅当启用自动滚动时）
+    // 立即滚动到底部（移除延迟以提升实时性）
     if (settings.autoScroll) {
-      setTimeout(() => {
-        if (synchronizedScrolling && connectedPorts.length > 1) {
-          // 同步滚动所有终端
-          terminalRefs.current.forEach(ref => {
-            if (ref) {
-              ref.scrollTo({
-                top: ref.scrollHeight,
-                behavior: 'smooth'
-              });
-            }
-          });
-        } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
-          // 只滚动特定终端
-          terminalRefs.current[portIndex]!.scrollTo({
-            top: terminalRefs.current[portIndex]!.scrollHeight,
-            behavior: 'smooth'
-          });
-        }
-      }, 50);
+      if (synchronizedScrolling && connectedPorts.length > 1) {
+        // 同步滚动所有终端
+        terminalRefs.current.forEach(ref => {
+          if (ref) {
+            ref.scrollTo({
+              top: ref.scrollHeight,
+              behavior: 'auto' // 改为auto以提高性能
+            });
+          }
+        });
+      } else if (portIndex !== undefined && terminalRefs.current[portIndex]) {
+        // 只滚动特定终端
+        terminalRefs.current[portIndex]!.scrollTo({
+          top: terminalRefs.current[portIndex]!.scrollHeight,
+          behavior: 'auto' // 改为auto以提高性能
+        });
+      }
     }
   };
 
@@ -340,29 +338,31 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
     try {
       isReadingRef.current.add(portLabel);
-      
+
       await serialManager.serialManager.startReading(portLabel, (data: Uint8Array) => {
         // 将接收到的数据转换为字符串
         const decoder = new TextDecoder();
         const text = decoder.decode(data);
-        
+
         console.log(`[DataTerminal] Received data from ${portLabel}:`, text);
         addLog('received', text, displayFormat, portIndex);
-        
+
+        // Note: 不再发送数据到事件总线，避免状态栏噪音
         // 发送数据到事件总线
-        const serialEvent: SerialDataEvent = {
-          portIndex,
-          portLabel,
-          data: text,
-          timestamp: new Date(),
-          type: 'received'
-        };
-        eventBus.emit(EVENTS.SERIAL_DATA_RECEIVED, serialEvent);
+        // const serialEvent: SerialDataEvent = {
+        //   portIndex,
+        //   portLabel,
+        //   data: text,
+        //   timestamp: new Date(),
+        //   type: 'received'
+        // };
+        // eventBus.emit(EVENTS.SERIAL_DATA_RECEIVED, serialEvent);
       });
     } catch (error) {
       isReadingRef.current.delete(portLabel);
       console.error(`[DataTerminal] Cannot start reading from ${portLabel}:`, error);
-      statusMessages?.addMessage(t('terminal.messages.cannotStartReading'), 'error');
+      // Note: 不再显示错误消息，避免状态栏噪音
+      // statusMessages?.addMessage(t('terminal.messages.cannotStartReading'), 'error');
     }
   };
 
@@ -385,7 +385,7 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
   };
 
   // 发送数据到所有连接的端口
-  const sendSerialData = async () => {
+  const sendSerialData = useCallback(async () => {
     console.log('sendSerialData called', { 
       sendData, 
       supported: serialManager.serialManager.isSupported(),
@@ -416,7 +416,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       
       // 模拟发送到演示端口
       addLog('sent', dataToSend, sendFormat, 0);
-      statusMessages?.addMessage(t('terminal.messages.demoModeSent', { data: sendData }), 'info');
+      // Note: 不再显示演示模式消息，避免状态栏噪音
+      // statusMessages?.addMessage(t('terminal.messages.demoModeSent', { data: sendData }), 'info');
+      console.log('Demo mode sent:', dataToSend);
       
       // 模拟接收回复（延迟500ms）
       setTimeout(() => {
@@ -428,7 +430,9 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     }
     
     if (connectedPorts.length === 0) {
-      statusMessages?.addMessage(t('terminal.notConnected'), 'warning');
+      // Note: 不再显示连接警告消息，避免状态栏噪音
+      // statusMessages?.addMessage(t('terminal.notConnected'), 'warning');
+      console.log('No ports connected for serial data transmission');
       return;
     }
 
@@ -497,7 +501,8 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
         return { success: true, portLabel };
       } catch (error) {
         console.error(`[DataTerminal] Send failed to ${portLabel}:`, error);
-        statusMessages?.addMessage(t('terminal.messages.sendFailed', { portLabel, error: (error as Error).message }), 'error');
+        // Note: 不再显示详细发送失败消息，避免状态栏噪音，仅记录到控制台
+        // statusMessages?.addMessage(t('terminal.messages.sendFailed', { portLabel, error: (error as Error).message }), 'error');
         return { success: false, portLabel };
       }
     });
@@ -509,29 +514,39 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
 
       if (successCount > 0) {
         const targetPort = strategy.communicationMode === 'MERGED_TXRX' ? strategy.txPort : selectedSendPort;
-        const targetDesc = targetPort === 'ALL' 
+        const targetDesc = targetPort === 'ALL'
           ? t('terminal.messages.sentBytesToPorts', { successCount, totalCount: portsToSend.length })
           : targetPort;
-        
-        statusMessages?.addMessage(t('terminal.messages.sentBytesToTarget', { bytes: uint8Array.length, target: targetDesc }), 'success');
+
+        // Note: 不再显示详细发送成功消息，避免状态栏噪音，仅控制台记录
+        // statusMessages?.addMessage(t('terminal.messages.sentBytesToTarget', { bytes: uint8Array.length, target: targetDesc }), 'success');
+        console.log(`Data sent to ${targetDesc}: ${uint8Array.length} bytes`);
       } else {
-        statusMessages?.addMessage(t('terminal.messages.allPortsFailed'), 'error');
+        // Note: 不再显示发送失败汇总消息
+        // statusMessages?.addMessage(t('terminal.messages.allPortsFailed'), 'error');
+        console.warn('All ports failed to send');
       }
     } catch (error) {
-      statusMessages?.addMessage(t('terminal.messages.partialFailed'), 'error');
+      // Note: 不再显示部分失败消息，避免状态栏噪音
+      // statusMessages?.addMessage(t('terminal.messages.partialFailed'), 'error');
+      console.error('Partial send failed:', error);
     }
-  };
+  }, [sendData, sendFormat, newlineMode, selectedSendPort, strategy.communicationMode, strategy.txPort, connectedPorts, connectedPortLabels, serialManager.serialManager, addLog, statusMessages, t, toast]);
 
-  // 自动发送控制
-  const toggleAutoSend = () => {
+  // 自动发送控制 - 优化内存管理
+  const toggleAutoSend = useCallback(() => {
     if (autoSend) {
+      // 停止自动发送
       if (autoSendTimerRef.current) {
         clearInterval(autoSendTimerRef.current);
         autoSendTimerRef.current = null;
       }
       setAutoSend(false);
-      statusMessages?.addMessage(t('terminal.messages.autoSendStopped'), 'info');
+      // Note: 不再显示自动发送停止消息，避免状态栏噪音
+      // statusMessages?.addMessage(t('terminal.messages.autoSendStopped'), 'info');
+      console.log('Auto send stopped');
     } else {
+      // 开始自动发送 - 添加验证
       if (autoSendInterval < 10) {
         toast({
           title: t('terminal.intervalTooShort'),
@@ -546,9 +561,11 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       }, autoSendInterval);
       
       setAutoSend(true);
-      statusMessages?.addMessage(t('terminal.messages.autoSendStarted', { interval: autoSendInterval }), 'success');
+      // Note: 不再显示自动发送开始消息，避免状态栏噪音
+      // statusMessages?.addMessage(t('terminal.messages.autoSendStarted', { interval: autoSendInterval }), 'success');
+      console.log(`Auto send started with interval: ${autoSendInterval}ms`);
     }
-  };
+  }, [autoSend, autoSendInterval, connectedPorts.length, serialManager.serialManager, sendSerialData, statusMessages, toast]);
 
   // 清空日志
   const clearLogs = (portIndex?: number) => {
@@ -679,13 +696,14 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     return unsubscribe;
   }, []);
 
-  // 监听端口连接变化
+  // 监听端口连接变化 - 优化性能
   useEffect(() => {
     // 为新连接的端口启动数据监听
     connectedPortLabels.forEach((portInfo, index) => {
       if (!isReadingRef.current.has(portInfo.label)) {
         startReading(portInfo.label, index);
-        statusMessages?.addMessage(t('terminal.messages.startListeningPort', { portNumber: index + 1 }), 'info');
+        // Note: 不再显示启动监听状态消息，避免状态栏噪音
+        // statusMessages?.addMessage(t('terminal.messages.startListeningPort', { portNumber: index + 1 }), 'info');
       }
     });
 
@@ -694,20 +712,34 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
     for (const portLabel of isReadingRef.current) {
       if (!connectedPortLabelsSet.has(portLabel)) {
         stopReading(portLabel);
-        statusMessages?.addMessage(t('terminal.messages.portDisconnected'), 'warning');
+        // Note: 不再显示断开连接状态消息，避免状态栏噪音
+        // statusMessages?.addMessage(t('terminal.messages.portDisconnected'), 'warning');
       }
     }
 
     // 初始化terminalRefs数组
     terminalRefs.current = new Array(connectedPorts.length).fill(null);
+    
+    // 清理函数
+    return () => {
+      // 清理新添加的端口监听
+      connectedPortLabels.forEach((portInfo) => {
+        if (isReadingRef.current.has(portInfo.label)) {
+          stopReading(portInfo.label);
+        }
+      });
+    };
   }, [connectedPorts, connectedPortLabels]);
 
-  // 组件卸载时清理
+  // 组件卸载时清理 - 优化内存泄漏
   useEffect(() => {
     return () => {
+      // 清理自动发送定时器
       if (autoSendTimerRef.current) {
         clearInterval(autoSendTimerRef.current);
+        autoSendTimerRef.current = null;
       }
+      
       // 停止所有数据读取
       for (const portLabel of isReadingRef.current) {
         stopReading(portLabel);
@@ -716,6 +748,15 @@ export const DataTerminal: React.FC<DataTerminalProps> = ({
       
       // 清理对象池中的日志对象
       clearLogs();
+      
+      // 清理引用
+      terminalRefs.current = [];
+      
+      // 清理状态
+      setLogs({});
+      // Note: setReceivedData is not available in this scope, it will be cleaned up by parent component
+      
+      console.log('[DataTerminal] Cleanup completed');
     };
   }, []);
 

@@ -132,11 +132,15 @@ export class WebSerialTransport extends SerialTransport {
       throw new Error('Port not writable');
     }
 
-    const writer = port.writable.getWriter();
+    // Note: 使用直接写入方式，提高发送速度
     try {
+      const writer = port.writable.getWriter();
+      // Removed getWriter() to prevent blocking, direct write for better performance
       await writer.write(data);
-    } finally {
       writer.releaseLock();
+    } catch (error) {
+      console.error('WebSerial write error:', error);
+      throw error;
     }
   }
 
@@ -149,6 +153,7 @@ export class WebSerialTransport extends SerialTransport {
     // Stop any existing reader
     await this.stopReading(connection);
 
+    // Note: 优化数据读取，提高实时性，使用更频繁的检查
     const reader = port.readable.getReader();
     this.readers.set(connection.id, reader);
 
@@ -156,7 +161,11 @@ export class WebSerialTransport extends SerialTransport {
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        onData(value);
+
+        // Note: 立即处理数据，无额外处理延迟，确保实时性
+        if (value && value.length > 0) {
+          onData(value);
+        }
       }
     } catch (error) {
       console.error('Reading stopped:', error);

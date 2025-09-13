@@ -240,11 +240,11 @@ export const debounce = <T extends (...args: any[]) => void>(
  * 串口数据处理节流配置
  */
 export const SERIAL_THROTTLE_CONFIG = {
-  DATA_RECEIVED: 50,      // 数据接收节流 50ms
-  COMMAND_SEND: 100,      // 命令发送节流 100ms
-  STATUS_UPDATE: 200,     // 状态更新节流 200ms
-  LOG_UPDATE: 100,        // 日志更新节流 100ms
-  URC_PROCESSING: 30      // URC处理节流 30ms
+  DATA_RECEIVED: 10,      // 数据接收节流 10ms，提高实时性
+  COMMAND_SEND: 10,       // 命令发送节流 10ms，提高发送速度
+  STATUS_UPDATE: 50,      // 状态更新节流 50ms，减少渲染压力
+  LOG_UPDATE: 10,         // 日志更新节流 10ms，提高显示实时性
+  URC_PROCESSING: 10      // URC处理节流 10ms，减少判断延迟
 } as const;
 
 /**

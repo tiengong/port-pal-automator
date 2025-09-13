@@ -143,8 +143,6 @@ export const StatusFooter: React.FC<StatusFooterProps> = ({
             </ScrollArea>
           </PopoverContent>
         </Popover>
-        
-        <span className="text-muted-foreground/70">© 2024</span>
       </div>
     </footer>
   );

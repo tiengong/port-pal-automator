@@ -96,6 +96,10 @@ export const TestCaseCommandList: React.FC<TestCaseCommandListProps> = ({
         onEditCommand={onEditCommand}
         onSaveInlineEdit={onSaveInlineEdit}
         onSetLastFocusedChild={onSetLastFocusedChild}
+        onContextMenu={(e, commandId, type) => {
+          // Default context menu handler - can be enhanced later
+          e.preventDefault();
+        }}
         inlineEdit={inlineEdit}
         setInlineEdit={setInlineEdit}
       />

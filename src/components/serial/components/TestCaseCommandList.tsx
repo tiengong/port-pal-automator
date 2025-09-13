@@ -81,7 +81,7 @@ export const TestCaseCommandList: React.FC<TestCaseCommandListProps> = ({
         command={command}
         caseId={testCase.id}
         commandIndex={commandIndex}
-        level={level + 1}
+        level={level + 2}
         isDragging={isDragging}
         isDropTarget={isDropTarget}
         dropPosition={dropPosition}
@@ -154,7 +154,7 @@ export const TestCaseCommandList: React.FC<TestCaseCommandListProps> = ({
           <TestCaseCommandList
             key={`${subCase.id}-children`}
             testCase={subCase}
-            level={level + 1}
+            level={level + 2}
             parentCaseId={testCase.id}
             isExecuting={isExecuting}
             dragInfo={dragInfo}

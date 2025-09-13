@@ -7,7 +7,7 @@
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:8080"
+    "devUrl": "http://localhost:8082"
   },
   "app": {
     "windows": [
@@ -55,6 +55,8 @@
     "dialog": null,
     "shell": null,
     "window": null,
-    "serialplugin": null
+    "serialplugin": {
+      "scope": ["*"]
+    }
   }
 }

@@ -1,31 +1,57 @@
 import { SerialTransport, SerialPortInfo, SerialConfig, SerialConnection } from './transport';
 import { WebSerialTransport } from './webSerialTransport';
-import { TauriSerialTransport } from './tauriSerialTransport';
+import { RobustTauriSerialTransport } from './enhanced/robustTauriSerialTransport';
+import { TauriEnvironmentDetector } from './enhanced/tauriEnvironmentDetector';
 
 export class SerialManager {
   private transport: SerialTransport;
   private connections = new Map<string, SerialConnection>(); // label -> connection
+  private isInitialized = false;
 
   constructor() {
-    // Choose transport based on environment - use more reliable detection
-    if (typeof window !== 'undefined' && window.__TAURI__) {
-      console.log('Initializing Tauri serial transport');
-      this.transport = new TauriSerialTransport();
+    // Defer transport initialization until first use
+    this.initializeTransport();
+  }
+
+  private async initializeTransport() {
+    if (this.isInitialized) return;
+    
+    // Wait for Tauri to be ready if in Tauri environment
+    const isTauriReady = await TauriEnvironmentDetector.waitForTauri();
+    
+    if (isTauriReady) {
+      const hasSerialPlugin = await TauriEnvironmentDetector.verifySerialPlugin();
+      if (hasSerialPlugin) {
+        console.log('Initializing Robust Tauri serial transport');
+        this.transport = new RobustTauriSerialTransport();
+      } else {
+        console.log('Tauri serial plugin not available, using web transport');
+        this.transport = new WebSerialTransport();
+      }
     } else {
       console.log('Initializing Web serial transport');
       this.transport = new WebSerialTransport();
     }
+    
+    this.isInitialized = true;
+    console.log('Transport initialized:', {
+      type: this.transport.constructor.name,
+      environment: TauriEnvironmentDetector.getEnvironmentInfo()
+    });
   }
 
-  isSupported(): boolean {
+  async isSupported(): Promise<boolean> {
+    await this.initializeTransport();
     return this.transport.isSupported();
   }
 
   async listPorts(): Promise<SerialPortInfo[]> {
+    await this.initializeTransport();
     return this.transport.listPorts();
   }
 
   async requestPort(): Promise<SerialPortInfo | null> {
+    await this.initializeTransport();
     if (this.transport.requestPort) {
       return this.transport.requestPort();
     }
@@ -34,6 +60,8 @@ export class SerialManager {
 
   async connect(port: SerialPortInfo, config: SerialConfig, label: string): Promise<boolean> {
     try {
+      await this.initializeTransport();
+      
       // Disconnect existing connection with same label
       if (this.connections.has(label)) {
         await this.disconnect(label);

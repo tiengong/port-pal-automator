@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "Serial Pilot",
-    "version": "版本 2.2.0",
+    "version": "版本 0.0.1",
     "notSupported": "您的浏览器不支持 Web Serial API",
     "connecting": "连接中...",
     "connected": "已连接",

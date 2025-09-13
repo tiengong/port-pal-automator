@@ -1,7 +1,7 @@
 {
   "app": {
     "title": "Serial Pilot",
-    "version": "Version 2.2.0",
+    "version": "Version 0.0.1",
     "notSupported": "Your browser does not support Web Serial API",
     "connecting": "Connecting...",
     "connected": "Connected",

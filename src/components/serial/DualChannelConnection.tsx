@@ -197,403 +197,412 @@ export const DualChannelConnection: React.FC<DualChannelConnectionProps> = ({
   const p2Port = ports.find(p => p.label === 'P2');
 
   return (
-    <div className="space-y-4">
-
-      {/* Main Serial Port */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {p1Port?.connected ? (
-              <>
-                <PlugZap className="w-5 h-5 text-success" />
-                <span>{t("connection.serialConnection")}</span>
-                <Badge variant="secondary" className="ml-auto">{t("connection.connected")}</Badge>
-              </>
-            ) : (
-              <>
-                <Plug className="w-5 h-5" />
-                <span>{t("connection.serialConnection")}</span>
-                <Badge variant="outline" className="ml-auto">{t("connection.disconnected")}</Badge>
-              </>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!p1Port?.connected ? (
-            <>
-              {/* Port Selection */}
-              <div className="space-y-2">
-                <Label>{t("connection.selectPort")}</Label>
-                <Select
-                  value={selectedIndex.P1}
-                  onValueChange={handleP1PortSelect}
-                  onOpenChange={handleP1PortDropdownOpen}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("connection.selectDeviceAuto")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availablePorts.length === 0 ? (
-                      <>
-                        <SelectItem value="no-ports" disabled>
-                          {t("connection.noPortsAvailable")}
-                        </SelectItem>
-                        <SelectItem value="add-port">
-                          <div className="flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            {t("connection.addNewDevice")}
-                          </div>
-                        </SelectItem>
-                      </>
-                    ) : (
-                      availablePorts.map((port, index) => {
-                        return (
-                          <SelectItem key={index} value={index.toString()}>
-                            {port.name}
-                          </SelectItem>
-                        );
-                      })
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Basic Configuration */}
-              <div className="grid grid-cols-2 gap-4">
-                <BaudRateSelect
-                  value={strategy.p1Config.baudRate}
-                  onChange={(value) => 
-                    updateStrategy({ 
-                      p1Config: { ...strategy.p1Config, baudRate: value }
-                    })
-                  }
-                  label={t("connection.baudRate")}
-                />
-
-                <div className="space-y-2">
-                  <Label>{t("connection.dataBits")}</Label>
-                  <Select
-                    value={strategy.p1Config.dataBits.toString()}
-                    onValueChange={(value) => 
-                      updateStrategy({ 
-                        p1Config: { ...strategy.p1Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[5, 6, 7, 8].map(bits => (
-                        <SelectItem key={bits} value={bits.toString()}>
-                          {bits} {t("connection.bits")}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t("connection.parity")}</Label>
-                  <Select
-                    value={strategy.p1Config.parity}
-                    onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
-                      updateStrategy({ 
-                        p1Config: { ...strategy.p1Config, parity: value }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">{t("connection.noParity")}</SelectItem>
-                      <SelectItem value="even">{t("connection.evenParity")}</SelectItem>
-                      <SelectItem value="odd">{t("connection.oddParity")}</SelectItem>
-                      <SelectItem value="mark">{t("connection.markParity")}</SelectItem>
-                      <SelectItem value="space">{t("connection.spaceParity")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t("connection.stopBits")}</Label>
-                  <Select
-                    value={strategy.p1Config.stopBits.toString()}
-                    onValueChange={(value) => 
-                      updateStrategy({ 
-                        p1Config: { ...strategy.p1Config, stopBits: parseInt(value) as 1 | 2 }
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 {t("connection.bits")}</SelectItem>
-                      <SelectItem value="2">2 {t("connection.bits")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button
-                onClick={() => connectChannel('P1')}
-                disabled={!selectedPorts.P1 || isConnecting.P1}
-                className="w-full"
-              >
-                {isConnecting.P1 ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    {t("connection.connecting")}
-                  </>
-                ) : (
-                  t("connection.connect")
-                )}
-              </Button>
-            </>
-          ) : (
-            <div className="p-3 bg-success/10 border border-success/20 rounded-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-success">
-                  <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium">
-                    {t("connection.connected")} - {p1Port.params.baudRate} bps
-                  </span>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => disconnectChannel('P1')}
-                >
-                  {t("connection.disconnect")}
-                </Button>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {p1Port.params.dataBits}{t("connection.bits")} • {p1Port.params.parity === 'none' ? t("connection.noParity") : p1Port.params.parity} • {p1Port.params.stopBits}{t("connection.stopBits")}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add Secondary Serial Port - Simplified */}
-      {!p2Port?.connected && !strategy.p2Enabled && (
-        <Button 
-          variant="outline" 
-          className="w-full justify-center"
-          onClick={async () => {
-            // Enable P2 and sync config with P1
-            updateStrategy({ 
-              p2Enabled: true,
-              mode: 'P1_P2',
-              p2Config: { ...strategy.p1Config } // Sync with P1 config
-            });
+    <div className="w-full h-full flex flex-col">
+      {/* Responsive Container for Serial Port Configurations */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="w-full h-full min-h-[600px] p-2 sm:p-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 h-full auto-rows-max">
             
-            // Auto-refresh ports for immediate selection
-            await requestPortAndRefresh();
-            
-            toast({
-              title: t("connection.secondPortEnabled"),
-              description: t("connection.secondPortEnabledDesc"),
-            });
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          {t("connection.addSecondPort")}
-        </Button>
-      )}
-
-      {/* Secondary Serial Port */}
-      {strategy.p2Enabled && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {p2Port?.connected ? (
-                <>
-                  <PlugZap className="w-5 h-5 text-success" />
-                  <span>{t("connection.secondSerialPort")}</span>
-                  <Badge variant="secondary" className="ml-auto">{t("connection.connected")}</Badge>
-                </>
-              ) : (
-                <>
-                  <Plug className="w-5 h-5" />
-                  <span>{t("connection.secondSerialPort")}</span>
-                  <Badge variant="outline" className="ml-auto">{t("connection.disconnected")}</Badge>
-                </>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => updateStrategy({ 
-                  p2Enabled: false,
-                  mode: 'P1_ONLY'
-                })}
-                className="ml-auto p-1 h-6 w-6"
-              >
-                ×
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!p2Port?.connected ? (
-              <>
-                {/* Port Selection */}
-                <div className="space-y-2">
-                  <Label>{t("connection.selectPort")}</Label>
-                  <Select
-                    value={selectedIndex.P2}
-                    onValueChange={handleP2PortSelect}
-                    onOpenChange={handleP2PortDropdownOpen}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("connection.selectDeviceAuto")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availablePorts.length === 0 ? (
-                        <>
-                          <SelectItem value="no-ports" disabled>
-                            {t("connection.noPortsAvailable")}
-                          </SelectItem>
-                          <SelectItem value="add-port">
-                            <div className="flex items-center gap-2">
-                              <Plus className="w-4 h-4" />
-                              {t("connection.addNewDevice")}
-                            </div>
-                          </SelectItem>
-                        </>
-                       ) : (
-                         availablePorts.map((port, index) => {
-                           return (
-                             <SelectItem key={index} value={index.toString()}>
-                               {port.name}
-                             </SelectItem>
-                           );
-                         })
-                       )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Detailed Configuration */}
-                <div className="grid grid-cols-2 gap-4">
-                  <BaudRateSelect
-                    value={strategy.p2Config.baudRate}
-                    onChange={(value) => 
-                      updateStrategy({ 
-                        p2Config: { ...strategy.p2Config, baudRate: value }
-                      })
-                    }
-                    label={t("connection.baudRate")}
-                  />
-
-                  <div className="space-y-2">
-                    <Label>{t("connection.dataBits")}</Label>
-                    <Select
-                      value={strategy.p2Config.dataBits.toString()}
-                      onValueChange={(value) => 
-                        updateStrategy({ 
-                          p2Config: { ...strategy.p2Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[5, 6, 7, 8].map(bits => (
-                          <SelectItem key={bits} value={bits.toString()}>
-                            {bits} {t("connection.bits")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>{t("connection.parity")}</Label>
-                    <Select
-                      value={strategy.p2Config.parity}
-                      onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
-                        updateStrategy({ 
-                          p2Config: { ...strategy.p2Config, parity: value }
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{t("connection.noParity")}</SelectItem>
-                        <SelectItem value="even">{t("connection.evenParity")}</SelectItem>
-                        <SelectItem value="odd">{t("connection.oddParity")}</SelectItem>
-                        <SelectItem value="mark">{t("connection.markParity")}</SelectItem>
-                        <SelectItem value="space">{t("connection.spaceParity")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>{t("connection.stopBits")}</Label>
-                    <Select
-                      value={strategy.p2Config.stopBits.toString()}
-                      onValueChange={(value) => 
-                        updateStrategy({ 
-                          p2Config: { ...strategy.p2Config, stopBits: parseInt(value) as 1 | 2 }
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 {t("connection.bits")}</SelectItem>
-                        <SelectItem value="2">2 {t("connection.bits")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => connectChannel('P2')}
-                  disabled={!selectedPorts.P2 || isConnecting.P2}
-                  className="w-full"
-                >
-                  {isConnecting.P2 ? (
+            {/* Main Serial Port */}
+            <Card className="flex-shrink-0">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  {p1Port?.connected ? (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      {t("connection.connecting")}
+                      <PlugZap className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                      <span>{t("connection.serialConnection")}</span>
+                      <Badge variant="secondary" className="ml-auto text-xs">{t("connection.connected")}</Badge>
                     </>
                   ) : (
-                    t("connection.connect")
+                    <>
+                      <Plug className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span>{t("connection.serialConnection")}</span>
+                      <Badge variant="outline" className="ml-auto text-xs">{t("connection.disconnected")}</Badge>
+                    </>
                   )}
-                </Button>
-              </>
-            ) : (
-              <div className="p-3 bg-success/10 border border-success/20 rounded-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-success">
-                    <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">
-                      P2 - {p2Port.params.baudRate} bps
-                    </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 sm:space-y-4">
+                {!p1Port?.connected ? (
+                  <>
+                    {/* Port Selection */}
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-xs sm:text-sm">{t("connection.selectPort")}</Label>
+                      <Select
+                        value={selectedIndex.P1}
+                        onValueChange={handleP1PortSelect}
+                        onOpenChange={handleP1PortDropdownOpen}
+                      >
+                        <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                          <SelectValue placeholder={t("connection.selectDeviceAuto")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availablePorts.length === 0 ? (
+                            <>
+                              <SelectItem value="no-ports" disabled>
+                                {t("connection.noPortsAvailable")}
+                              </SelectItem>
+                              <SelectItem value="add-port">
+                                <div className="flex items-center gap-2">
+                                  <Plus className="w-4 h-4" />
+                                  {t("connection.addNewDevice")}
+                                </div>
+                              </SelectItem>
+                            </>
+                          ) : (
+                            availablePorts.map((port, index) => {
+                              return (
+                                <SelectItem key={index} value={index.toString()}>
+                                  {port.name}
+                                </SelectItem>
+                              );
+                            })
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Basic Configuration */}
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                      <BaudRateSelect
+                        value={strategy.p1Config.baudRate}
+                        onChange={(value) => 
+                          updateStrategy({ 
+                            p1Config: { ...strategy.p1Config, baudRate: value }
+                          })
+                        }
+                        label={t("connection.baudRate")}
+                      />
+
+                      <div className="space-y-1 sm:space-y-2">
+                        <Label className="text-xs sm:text-sm">{t("connection.dataBits")}</Label>
+                        <Select
+                          value={strategy.p1Config.dataBits.toString()}
+                          onValueChange={(value) => 
+                            updateStrategy({ 
+                              p1Config: { ...strategy.p1Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[5, 6, 7, 8].map(bits => (
+                              <SelectItem key={bits} value={bits.toString()}>
+                                {bits} {t("connection.bits")}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1 sm:space-y-2">
+                        <Label className="text-xs sm:text-sm">{t("connection.parity")}</Label>
+                        <Select
+                          value={strategy.p1Config.parity}
+                          onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
+                            updateStrategy({ 
+                              p1Config: { ...strategy.p1Config, parity: value }
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">{t("connection.noParity")}</SelectItem>
+                            <SelectItem value="even">{t("connection.evenParity")}</SelectItem>
+                            <SelectItem value="odd">{t("connection.oddParity")}</SelectItem>
+                            <SelectItem value="mark">{t("connection.markParity")}</SelectItem>
+                            <SelectItem value="space">{t("connection.spaceParity")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1 sm:space-y-2">
+                        <Label className="text-xs sm:text-sm">{t("connection.stopBits")}</Label>
+                        <Select
+                          value={strategy.p1Config.stopBits.toString()}
+                          onValueChange={(value) => 
+                            updateStrategy({ 
+                              p1Config: { ...strategy.p1Config, stopBits: parseInt(value) as 1 | 2 }
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 {t("connection.bits")}</SelectItem>
+                            <SelectItem value="2">2 {t("connection.bits")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => connectChannel('P1')}
+                      disabled={!selectedPorts.P1 || isConnecting.P1}
+                      className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                    >
+                      {isConnecting.P1 ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                          {t("connection.connecting")}
+                        </>
+                      ) : (
+                        t("connection.connect")
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <div className="p-2 sm:p-3 bg-success/10 border border-success/20 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-success">
+                        <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                        <span className="text-xs sm:text-sm font-medium">
+                          {t("connection.connected")} - {p1Port.params.baudRate} bps
+                        </span>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-6 sm:h-8 px-2 sm:px-3 text-xs"
+                        onClick={() => disconnectChannel('P1')}
+                      >
+                        {t("connection.disconnect")}
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {p1Port.params.dataBits}{t("connection.bits")} • {p1Port.params.parity === 'none' ? t("connection.noParity") : p1Port.params.parity} • {p1Port.params.stopBits}{t("connection.stopBits")}
+                    </div>
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => disconnectChannel('P2')}
-                  >
-                    {t("connection.disconnect")}
-                  </Button>
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {p2Port.params.dataBits}{t("connection.bits")} • {p2Port.params.parity === 'none' ? t("connection.noParity") : p2Port.params.parity} • {p2Port.params.stopBits}{t("connection.stopBits")}
-                </div>
-              </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Add Secondary Serial Port - Simplified */}
+            {!p2Port?.connected && !strategy.p2Enabled && (
+              <Button 
+                variant="outline" 
+                className="w-full justify-center h-8 sm:h-10 text-xs sm:text-sm flex-shrink-0"
+                onClick={async () => {
+                  // Enable P2 and sync config with P1
+                  updateStrategy({ 
+                    p2Enabled: true,
+                    mode: 'P1_P2',
+                    p2Config: { ...strategy.p1Config } // Sync with P1 config
+                  });
+                  
+                  // Auto-refresh ports for immediate selection
+                  await requestPortAndRefresh();
+                  
+                  toast({
+                    title: t("connection.secondPortEnabled"),
+                    description: t("connection.secondPortEnabledDesc"),
+                  });
+                }}
+              >
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                {t("connection.addSecondPort")}
+              </Button>
             )}
-          </CardContent>
-        </Card>
-      )}
+
+            {/* Secondary Serial Port */}
+            {strategy.p2Enabled && (
+              <Card className="flex-shrink-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    {p2Port?.connected ? (
+                      <>
+                        <PlugZap className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                        <span>{t("connection.secondSerialPort")}</span>
+                        <Badge variant="secondary" className="ml-auto text-xs">{t("connection.connected")}</Badge>
+                      </>
+                    ) : (
+                      <>
+                        <Plug className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span>{t("connection.secondSerialPort")}</span>
+                        <Badge variant="outline" className="ml-auto text-xs">{t("connection.disconnected")}</Badge>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => updateStrategy({ 
+                        p2Enabled: false,
+                        mode: 'P1_ONLY'
+                      })}
+                      className="ml-auto p-1 h-5 w-5 sm:h-6 sm:w-6 text-xs"
+                    >
+                      ×
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 sm:space-y-4">
+                  {!p2Port?.connected ? (
+                    <>
+                      {/* Port Selection */}
+                      <div className="space-y-1 sm:space-y-2">
+                        <Label className="text-xs sm:text-sm">{t("connection.selectPort")}</Label>
+                        <Select
+                          value={selectedIndex.P2}
+                          onValueChange={handleP2PortSelect}
+                          onOpenChange={handleP2PortDropdownOpen}
+                        >
+                          <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                            <SelectValue placeholder={t("connection.selectDeviceAuto")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availablePorts.length === 0 ? (
+                              <>
+                                <SelectItem value="no-ports" disabled>
+                                  {t("connection.noPortsAvailable")}
+                                </SelectItem>
+                                <SelectItem value="add-port">
+                                  <div className="flex items-center gap-2">
+                                    <Plus className="w-4 h-4" />
+                                    {t("connection.addNewDevice")}
+                                  </div>
+                                </SelectItem>
+                              </>
+                            ) : (
+                              availablePorts.map((port, index) => {
+                                return (
+                                  <SelectItem key={index} value={index.toString()}>
+                                    {port.name}
+                                  </SelectItem>
+                                );
+                              })
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Detailed Configuration */}
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                        <BaudRateSelect
+                          value={strategy.p2Config.baudRate}
+                          onChange={(value) => 
+                            updateStrategy({ 
+                              p2Config: { ...strategy.p2Config, baudRate: value }
+                            })
+                          }
+                          label={t("connection.baudRate")}
+                        />
+
+                        <div className="space-y-1 sm:space-y-2">
+                          <Label className="text-xs sm:text-sm">{t("connection.dataBits")}</Label>
+                          <Select
+                            value={strategy.p2Config.dataBits.toString()}
+                            onValueChange={(value) => 
+                              updateStrategy({ 
+                                p2Config: { ...strategy.p2Config, dataBits: parseInt(value) as 5 | 6 | 7 | 8 }
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[5, 6, 7, 8].map(bits => (
+                                <SelectItem key={bits} value={bits.toString()}>
+                                  {bits} {t("connection.bits")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1 sm:space-y-2">
+                          <Label className="text-xs sm:text-sm">{t("connection.parity")}</Label>
+                          <Select
+                            value={strategy.p2Config.parity}
+                            onValueChange={(value: 'none' | 'even' | 'odd' | 'mark' | 'space') => 
+                              updateStrategy({ 
+                                p2Config: { ...strategy.p2Config, parity: value }
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">{t("connection.noParity")}</SelectItem>
+                              <SelectItem value="even">{t("connection.evenParity")}</SelectItem>
+                              <SelectItem value="odd">{t("connection.oddParity")}</SelectItem>
+                              <SelectItem value="mark">{t("connection.markParity")}</SelectItem>
+                              <SelectItem value="space">{t("connection.spaceParity")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1 sm:space-y-2">
+                          <Label className="text-xs sm:text-sm">{t("connection.stopBits")}</Label>
+                          <Select
+                            value={strategy.p2Config.stopBits.toString()}
+                            onValueChange={(value) => 
+                              updateStrategy({ 
+                                p2Config: { ...strategy.p2Config, stopBits: parseInt(value) as 1 | 2 }
+                              })
+                            }
+                          >
+                            <SelectTrigger className="h-8 sm:h-10 text-xs sm:text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">1 {t("connection.bits")}</SelectItem>
+                              <SelectItem value="2">2 {t("connection.bits")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => connectChannel('P2')}
+                        disabled={!selectedPorts.P2 || isConnecting.P2}
+                        className="w-full h-8 sm:h-10 text-xs sm:text-sm"
+                      >
+                        {isConnecting.P2 ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                            {t("connection.connecting")}
+                          </>
+                        ) : (
+                          t("connection.connect")
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="p-2 sm:p-3 bg-success/10 border border-success/20 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-success">
+                          <div className="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                          <span className="text-xs sm:text-sm font-medium">
+                            {t("connection.connected")} - {p2Port.params.baudRate} bps
+                          </span>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-6 sm:h-8 px-2 sm:px-3 text-xs"
+                          onClick={() => disconnectChannel('P2')}
+                        >
+                          {t("connection.disconnect")}
+                        </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {p2Port.params.dataBits}{t("connection.bits")} • {p2Port.params.parity === 'none' ? t("connection.noParity") : p2Port.params.parity} • {p2Port.params.stopBits}{t("connection.stopBits")}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

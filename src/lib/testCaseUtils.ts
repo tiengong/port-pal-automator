@@ -2,6 +2,11 @@ import { TestCase, TestCommand } from "@/components/serial/types";
 import { getNextUniqueId, fromPersistedCase } from "@/components/serial/workspace";
 
 /**
+ * Export the updateTestCaseById function to match the import in TestCaseActions
+ */
+export { updateTestCaseById, findTestCaseById } from '@/components/serial/testCaseUtils';
+
+/**
  * 标准化导入的测试用例数据
  * 处理持久化格式转换和基本结构验证
  */

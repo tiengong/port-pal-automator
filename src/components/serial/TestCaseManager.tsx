@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -49,6 +49,7 @@ import { TestCase } from './types';
 import { eventBus, EVENTS, SerialDataEvent } from '@/lib/eventBus';
 import { sampleTestCases } from './sampleCases';
 import { CaseEditDialogInline } from './components/CaseEditDialogInline';
+import { SubCaseRow } from './SubCaseRow';
 
 // Import modular utilities
 import { useTestCaseManager } from './hooks/useTestCaseManager';
@@ -171,10 +172,8 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
   const currentTestCase = getCurrentTestCase();
   const visibleRootCase = getVisibleRootCase();
 
-  console.log('TestCaseManager rendered with modular layout', { currentTestCase, testCases: state.testCases });
-
-  // 获取状态图标
-  const getStatusIcon = (status: string) => {
+  // 获取状态图标 - 使用useCallback进行性能优化
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'success':
         return <CheckCircle className="w-3.5 h-3.5 text-green-500" />;
@@ -187,197 +186,124 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
       default:
         return null;
     }
-  };
+  }, []);
 
-  // 渲染子用例行（支持拖拽）
-  const renderSubCaseRow = (subCase: TestCase, parentCaseId: string, level: number) => {
-    const [isEditingName, setIsEditingName] = useState(false);
-    const [editingName, setEditingName] = useState(subCase.name);
-    const nameInputRef = useRef<HTMLInputElement>(null);
-    
+  // 渲染子用例行（支持拖拽）- 使用独立的SubCaseRow组件来避免React Hooks违规
+  const renderSubCaseRow = useCallback((subCase: TestCase, parentCaseId: string, level: number) => {
     const isDragging = state.dragInfo.draggedItem?.caseId === parentCaseId && state.dragInfo.draggedItem?.itemId === subCase.id;
     const isDropTarget = state.dragInfo.dropTarget?.caseId === parentCaseId && state.dragInfo.dropTarget?.index === level;
     
-    // 处理双击开始编辑
-    const handleDoubleClick = () => {
-      setIsEditingName(true);
-      setEditingName(subCase.name);
-    };
-
-    // 处理名称保存
-    const handleNameSave = () => {
-      if (editingName.trim() !== subCase.name) {
-        updateCaseName(subCase.id, editingName.trim());
-      }
-      setIsEditingName(false);
-    };
-
-    // 处理输入框键盘事件
-    const handleInputKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleNameSave();
-      } else if (e.key === 'Escape') {
-        setIsEditingName(false);
-        setEditingName(subCase.name);
-      }
-    };
-
-    // 处理输入框失焦
-    const handleInputBlur = () => {
-      handleNameSave();
-    };
-
-    // 自动聚焦输入框
-    useEffect(() => {
-      if (isEditingName && nameInputRef.current) {
-        nameInputRef.current.focus();
-        nameInputRef.current.select();
-      }
-    }, [isEditingName]);
-    
     return (
-      <div 
-        key={subCase.id} 
-        className={`p-3 hover:bg-muted/50 transition-colors cursor-move select-none ${
-          isDragging ? 'opacity-50' : ''
-        } ${
-          isDropTarget && state.dragInfo.dropTarget?.position === 'above' ? 'border-t-2 border-primary' : ''
-        } ${
-          isDropTarget && state.dragInfo.dropTarget?.position === 'below' ? 'border-b-2 border-primary' : ''
-        }`}
-        draggable
-        onDragStart={(e) => {
-          // Implementation would use dragDropUtils
-          console.log('Drag start:', subCase.id);
+      <SubCaseRow
+        key={subCase.id}
+        subCase={subCase}
+        parentCaseId={parentCaseId}
+        level={level}
+        isSelected={subCase.selected}
+        isDragging={isDragging}
+        isDropTarget={isDropTarget}
+        dropPosition={state.dragInfo.dropTarget?.position}
+        onSelect={updateCaseSelection}
+        onClick={() => {
+          setSelectedTestCaseId(subCase.id);
+          setLastFocusedChild({
+            caseId: parentCaseId,
+            type: 'subcase',
+            itemId: subCase.id,
+            index: level
+          });
         }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          console.log('Drop event');
-        }}
-      >
-        <div className="flex items-center gap-3" style={{ paddingLeft: `${level * 16}px` }}>
-          {/* 复选框 */}
-          <Checkbox
-            checked={subCase.selected}
-            onCheckedChange={(checked) => {
-              updateCaseSelection(subCase.id, checked as boolean);
-            }}
-            className="flex-shrink-0"
-          />
-          
-          {/* 子用例内容 */}
-          <div
-            className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => {
-              setSelectedTestCaseId(subCase.id);
-              setLastFocusedChild({
-                caseId: parentCaseId,
-                type: 'subcase',
-                itemId: subCase.id,
-                index: level
-              });
-            }}
-            onDoubleClick={handleDoubleClick}
-          >
-            <div className="flex items-center gap-2">
-              {isEditingName ? (
-                <input
-                  ref={nameInputRef}
-                  type="text"
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  onKeyDown={handleInputKeyDown}
-                  onBlur={handleInputBlur}
-                  className="font-medium text-sm bg-transparent border-b border-primary outline-none focus:border-primary-dark truncate w-full"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span className={`font-medium text-sm truncate ${
-                  state.selectedTestCaseId === subCase.id ? 'text-primary' : ''
-                }`}>
-                  {subCase.name}
+        onDoubleClick={() => {}} // Double-click editing is handled within SubCaseRow
+        onRunTestCase={handleRunTestCase}
+        onEditCase={handleEditCase}
+        onToggleExpand={toggleCaseExpand}
+        onUpdateCaseName={updateCaseName}
+        getStatusIcon={getStatusIcon}
+        connectedPorts={connectedPorts}
+      />
+    );
+  }, [state.dragInfo, updateCaseSelection, setSelectedTestCaseId, setLastFocusedChild, handleRunTestCase, handleEditCase, toggleCaseExpand, updateCaseName, getStatusIcon, connectedPorts]);
+
+  // 渲染用例内容（命令和子用例）
+  const renderCaseContent = (testCase: TestCase, level: number): React.ReactNode[] => {
+    const elements: React.ReactNode[] = [];
+
+    // 渲染命令
+    testCase.commands.forEach((command, index) => {
+      elements.push(
+        <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 12}px` }}>
+            <Checkbox
+              checked={command.selected}
+              onCheckedChange={(checked) => {
+                updateCommandSelection(testCase.id, command.id, checked as boolean);
+              }}
+              className="flex-shrink-0 w-3.5 h-3.5"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium text-xs truncate">
+                  {command.type === 'urc' ? (command.urcPattern || command.command) : command.command}
                 </span>
-              )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {getStatusIcon(command.status)}
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => handleRunCommand(testCase.id, index)}
+                      disabled={connectedPorts.length === 0}
+                    >
+                      <PlayCircle className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>运行</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={() => handleEditCommand(testCase.id, index)}
+                    >
+                      <Settings className="w-3.5 h-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>设置</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
-          
-          {/* 状态指示器 */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {getStatusIcon(subCase.status)}
-          </div>
-          
-          {/* 操作按钮 */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => handleRunTestCase(subCase.id)}
-                    disabled={connectedPorts.length === 0}
-                  >
-                    <PlayCircle className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>运行</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => handleEditCase(subCase)}
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>设置</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={() => toggleCaseExpand(subCase.id)}
-                  >
-                    {subCase.subCases.length > 0 || subCase.commands.length > 0 ? (
-                      subCase.isExpanded ? (
-                        <ChevronDown className="w-4 h-4" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4" />
-                      )
-                    ) : (
-                      <div className="w-4 h-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{subCase.isExpanded ? '折叠' : '展开'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
         </div>
-      </div>
-    );
+      );
+    });
+
+    // 渲染子用例
+    testCase.subCases.forEach((subCase) => {
+      elements.push(renderSubCaseRow(subCase, testCase.id, level + 1));
+
+      // 如果子用例展开，递归渲染其内容
+      if (subCase.isExpanded) {
+        elements.push(...renderCaseContent(subCase, level + 1));
+      }
+    });
+
+    return elements;
   };
 
   // 渲染测试用例节点
@@ -536,7 +462,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         
         // 如果子用例展开，递归渲染其内容
         if (subCase.isExpanded) {
-          elements.push(...renderCaseNode(subCase, level + 2));
+          elements.push(...renderCaseContent(subCase, level + 1));
         }
       });
     }
@@ -555,7 +481,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         testCase.commands.forEach((command, index) => {
           elements.push(
             <div key={command.id} className="p-2 hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-2" style={{ paddingLeft: `${level * 12}px` }}>
+              <div className="flex items-center gap-2" style={{ paddingLeft: `${(level + 1) * 12}px` }}>
                 <Checkbox
                   checked={command.selected}
                   onCheckedChange={(checked) => {
@@ -617,7 +543,12 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         });
         
         testCase.subCases.forEach((subCase) => {
-          elements.push(...renderCaseNode(subCase, level + 1));
+          elements.push(renderSubCaseRow(subCase, testCase.id, level + 1));
+          
+          // 如果子用例展开，递归渲染其内容
+          if (subCase.isExpanded) {
+            elements.push(...renderCaseContent(subCase, level + 1));
+          }
         });
       } else {
         // 对于非顶级用例，正常渲染
@@ -739,6 +670,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
                 console.log('Update case:', caseId);
               }}
               hasSelectedItems={hasSelectedItems}
+              generateUniqueId={generateUniqueId}
             />
           </>
         )}
@@ -984,6 +916,7 @@ export const TestCaseManager: React.FC<TestCaseManagerProps> = ({
         onSelectScript={handleSelectScript}
         onCreateScript={handleCreateScript}
         onDeleteScript={handleDeleteScript}
+        generateUniqueId={generateUniqueId}
       />
 
       {/* 编辑测试用例对话框 */}

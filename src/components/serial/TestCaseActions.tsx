@@ -39,6 +39,7 @@ interface TestCaseActionsProps {
   onUpdateCase?: (caseId: string, updater: (c: TestCase) => TestCase) => void;
   onSelectTestCase?: (caseId: string) => void;
   hasSelectedItems?: (testCase: TestCase) => boolean;
+  generateUniqueId?: () => string;
 }
 
 export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
@@ -55,7 +56,8 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
   onDeletePresetCases,
   onUpdateCase,
   onSelectTestCase,
-  hasSelectedItems
+  hasSelectedItems,
+  generateUniqueId
 }) => {
   console.log('TestCaseActions rendered', { currentTestCase });
   
@@ -227,7 +229,7 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     } else {
       // 默认创建逻辑
       const newTestCase: TestCase = {
-        id: `case_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `case_${generateUniqueId ? generateUniqueId() : Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         uniqueId: (Math.max(...testCases.map(tc => parseInt(tc.uniqueId) || 1000), 1000) + 1).toString(),
         name: t("testCase.newTestCase"),
         description: '',
@@ -271,13 +273,27 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
     }
   };
 
-  const handleDeleteSelectedCommands = () => {
+  const handleDeleteSelectedCommands = async () => {
     if (!currentTestCase) return;
     
-    // 获取所有选中的命令
-    const selectedCommands = currentTestCase.commands.filter(cmd => cmd.selected);
+    // 使用与右键菜单相同的递归逻辑
+    const countSelectedItems = (testCase: TestCase): { commands: number; cases: number } => {
+      const selectedCommands = testCase.commands.filter(cmd => cmd.selected);
+      const selectedSubCases = testCase.subCases.filter(subCase => subCase.selected);
+      let totalCommands = selectedCommands.length;
+      let totalCases = selectedSubCases.length;
+      
+      testCase.subCases.forEach(subCase => {
+        const subCounts = countSelectedItems(subCase);
+        totalCommands += subCounts.commands;
+        totalCases += subCounts.cases;
+      });
+      
+      return { commands: totalCommands, cases: totalCases };
+    };
     
-    if (selectedCommands.length === 0) {
+    const counts = countSelectedItems(currentTestCase);
+    if (counts.commands === 0 && counts.cases === 0) {
       toast({
         title: t("testCase.deleteSelected"),
         description: t("testCase.deleteSelectedDesc"),
@@ -286,20 +302,34 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
       return;
     }
     
-      // 回退到顶层更新
-      const updatedCommands = currentTestCase.commands.filter(cmd => !cmd.selected);
-      const updatedCase = { ...currentTestCase, commands: updatedCommands };
-      const updatedTestCases = testCases.map(tc => 
-        tc.id === currentTestCase.id ? updatedCase : tc
-      );
-      setTestCases(updatedTestCases);
-      
-      // 兜底自动保存
-      scheduleAutoSave(updatedCase);
+    const removeSelectedItems = (testCase: TestCase): TestCase => ({
+      ...testCase,
+      commands: testCase.commands.filter(cmd => !cmd.selected),
+      subCases: testCase.subCases
+        .filter(subCase => !subCase.selected)
+        .map(subCase => removeSelectedItems(subCase))
+    });
+    
+    // 使用与右键菜单相同的更新逻辑
+    const { updateTestCaseById } = await import('@/lib/testCaseUtils');
+    const updatedTestCases = updateTestCaseById(testCases, currentTestCase.id, removeSelectedItems);
+    setTestCases(updatedTestCases);
+    
+    // 自动保存
+    scheduleAutoSave(updatedTestCases.find(tc => tc.id === currentTestCase.id)!);
+    
+    let description = "";
+    if (counts.commands > 0 && counts.cases > 0) {
+      description = `已删除 ${counts.commands} 个命令和 ${counts.cases} 个子用例`;
+    } else if (counts.commands > 0) {
+      description = `已删除 ${counts.commands} 个命令`;
+    } else {
+      description = `已删除 ${counts.cases} 个子用例`;
+    }
     
     toast({
       title: t("testCase.deleteSuccess"),
-      description: t("testCase.deleteSelectedSuccess", { count: selectedCommands.length }),
+      description: description,
     });
   };
 
@@ -392,20 +422,26 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={handleSelectAllTestCases}
                 variant="outline" 
                 size="sm" 
-                className="h-7 w-7 p-0"
+                className="h-7 px-2 text-xs"
               >
                 {testCases.length > 0 && testCases.every(tc => tc.selected) ? (
-                  <CheckSquare className="w-3.5 h-3.5" />
+                  <>
+                    <CheckSquare className="w-3 h-3 mr-1" />
+                    取消全选用例
+                  </>
                 ) : (
-                  <SquareIcon className="w-3.5 h-3.5" />
+                  <>
+                    <SquareIcon className="w-3 h-3 mr-1" />
+                    全选用例
+                  </>
                 )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p>
                 {testCases.length > 0 && testCases.every(tc => tc.selected)
-                  ? "取消全选用例"
-                  : "全选所有用例"
+                  ? "取消全选所有测试用例"
+                  : "全选所有测试用例"
                 }
               </p>
             </TooltipContent>
@@ -422,20 +458,26 @@ export const TestCaseActions: React.FC<TestCaseActionsProps> = ({
                 onClick={handleToggleSelectAll}
                 variant="outline" 
                 size="sm" 
-                className="h-7 w-7 p-0"
+                className="h-7 px-2 text-xs"
               >
                 {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected) ? (
-                  <CheckSquare className="w-3.5 h-3.5" />
+                  <>
+                    <CheckSquare className="w-3 h-3 mr-1" />
+                    取消全选命令
+                  </>
                 ) : (
-                  <SquareIcon className="w-3.5 h-3.5" />
+                  <>
+                    <SquareIcon className="w-3 h-3 mr-1" />
+                    全选命令
+                  </>
                 )}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p>
                 {currentTestCase.commands.length > 0 && currentTestCase.commands.every(cmd => cmd.selected)
-                  ? "取消全选"
-                  : "全选命令"
+                  ? "取消全选当前用例的所有命令"
+                  : "全选当前用例的所有命令"
                 }
               </p>
             </TooltipContent>
